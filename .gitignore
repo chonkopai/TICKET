@@ -1,0 +1,32 @@
+# Dependencies and build output
+node_modules/
+.pnpm-store/
+.next/
+dist/
+coverage/
+.turbo/
+
+# Environment and local runtime files
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+var/
+
+# Credentials and signing material
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+*.pkpass
+
+# Generated database client
+packages/database/src/generated/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "globalEnv": [
+    "API_BASE_URL",
+    "API_PORT",
+    "APPLE_WALLET_ICON_PATH",
+    "APPLE_WALLET_ORGANIZATION_NAME",
+    "APPLE_WALLET_PASS_TYPE_ID",
+    "APPLE_WALLET_SIGNER_CERT_PATH",
+    "APPLE_WALLET_SIGNER_KEY_PASSWORD",
+    "APPLE_WALLET_SIGNER_KEY_PATH",
+    "APPLE_WALLET_TEAM_ID",
+    "APPLE_WALLET_WWDR_CERT_PATH",
+    "BOT_API_SECRET",
+    "BOT_PORT",
+    "DATABASE_URL",
+    "JWT_SECRET",
+    "JWT_REFRESH_SECRET",
+    "NEXT_PUBLIC_API_URL",
+    "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME",
+    "NODE_ENV",
+    "ORGANIZER_REQUIRES_APPROVAL",
+    "POSTER_STORAGE_DIR",
+    "REDIS_URL",
+    "TELEGRAM_BOT_TOKEN",
+    "TELEGRAM_BOT_USERNAME",
+    "TABLE_HOLD_CLEANUP_INTERVAL_SECONDS",
+    "TABLE_HOLD_TTL_SECONDS",
+    "WEB_ORIGIN"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    }
+  }
+}

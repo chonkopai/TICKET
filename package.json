@@ -1,0 +1,26 @@
+{
+  "name": "event-platform",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24.15.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "db:generate": "pnpm --filter @event-platform/database db:generate",
+    "db:migrate": "pnpm --filter @event-platform/database db:migrate",
+    "db:seed": "pnpm --filter @event-platform/database db:seed",
+    "db:verify": "pnpm --filter @event-platform/database db:verify",
+    "dev": "turbo run dev",
+    "lint": "oxlint apps packages",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "validate": "pnpm lint && pnpm typecheck && pnpm test && pnpm --filter @event-platform/database prisma:validate"
+  },
+  "devDependencies": {
+    "oxlint": "^1.81.0",
+    "turbo": "^2.10.12",
+    "typescript": "^7.0.2"
+  }
+}
