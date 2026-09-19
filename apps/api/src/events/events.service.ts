@@ -4,7 +4,11 @@ import type {
   CreateEventRequest,
   DeleteEventResponse,
   OrganizerEvent,
-  OrganizerEventList,
+  OrganizerDashboard,
+  OrganizerEventMetrics,
+  OrganizerEventSort,
+  OrganizerEventStatusGroup,
+  OrganizerWorkspaceEventList,
   UpdateEventRequest,
 } from "@event-platform/shared-types";
 import {
@@ -52,25 +56,66 @@ export class EventsService {
 
   async list(
     organizerId: string,
-    query: { page: number; limit: number },
-  ): Promise<OrganizerEventList> {
+    query: { page: number; limit: number; statusGroup?: OrganizerEventStatusGroup; sort?: OrganizerEventSort },
+  ): Promise<OrganizerWorkspaceEventList> {
     const skip = (query.page - 1) * query.limit;
+    const statuses = statusesForGroup(query.statusGroup ?? "all");
+    const where: Prisma.EventWhereInput = { organizerId, ...(statuses ? { status: { in: statuses } } : {}) };
+    const orderBy = eventOrder(query.sort ?? "updated_desc");
     const [events, total] = await this.database.$transaction([
       this.database.event.findMany({
-        where: { organizerId },
-        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        where,
+        orderBy,
         skip,
         take: query.limit,
+        include: eventMetricInclude,
       }),
-      this.database.event.count({ where: { organizerId } }),
+      this.database.event.count({ where }),
     ]);
 
+    const revenue = await this.revenueByEvent(events.map(({ id }) => id));
+
     return {
-      items: events.map(presentEvent),
+      items: events.map((event) => ({
+        ...presentEvent(event),
+        displayId: event.id.slice(0, 8).toUpperCase(),
+        metrics: eventMetrics(event, revenue.get(event.id)),
+      })),
       page: query.page,
       limit: query.limit,
       total,
       hasNext: skip + events.length < total,
+    };
+  }
+
+  async dashboard(organizerId: string): Promise<OrganizerDashboard> {
+    const [statusRows, inventory, wholeTables, eventIds] = await this.database.$transaction([
+      this.database.event.groupBy({ by: ["status"], where: { organizerId }, _count: { _all: true } }),
+      this.database.ticketType.aggregate({
+        where: { event: { organizerId }, isInternal: false },
+        _sum: { quantityTotal: true, quantitySold: true },
+      }),
+      this.database.table.findMany({
+        where: { venueLayout: { event: { organizerId } }, saleMode: "whole_table" },
+        select: { bookings: { where: { status: "confirmed", order: { paymentStatus: "paid" } }, select: { id: true } } },
+      }),
+      this.database.event.findMany({ where: { organizerId }, select: { id: true } }),
+    ]);
+    const byStatus = new Map(statusRows.map((row) => [row.status, row._count._all]));
+    const ids = eventIds.map(({ id }) => id);
+    const revenues = await this.revenueByEvent(ids);
+    const money = combineMoney([...revenues.values()]);
+    const wholeSold = wholeTables.filter(({ bookings }) => bookings.length > 0).length;
+    return {
+      totalEvents: statusRows.reduce((sum, row) => sum + row._count._all, 0),
+      publishedEvents: byStatus.get("published") ?? 0,
+      draftEvents: byStatus.get("draft") ?? 0,
+      completedEvents: byStatus.get("completed") ?? 0,
+      cancelledEvents: byStatus.get("cancelled") ?? 0,
+      settledRevenue: money.amount,
+      currency: money.currency,
+      soldAdmissions: (inventory._sum.quantitySold ?? 0) + wholeSold,
+      totalAdmissions: (inventory._sum.quantityTotal ?? 0) + wholeTables.length,
     };
   }
 
@@ -228,6 +273,7 @@ export class EventsService {
     target: "published" | "cancelled" | "completed",
   ): Promise<OrganizerEvent> {
     const event = await this.database.$transaction(async (transaction) => {
+      await transaction.$queryRaw`SELECT "id" FROM "Event" WHERE "id" = ${id}::uuid FOR UPDATE`;
       const current = await this.findOwned(transaction, organizerId, id);
       const expected = target === EventStatus.published ? EventStatus.draft : EventStatus.published;
       if (current.status !== expected) throw invalidTransition(current.status, target);
@@ -266,6 +312,41 @@ export class EventsService {
     return event;
   }
 
+  private async revenueByEvent(eventIds: string[]): Promise<Map<string, Money>> {
+    if (eventIds.length === 0) return new Map();
+    const rows = await this.database.order.findMany({
+      where: {
+        paymentStatus: "paid",
+        OR: [
+          { tickets: { some: { ticketType: { eventId: { in: eventIds } } } } },
+          { booking: { table: { venueLayout: { eventId: { in: eventIds } } } } },
+        ],
+      },
+      select: {
+        id: true,
+        amount: true,
+        currency: true,
+        checkoutSnapshot: true,
+        tickets: { take: 1, select: { ticketType: { select: { eventId: true } } } },
+        booking: { select: { table: { select: { venueLayout: { select: { eventId: true } } } } } },
+      },
+    });
+    const result = new Map<string, Money>();
+    for (const row of rows) {
+      const snapshot = jsonObject(row.checkoutSnapshot);
+      const eventId = typeof snapshot.eventId === "string"
+        ? snapshot.eventId
+        : row.tickets[0]?.ticketType.eventId ?? row.booking?.table.venueLayout.eventId;
+      if (!eventId || !eventIds.includes(eventId)) continue;
+      const currency = row.currency.trim();
+      const current = result.get(eventId);
+      result.set(eventId, current && current.currency === currency
+        ? { amount: current.amount + row.amount, currency }
+        : current ? { amount: 0, currency: null } : { amount: row.amount, currency });
+    }
+    return result;
+  }
+
   private async recordMutation(
     database: EventTransaction,
     actorId: string,
@@ -296,6 +377,111 @@ export class EventsService {
       },
     });
   }
+}
+
+const eventMetricInclude = {
+  ticketTypes: {
+    where: { isInternal: false },
+    select: { quantityTotal: true, quantitySold: true, currency: true },
+  },
+  venueLayout: {
+    select: {
+      seats: {
+        select: {
+          status: true,
+          allocations: {
+            where: { status: { in: ["active", "consumed"] }, order: { paymentStatus: "paid" } },
+            select: { id: true },
+          },
+        },
+      },
+      tables: {
+        select: {
+          saleMode: true,
+          seats: true,
+          currency: true,
+          bookings: {
+            where: { status: "confirmed", order: { paymentStatus: "paid" } },
+            select: { id: true },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.EventInclude;
+
+type EventWithMetrics = Prisma.EventGetPayload<{ include: typeof eventMetricInclude }>;
+type Money = { amount: number; currency: string | null };
+
+function statusesForGroup(group: OrganizerEventStatusGroup): Event["status"][] | null {
+  if (group === "on_sale") return ["published"];
+  if (group === "draft") return ["draft"];
+  if (group === "archive") return ["completed", "cancelled"];
+  return null;
+}
+
+function eventOrder(sort: OrganizerEventSort): Prisma.EventOrderByWithRelationInput[] {
+  if (sort === "date_asc") return [{ date: "asc" }, { time: "asc" }, { id: "asc" }];
+  if (sort === "date_desc") return [{ date: "desc" }, { time: "desc" }, { id: "desc" }];
+  return [{ updatedAt: "desc" }, { id: "desc" }];
+}
+
+function eventMetrics(event: EventWithMetrics, revenue?: Money): OrganizerEventMetrics {
+  const layout = event.venueLayout;
+  const wholeTables = layout?.tables.filter(({ saleMode }) => saleMode === "whole_table") ?? [];
+  if (wholeTables.length > 0) {
+    const soldTables = wholeTables.filter(({ bookings }) => bookings.length > 0);
+    return {
+      mode: "whole_table",
+      sold: soldTables.length,
+      capacity: wholeTables.length,
+      remaining: wholeTables.length - soldTables.length,
+      settledRevenue: revenue?.amount ?? 0,
+      currency: revenue?.currency ?? singleCurrency(wholeTables.map(({ currency }) => currency.trim())),
+      includedSeats: soldTables.reduce((sum, table) => sum + table.seats, 0),
+    };
+  }
+
+  if (layout?.seats.length) {
+    const capacity = layout.seats.filter(({ status }) => status === "available").length;
+    const sold = layout.seats.filter(({ status, allocations }) => status === "available" && allocations.length > 0).length;
+    return {
+      mode: "per_seat",
+      sold,
+      capacity,
+      remaining: Math.max(0, capacity - sold),
+      settledRevenue: revenue?.amount ?? 0,
+      currency: revenue?.currency ?? singleCurrency(event.ticketTypes.map(({ currency }) => currency.trim())),
+      includedSeats: null,
+    };
+  }
+
+  const capacity = event.ticketTypes.reduce((sum, type) => sum + type.quantityTotal, 0);
+  const sold = event.ticketTypes.reduce((sum, type) => sum + type.quantitySold, 0);
+  return {
+    mode: "ordinary",
+    sold,
+    capacity,
+    remaining: Math.max(0, capacity - sold),
+    settledRevenue: revenue?.amount ?? 0,
+    currency: revenue?.currency ?? singleCurrency(event.ticketTypes.map(({ currency }) => currency.trim())),
+    includedSeats: null,
+  };
+}
+
+function singleCurrency(currencies: string[]): string | null {
+  const unique = [...new Set(currencies.filter(Boolean))];
+  return unique.length === 1 ? unique[0]! : null;
+}
+
+function combineMoney(values: Money[]): Money {
+  const currencies = [...new Set(values.map(({ currency }) => currency).filter((value): value is string => Boolean(value)))];
+  if (currencies.length !== 1) return { amount: 0, currency: null };
+  return { amount: values.reduce((sum, value) => sum + value.amount, 0), currency: currencies[0]! };
+}
+
+function jsonObject(value: Prisma.JsonValue): Record<string, Prisma.JsonValue> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, Prisma.JsonValue> : {};
 }
 
 function createData(organizerId: string, input: CreateEventRequest): Prisma.EventUncheckedCreateInput {

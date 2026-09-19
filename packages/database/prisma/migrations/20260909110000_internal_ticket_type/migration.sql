@@ -1,0 +1,1 @@
+ALTER TABLE "TicketType" ADD COLUMN "isInternal" BOOLEAN NOT NULL DEFAULT false;

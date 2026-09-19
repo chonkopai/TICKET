@@ -18,6 +18,7 @@ describe("AuthService profile and organizer activation", () => {
       photoUrl: null,
       phone: null,
       email: null,
+      defaultCity: null,
       createdAt: now,
       updatedAt: now,
     };

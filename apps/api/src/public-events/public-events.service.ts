@@ -71,6 +71,7 @@ export class PublicEventsService {
       include: {
         organizer: { select: { name: true, photoUrl: true } },
         ticketTypes: {
+          where: { isInternal: false },
           select: {
             tickets: {
               where: { status: { in: [TicketStatus.paid, TicketStatus.active, TicketStatus.used] } },
@@ -103,6 +104,7 @@ export class PublicEventsService {
       include: {
         organizer: { select: { name: true, photoUrl: true } },
         ticketTypes: {
+          where: { isInternal: false },
           select: {
             tickets: {
               where: { status: { in: [TicketStatus.paid, TicketStatus.active, TicketStatus.used] } },

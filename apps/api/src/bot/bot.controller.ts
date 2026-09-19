@@ -70,7 +70,7 @@ export class BotController {
   @Get("anonymous-tickets")
   anonymousTickets(@Headers("x-telegram-id") telegramId: string | undefined, @Headers("x-telegram-chat-id") chatId: string | undefined) {
     if (!telegramId || !chatId || !/^\d+$/.test(telegramId) || telegramId !== chatId) throw new BadRequestException({ code: "BOT_PRIVATE_CHAT_REQUIRED" });
-    return this.service.anonymousTickets(telegramId, chatId).then((sessions) => ({ items: sessions.flatMap((session) => (session.order?.tickets ?? []).map((ticket) => ({ id: ticket.id, eventId: ticket.ticketType.eventId, eventTitle: ticket.ticketType.event.title, ticketTypeName: ticket.ticketType.name, status: ticket.status, usedAt: ticket.usedAt?.toISOString() ?? null, anonymous: true }))) }));
+    return this.service.anonymousTicketSummaries(telegramId, chatId);
   }
 
   @Get("organizer/today")

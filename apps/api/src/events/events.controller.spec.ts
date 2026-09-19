@@ -14,6 +14,7 @@ describe("EventsController", () => {
     const events = {
       create: vi.fn().mockResolvedValue(event),
       list: vi.fn().mockResolvedValue({ items: [event], page: 1, limit: 20, total: 1, hasNext: false }),
+      dashboard: vi.fn().mockResolvedValue({ totalEvents: 1 }),
       get: vi.fn().mockResolvedValue(event),
       update: vi.fn().mockResolvedValue(event),
       publish: vi.fn().mockResolvedValue({ ...event, status: "published" }),
@@ -43,6 +44,7 @@ describe("EventsController", () => {
 
     await controller.create(principal, create);
     await controller.list(principal, { page: 1, limit: 20 });
+    await controller.dashboard(principal);
     await controller.get(principal, event.id);
     await controller.preview(principal, event.id);
     await controller.update(principal, event.id, { title: "Обновлено" });
@@ -55,6 +57,7 @@ describe("EventsController", () => {
 
     expect(events.create).toHaveBeenCalledWith(principal.userId, create);
     expect(events.list).toHaveBeenCalledWith(principal.userId, { page: 1, limit: 20 });
+    expect(events.dashboard).toHaveBeenCalledWith(principal.userId);
     expect(events.get).toHaveBeenCalledWith(principal.userId, event.id);
     expect(publicEvents.preview).toHaveBeenCalledWith(principal.userId, event.id, expect.any(Date), false);
     expect(events.update).toHaveBeenCalledWith(principal.userId, event.id, { title: "Обновлено" });

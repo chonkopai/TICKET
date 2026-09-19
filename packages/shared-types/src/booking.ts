@@ -1,5 +1,5 @@
 import type { EventPaymentMode, PaymentLabel } from "./events.js";
-import type { VenueLayoutJson } from "./venue.js";
+import type { VenueLayoutAny } from "./venue.js";
 
 export interface CheckoutSnapshot {
   eventId: string;
@@ -16,6 +16,16 @@ export interface CheckoutSnapshot {
   currency: string;
   cancellationTerms: string | null;
   depositTerms: string | null;
+  seatIds?: string[];
+  seatLabels?: string[];
+  seatAssignments?: Array<{
+    seatId: string;
+    seatNumber: number;
+    parentKind: "table" | "row";
+    parentNumber: number;
+    displayLabel: string;
+  }>;
+  groupPass?: boolean;
 }
 
 export interface CheckoutResponse {
@@ -30,10 +40,13 @@ export interface CheckoutResponse {
   expiresAt: string;
   ticketIds: string[];
   bookingId: string | null;
+  groupPassId?: string | null;
+  groupPassQrPath?: string | null;
 }
 
 export interface CreateTicketCheckoutRequest { ticketTypeId: string; quantity: number; termsAccepted: true }
 export interface CreateTableCheckoutRequest { tableId: string; termsAccepted: true }
+export interface CreateSeatCheckoutRequest { seatIds: string[]; termsAccepted: true }
 
 export interface BookingOptions {
   eventId: string;
@@ -41,7 +54,7 @@ export interface BookingOptions {
   showFullAmountForDeposit: boolean;
   depositTerms: string | null;
   cancellationTerms: string | null;
-  layout: VenueLayoutJson | null;
+  layout: VenueLayoutAny | null;
 }
 
 export interface CancellationTermsResponse {

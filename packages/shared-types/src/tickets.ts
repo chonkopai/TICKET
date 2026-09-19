@@ -78,6 +78,7 @@ export interface OrganizerTicket {
   eventId: string;
   ticketTypeName: string;
   eventTitle: string;
+  seatLabel?: string | null;
   status: TicketStatus;
   usedAt: string | null;
   createdAt: string;
@@ -92,11 +93,27 @@ export interface UseTicketResponse {
   ticket: OrganizerTicket;
 }
 
+export interface UseGroupPassRequest {
+  token: string;
+  confirm: true;
+}
+
+export interface UseGroupPassResponse {
+  groupPassId: string;
+  tableId: string;
+  totalSeats: number;
+  admitted: number;
+  remaining: number;
+  status: "active" | "used" | "cancelled";
+  ticketIds: string[];
+}
+
 export interface GuestTicket {
   id: string;
   eventId: string;
   eventTitle: string;
   ticketTypeName: string;
+  seatLabel?: string | null;
   status: TicketStatus;
   usedAt: string | null;
   qrPath: string;

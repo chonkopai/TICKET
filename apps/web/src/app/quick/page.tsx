@@ -45,13 +45,17 @@ export default function QuickCheckoutPage() {
   const item = selected.startsWith("ticket:") ? event?.ticketTypes.find(t => `ticket:${t.id}` === selected) : event?.tables.find(t => `table:${t.id}` === selected);
   const units = selected.startsWith("ticket:") ? quantity : 1;
   const payment = item?.payment;
+  const venueLayout = options?.layout;
+  const venueScale = venueLayout?.version === 2 ? 40 : 1;
+  const venueWidth = venueLayout ? (venueLayout.version === 2 ? venueLayout.room.widthM * venueScale : venueLayout.canvas.width) : 0;
+  const venueHeight = venueLayout ? (venueLayout.version === 2 ? venueLayout.room.heightM * venueScale : venueLayout.canvas.height) : 0;
   return <main className="mx-auto max-w-3xl space-y-6 px-5 py-10">
     <BackLink href={event ? `/events/${event.id}` : "/events"} label={ru.publicEvent.back} />
     <h1 className="text-3xl font-semibold">{text.title}</h1>
     {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-red-800">{error}</p>}
     {!event ? <p>{ru.common.loading}</p> : <>
       <h2 className="text-xl font-semibold">{event.title}</h2>
-      {options?.layout && <svg role="img" aria-label={ru.checkout.venueLayout} className="w-full rounded-xl border" viewBox={`0 0 ${options.layout.canvas.width} ${options.layout.canvas.height}`}>{options.layout.tables.map(t => <g key={t.tableId} transform={`rotate(${t.rotation ?? 0} ${t.x + t.width / 2} ${t.y + t.height / 2})`}><rect x={t.x} y={t.y} width={t.width} height={t.height} fill={event.tables.find(table => table.id === t.tableId)?.availability === "available" ? "#bbf7d0" : "#e4e4e7"} stroke="#52525b" rx="8" /><text x={t.x + t.width / 2} y={t.y + t.height / 2} textAnchor="middle" dominantBaseline="middle">{event.tables.find(table => table.id === t.tableId)?.number}</text></g>)}</svg>}
+      {venueLayout && <svg role="img" aria-label={ru.checkout.venueLayout} className="w-full rounded-xl border" viewBox={`0 0 ${venueWidth} ${venueHeight}`}>{venueLayout.tables.map(t => { const x = t.x * venueScale; const y = t.y * venueScale; const width = t.width * venueScale; const height = t.height * venueScale; return <g key={t.tableId} transform={`rotate(${t.rotation ?? 0} ${x + width / 2} ${y + height / 2})`}><rect x={x} y={y} width={width} height={height} fill={event.tables.find(table => table.id === t.tableId)?.availability === "available" ? "#bbf7d0" : "#e4e4e7"} stroke="#52525b" rx="8" /><text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="middle">{event.tables.find(table => table.id === t.tableId)?.number}</text></g>; })}</svg>}
       <label className="block">{ru.publicEvent.tickets} / {ru.publicEvent.tables}<select disabled={locked} className="mt-2 w-full rounded-xl border p-3" value={selected} onChange={e => setSelected(e.target.value)}><option value="">—</option>
         {event.ticketTypes.map(t => <option key={t.id} value={`ticket:${t.id}`} disabled={t.remaining < 1 || t.status !== "active"}>{t.name}</option>)}
         {event.tables.map(t => <option key={t.id} value={`table:${t.id}`} disabled={t.availability !== "available"}>{t.name ?? `№${t.number}`} · {t.seats} {text.seats}</option>)}

@@ -97,6 +97,7 @@ function fixtureUser(): User {
     photoUrl: null,
     phone: null,
     email: null,
+    defaultCity: null,
     createdAt: now,
     updatedAt: now,
   };

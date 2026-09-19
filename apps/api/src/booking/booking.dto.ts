@@ -1,9 +1,10 @@
 import type {
   CancelRequest,
   CreateTableCheckoutRequest,
+  CreateSeatCheckoutRequest,
   CreateTicketCheckoutRequest,
 } from "@event-platform/shared-types";
-import { Equals, IsInt, IsUUID, Max, Min } from "class-validator";
+import { ArrayMaxSize, ArrayNotEmpty, Equals, IsInt, IsUUID, Max, Min } from "class-validator";
 
 export class TicketCheckoutDto implements CreateTicketCheckoutRequest {
   @IsUUID()
@@ -21,6 +22,16 @@ export class TicketCheckoutDto implements CreateTicketCheckoutRequest {
 export class TableCheckoutDto implements CreateTableCheckoutRequest {
   @IsUUID()
   tableId!: string;
+
+  @Equals(true)
+  termsAccepted!: true;
+}
+
+export class SeatCheckoutDto implements CreateSeatCheckoutRequest {
+  @IsUUID("4", { each: true })
+  @ArrayNotEmpty()
+  @ArrayMaxSize(10)
+  seatIds!: string[];
 
   @Equals(true)
   termsAccepted!: true;

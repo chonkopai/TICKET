@@ -110,6 +110,10 @@ export interface PublicTable {
   deposit: number;
   currency: string;
   description: string | null;
+  typeLabel: string | null;
+  shortDescription: string | null;
+  saleMode: "whole_table" | "per_seat";
+  seatsDetail: Array<{ id: string; number: number; label: string; sortOrder: number; status: "available" | "unavailable" }>;
   availability: "available" | "unavailable" | "booked";
   payment: PublicPaymentOption;
 }

@@ -94,12 +94,12 @@ export class TicketTypesService {
     const skip = (query.page - 1) * query.limit;
     const [items, total] = await this.database.$transaction([
       this.database.ticketType.findMany({
-        where: { eventId, event: { organizerId } },
+        where: { eventId, event: { organizerId }, isInternal: false, venueObjectId: null },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         skip,
         take: query.limit,
       }),
-      this.database.ticketType.count({ where: { eventId, event: { organizerId } } }),
+      this.database.ticketType.count({ where: { eventId, event: { organizerId }, isInternal: false, venueObjectId: null } }),
     ]);
     const counters = await this.countersFor(items);
     return {
@@ -120,6 +120,8 @@ export class TicketTypesService {
     const types = await this.database.ticketType.findMany({
       where: {
         eventId,
+        isInternal: false,
+        seats: { none: {} },
         status: { in: [TicketTypeStatus.active, TicketTypeStatus.sold_out] },
         ...(includeUnpublished ? {} : { event: { status: "published" } }),
       },
@@ -132,7 +134,7 @@ export class TicketTypesService {
       const inWindow = (!type.salesStartAt || type.salesStartAt <= now) && (!type.salesEndAt || type.salesEndAt > now);
       return {
         id: type.id,
-        name: type.name,
+        name: type.venueObjectId ? type.name.replace(` · ${type.venueObjectId}`, "") : type.name,
         price:
           type.event.paymentMode === EventPaymentMode.deposit &&
           !type.event.showFullAmountForDeposit
@@ -367,7 +369,7 @@ export class TicketTypesService {
     id: string,
   ): Promise<TicketType> {
     const ticketType = await database.ticketType.findFirst({
-      where: { id, event: { organizerId } },
+      where: { id, event: { organizerId }, isInternal: false, venueObjectId: null },
     });
     if (!ticketType) throw ticketTypeNotFound();
     return ticketType;

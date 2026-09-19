@@ -16,6 +16,7 @@ export interface BotTicketSummary {
   eventId: string;
   eventTitle: string;
   ticketTypeName: string;
+  seatLabel: string | null;
   status: string;
   usedAt: string | null;
   anonymous: boolean;

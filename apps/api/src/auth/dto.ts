@@ -62,6 +62,11 @@ export class UpdateMeDto {
   @IsEmail()
   @MaxLength(320)
   email?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 120)
+  defaultCity?: string | null;
 }
 
 export class ConsumeTelegramLinkDto implements TelegramLinkConsumeRequest {

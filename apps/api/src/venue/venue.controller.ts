@@ -52,7 +52,7 @@ export class VenueController {
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
     @Body(new ExplicitDtoPipe(CreateVenueTemplateDto)) body: CreateVenueTemplateRequest,
-  ): Promise<VenueLayout> { return this.venue.saveTemplate(principal.userId, id, body.name); }
+  ): Promise<VenueLayout> { return body.objectIds ? this.venue.saveTemplate(principal.userId, id, body.name, body.objectIds) : this.venue.saveTemplate(principal.userId, id, body.name); }
 
   @Get("venue-layouts/:id")
   get(

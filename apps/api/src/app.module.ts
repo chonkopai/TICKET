@@ -11,9 +11,10 @@ import { PublicEventsModule } from "./public-events/public-events.module.js";
 import { BookingModule } from "./booking/booking.module.js";
 import { BotModule } from "./bot/bot.module.js";
 import { FavoritesModule } from "./favorites/favorites.module.js";
+import { SeatsModule } from "./seats/seats.module.js";
 
 @Module({
-  imports: [AuthModule, EventsModule, TicketTypesModule, TicketsModule, VenueModule, MyEventsModule, PublicEventsModule, FavoritesModule, BookingModule, BotModule],
+  imports: [AuthModule, EventsModule, TicketTypesModule, TicketsModule, VenueModule, SeatsModule, MyEventsModule, PublicEventsModule, FavoritesModule, BookingModule, BotModule],
   controllers: [HealthController],
 })
 export class AppModule {}

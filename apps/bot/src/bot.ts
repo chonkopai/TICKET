@@ -145,7 +145,7 @@ async function showTickets(ctx: Context, api: BotApiClient): Promise<void> {
     const result = await api.tickets(ctx.from.id, ctx.chat.id);
     if (!result.items.length) { await ctx.reply(ru.bot.noTickets); return; }
     for (const ticket of result.items) {
-      await ctx.reply(`${ticket.eventTitle}\n${ticket.ticketTypeName}\n${ticket.status}`);
+      await ctx.reply([ticket.eventTitle, ticket.ticketTypeName, ticket.seatLabel, ticket.status].filter(Boolean).join("\n"));
       try { await sendQr(ctx, await api.qr(ticket.id, ctx.from.id, ctx.chat.id, ticket.anonymous)); } catch { await ctx.reply(ru.bot.unavailable); }
     }
   } catch (error) { await ctx.reply(error instanceof Error && error.message.includes("BOT_API_404") ? ru.bot.identityNotLinked : ru.bot.unavailable); }

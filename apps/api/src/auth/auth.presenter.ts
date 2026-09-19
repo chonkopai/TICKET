@@ -11,5 +11,6 @@ export function presentUser(user: User): AuthUser {
     photoUrl: user.photoUrl,
     phone: user.phone,
     email: user.email,
+    defaultCity: user.defaultCity,
   };
 }

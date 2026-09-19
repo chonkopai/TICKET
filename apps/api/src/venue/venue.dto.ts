@@ -3,22 +3,24 @@ import type {
   CreateVenueLayoutRequest,
   CreateVenueTemplateRequest,
   UpdateVenueLayoutRequest,
-  VenueLayoutJson,
+  VenueLayoutAny,
 } from "@event-platform/shared-types";
 import { Type } from "class-transformer";
-import { IsInt, IsObject, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength } from "class-validator";
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsInt, IsObject, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength } from "class-validator";
 
 export class CreateVenueLayoutDto implements CreateVenueLayoutRequest {
   @IsOptional() @IsString() @MaxLength(120) templateName?: string;
-  @IsOptional() @IsObject() layoutJson?: VenueLayoutJson;
+  @IsOptional() @IsObject() layoutJson?: VenueLayoutAny;
 }
 
 export class UpdateVenueLayoutDto implements UpdateVenueLayoutRequest {
   @IsOptional() @IsString() @MinLength(1) @MaxLength(120) templateName?: string;
-  @IsOptional() @IsObject() layoutJson?: VenueLayoutJson;
+  @IsOptional() @IsObject() layoutJson?: VenueLayoutAny;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) revision?: number;
 }
 
 export class CreateVenueTemplateDto implements CreateVenueTemplateRequest {
+  @IsOptional() @IsArray() @ArrayMinSize(1) @ArrayMaxSize(3000) @IsUUID("4", { each: true }) objectIds?: string[];
   @IsString() @MinLength(1) @MaxLength(120) name!: string;
 }
 

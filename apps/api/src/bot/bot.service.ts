@@ -52,14 +52,14 @@ export class BotService {
     const user = await this.requireActor(actor);
     const owned = await this.db.ticket.findMany({
       where: { OR: [{ ownerUserId: user.id }, { order: { buyerUserId: user.id } }], status: { notIn: [TicketStatus.cancelled, TicketStatus.refunded] } },
-      include: { ticketType: { select: { name: true, eventId: true, event: { select: { title: true } } } } },
+      include: { ticketType: { select: { name: true, eventId: true, event: { select: { title: true } } } }, seatAllocation: { select: { seat: { select: { table: { select: { typeLabel: true } }, row: { select: { typeLabel: true } } } } } } },
       orderBy: { createdAt: "desc" }, take: 50,
     });
     const anonymous = await this.anonymousTickets(actor.telegramId, actor.chatId);
-    const result: BotTicketSummary[] = owned.map((ticket) => ({ id: ticket.id, eventId: ticket.ticketType.eventId, eventTitle: ticket.ticketType.event.title, ticketTypeName: ticket.ticketType.name, status: ticket.status, usedAt: ticket.usedAt?.toISOString() ?? null, anonymous: false }));
+    const result: BotTicketSummary[] = owned.map((ticket) => ({ id: ticket.id, eventId: ticket.ticketType.eventId, eventTitle: ticket.ticketType.event.title, ticketTypeName: ticket.seatAllocation?.seat.table?.typeLabel ?? ticket.seatAllocation?.seat.row?.typeLabel ?? ticket.ticketType.name, seatLabel: ticket.seatLabelSnapshot, status: ticket.status, usedAt: ticket.usedAt?.toISOString() ?? null, anonymous: false }));
     for (const session of anonymous) for (const ticket of session.order?.tickets ?? []) {
       if (result.some((item) => item.id === ticket.id)) continue;
-      result.push({ id: ticket.id, eventId: ticket.ticketType.eventId, eventTitle: ticket.ticketType.event.title, ticketTypeName: ticket.ticketType.name, status: ticket.status, usedAt: ticket.usedAt?.toISOString() ?? null, anonymous: true });
+      result.push({ id: ticket.id, eventId: ticket.ticketType.eventId, eventTitle: ticket.ticketType.event.title, ticketTypeName: ticket.seatAllocation?.seat.table?.typeLabel ?? ticket.seatAllocation?.seat.row?.typeLabel ?? ticket.ticketType.name, seatLabel: ticket.seatLabelSnapshot, status: ticket.status, usedAt: ticket.usedAt?.toISOString() ?? null, anonymous: true });
     }
     return { items: result };
   }
@@ -67,9 +67,23 @@ export class BotService {
   async anonymousTickets(telegramId: string, chatId: string) {
     return this.db.anonymousCheckoutSession.findMany({
       where: { telegramId: BigInt(telegramId), chatId: BigInt(chatId), order: { paymentStatus: PaymentStatus.paid } },
-      include: { order: { include: { tickets: { include: { ticketType: { select: { name: true, eventId: true, event: { select: { title: true } } } } } } } } },
+      include: { order: { include: { tickets: { include: { ticketType: { select: { name: true, eventId: true, event: { select: { title: true } } } }, seatAllocation: { select: { seat: { select: { table: { select: { typeLabel: true } }, row: { select: { typeLabel: true } } } } } } } } } } },
       orderBy: { createdAt: "desc" }, take: 50,
     });
+  }
+
+  async anonymousTicketSummaries(telegramId: string, chatId: string): Promise<BotTicketsResponse> {
+    const sessions = await this.anonymousTickets(telegramId, chatId);
+    return { items: sessions.flatMap((session) => (session.order?.tickets ?? []).map((ticket) => ({
+      id: ticket.id,
+      eventId: ticket.ticketType.eventId,
+      eventTitle: ticket.ticketType.event.title,
+      ticketTypeName: ticket.seatAllocation?.seat.table?.typeLabel ?? ticket.seatAllocation?.seat.row?.typeLabel ?? ticket.ticketType.name,
+      seatLabel: ticket.seatLabelSnapshot,
+      status: ticket.status,
+      usedAt: ticket.usedAt?.toISOString() ?? null,
+      anonymous: true,
+    }))) };
   }
 
   async qrForActor(actor: BotPrincipal, id: string): Promise<Buffer> {

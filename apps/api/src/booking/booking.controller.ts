@@ -9,7 +9,7 @@ import { Body, Controller, Get, Headers, Inject, Param, Post, UseGuards } from "
 import type { AuthenticatedPrincipal } from "../auth/auth.constants.js";
 import { CurrentUser } from "../auth/auth.decorators.js";
 import { JwtAuthGuard } from "../auth/auth.guards.js";
-import { CancelDto, TableCheckoutDto, TicketCheckoutDto } from "./booking.dto.js";
+import { CancelDto, SeatCheckoutDto, TableCheckoutDto, TicketCheckoutDto } from "./booking.dto.js";
 import { BookingService } from "./booking.service.js";
 
 @Controller("me")
@@ -33,6 +33,15 @@ export class BookingController {
     @Body() body: TableCheckoutDto,
   ): Promise<CheckoutResponse> {
     return this.booking.checkoutTable(user.userId, key, body);
+  }
+
+  @Post("checkouts/seats")
+  seatCheckout(
+    @CurrentUser() user: AuthenticatedPrincipal,
+    @Headers("idempotency-key") key: string | undefined,
+    @Body() body: SeatCheckoutDto,
+  ): Promise<CheckoutResponse> {
+    return this.booking.checkoutSeats(user.userId, key, body);
   }
 
   @Get("events/:eventId/booking-options")

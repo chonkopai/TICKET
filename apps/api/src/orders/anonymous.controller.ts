@@ -1,4 +1,4 @@
-import { quickClaimSchema, quickIdSchema, quickStartSchema, quickTableSchema, quickTicketSchema, quickVerifySchema } from "@event-platform/shared-types";
+import { quickClaimSchema, quickIdSchema, quickSeatsSchema, quickStartSchema, quickTableSchema, quickTicketSchema, quickVerifySchema } from "@event-platform/shared-types";
 import { BadRequestException, Body, Controller, Get, Header, Headers, Inject, Param, Post, Query, Res, UseGuards } from "@nestjs/common";
 import type { AuthenticatedPrincipal } from "../auth/auth.constants.js";
 import { CurrentUser, Roles } from "../auth/auth.decorators.js";
@@ -52,6 +52,11 @@ export class AnonymousController {
   @Post("checkouts/tables") @Header("Cache-Control", "no-store")
   table(@Headers("authorization") auth: string, @Headers("idempotency-key") idempotency: string, @Body() body: unknown) {
     return this.quick.checkout(bearer(auth), key(idempotency), "table", parse(quickTableSchema, body));
+  }
+
+  @Post("checkouts/seats") @Header("Cache-Control", "no-store")
+  seats(@Headers("authorization") auth: string, @Headers("idempotency-key") idempotency: string, @Body() body: unknown) {
+    return this.quick.checkout(bearer(auth), key(idempotency), "seats", parse(quickSeatsSchema, body));
   }
 
   @Get("order") @Header("Cache-Control", "no-store")

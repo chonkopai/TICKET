@@ -19,6 +19,7 @@ export interface AuthUser {
   photoUrl: string | null;
   phone: string | null;
   email: string | null;
+  defaultCity: string | null;
 }
 
 export interface AuthTokens {

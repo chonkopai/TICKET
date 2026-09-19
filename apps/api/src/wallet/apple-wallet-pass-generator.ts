@@ -68,6 +68,7 @@ export class AppleWalletPassGenerator implements WalletPassGenerator {
       label: "ТИП БИЛЕТА",
       value: input.ticketTypeName,
     });
+    if (input.seatLabel) pass.secondaryFields.push({ key: "seat", label: "МЕСТО", value: input.seatLabel });
     pass.auxiliaryFields.push(
       { key: "date", label: "ДАТА", value: input.eventDate },
       { key: "time", label: "ВРЕМЯ", value: `${input.eventTime} (${input.timezone})` },

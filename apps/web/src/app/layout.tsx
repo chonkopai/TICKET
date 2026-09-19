@@ -5,8 +5,8 @@ import { Navbar } from "../components/navbar";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Event Platform",
-  description: "Guest, organizer, and quick-purchase event experiences.",
+  title: "TICKET — афиша событий",
+  description: "События, билеты и любимые места в одном сервисе.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

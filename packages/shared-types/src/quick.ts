@@ -4,6 +4,7 @@ export const quickIdSchema = z.uuid();
 export const quickStartSchema = z.object({ name: z.string().trim().min(1).max(100) }).strict();
 export const quickTicketSchema = z.object({ ticketTypeId: z.uuid(), quantity: z.number().int().min(1).max(10), termsAccepted: z.literal(true) }).strict();
 export const quickTableSchema = z.object({ tableId: z.uuid(), termsAccepted: z.literal(true) }).strict();
+export const quickSeatsSchema = z.object({ seatIds: z.array(z.uuid()).min(1).max(10), termsAccepted: z.literal(true) }).strict();
 export const quickClaimSchema = z.object({ claimToken: z.string().regex(/^[A-Za-z0-9_-]{43}$/) }).strict();
 export const quickVerifySchema = z.object({ token: z.string().regex(/^[A-Za-z0-9_-]{43}$/), telegramId: z.string().regex(/^[1-9][0-9]{0,15}$/), chatId: z.string().regex(/^[1-9][0-9]{0,15}$/), messageId: z.number().int().positive() }).strict();
 export const quickRu = {

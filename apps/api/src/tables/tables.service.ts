@@ -5,21 +5,24 @@ import {
   EventPaymentMode,
   EventStatus,
   Prisma,
+  SeatAllocationStatus,
   TableHoldStatus,
   TableStatus,
+  TicketStatus,
   type PrismaClient,
   type Table,
   type TableHold,
 } from "@event-platform/database";
 import {
   tableGeometrySchema,
-  venueLayoutSchema,
+  tableGeometryV2Schema,
+  venueLayoutSchemaAny,
   type CreateTableRequest,
   type ReleaseTableHoldResponse,
   type PublicTable,
   type TableHoldResponse,
   type UpdateTableRequest,
-  type VenueLayoutJson,
+  type VenueLayoutAny,
   type VenueTable,
 } from "@event-platform/shared-types";
 import {
@@ -30,6 +33,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 
+import { assertLegacyLayout } from "../venue/hall-editor.persistence.js";
 import { DATABASE_CLIENT } from "../auth/auth.constants.js";
 import { DomainEventsService } from "../domain-events/domain-events.service.js";
 import { TABLES_CLOCK, TABLES_CONFIG, type Clock, type TablesConfig } from "./tables.constants.js";
@@ -49,20 +53,26 @@ export class TablesService {
   async create(organizerId: string, layoutId: string, input: CreateTableRequest): Promise<VenueTable> {
     assertManagedStatus(input.status);
     const id = randomUUID();
-    const geometry = tableGeometrySchema.parse({ tableId: id, ...input.geometry });
     try {
       const table = await this.database.$transaction(async (transaction) => {
         await lockLayout(transaction, layoutId);
         const layout = await this.findOwnedLayout(transaction, organizerId, layoutId);
+        assertLegacyLayout(layout.layoutJson);
         if (layout.eventId) {
           const event = await transaction.event.findUniqueOrThrow({ where: { id: layout.eventId } });
+          // Keep the legacy whole-table creation contract usable for already-published events;
+          // any numbered/per-seat structure must still be created while the event is a draft.
+          if (event.status !== EventStatus.draft && input.saleMode !== undefined) throw new ConflictException({ code: "VENUE_STRUCTURE_DRAFT_ONLY", message: "Venue structure can only be changed while the event is a draft" });
           assertDeposit(event, input.deposit, input.price);
         }
         const currentJson = parseLayout(layout.layoutJson);
         if (currentJson.tables.length >= 500) throw layoutLimit();
-        const nextJson = venueLayoutSchema.parse({
+        const nextGeometry = currentJson.version === 2
+          ? tableGeometryV2Schema.parse({ tableId: id, ...input.geometry })
+          : tableGeometrySchema.parse({ tableId: id, ...input.geometry });
+        const nextJson = venueLayoutSchemaAny.parse({
           ...currentJson,
-          tables: [...currentJson.tables, geometry],
+          tables: [...currentJson.tables, nextGeometry],
         });
         const created = await transaction.table.create({
           data: {
@@ -75,10 +85,13 @@ export class TablesService {
             deposit: input.deposit,
             currency: normalizeCurrency(input.currency),
             description: nullableText(input.description),
+            typeLabel: nullableText(input.typeLabel),
+            shortDescription: nullableText(input.shortDescription),
+            saleMode: input.saleMode ?? "whole_table",
             status: input.status ?? TableStatus.available,
           },
         });
-        await transaction.venueLayout.update({ where: { id: layoutId }, data: { layoutJson: nextJson } });
+        await transaction.venueLayout.update({ where: { id: layoutId }, data: { layoutJson: nextJson, revision: { increment: 1 } } });
         await this.record(transaction, organizerId, created.id, "table.created", {
           layoutId,
           changedFields: ["number", "name", "seats", "price", "deposit", "currency", "description", "status", "geometry"],
@@ -114,7 +127,7 @@ export class TablesService {
     });
     if (!layout) return [];
     await this.expireLayoutHolds(layout.id);
-    const tables = await this.database.table.findMany({ where: { venueLayoutId: layout.id }, orderBy: [{ number: "asc" }, { id: "asc" }] });
+    const tables = await this.database.table.findMany({ where: { venueLayoutId: layout.id }, include: { seatRecords: { include: { allocations: { where: { status: { in: ["active", "consumed"] } }, select: { id: true } } }, orderBy: { sortOrder: "asc" } } }, orderBy: [{ number: "asc" }, { id: "asc" }] });
     return tables.map((table) => ({
       id: table.id,
       number: table.number,
@@ -128,6 +141,16 @@ export class TablesService {
       deposit: table.deposit,
       currency: table.currency.trim(),
       description: table.description,
+      typeLabel: table.typeLabel,
+      shortDescription: table.shortDescription,
+      saleMode: table.saleMode,
+      seatsDetail: table.seatRecords.map((seat) => ({
+        id: seat.id,
+        number: seat.number,
+        label: seat.label,
+        sortOrder: seat.sortOrder,
+        status: seat.status === "available" && seat.allocations.length === 0 ? "available" : "unavailable",
+      })),
       availability: table.status === TableStatus.booked ? "booked" : table.status === TableStatus.available ? "available" : "unavailable",
       payment: paymentOption(layout.event!, table.price, table.deposit, table.currency.trim()),
     }));
@@ -146,8 +169,10 @@ export class TablesService {
           throw new ConflictException({ code: "TABLE_STATE_LOCKED", message: "A held or booked table cannot be edited" });
         }
         const layout = await transaction.venueLayout.findUniqueOrThrow({ where: { id: current.venueLayoutId } });
+        assertLegacyLayout(layout.layoutJson);
         if (layout.eventId) {
           const event = await transaction.event.findUniqueOrThrow({ where: { id: layout.eventId } });
+          if (event.status !== EventStatus.draft && (input.number !== undefined || input.seats !== undefined || input.saleMode !== undefined)) throw new ConflictException({ code: "VENUE_STRUCTURE_DRAFT_ONLY", message: "Seat numbering and sale mode can only change while the event is a draft" });
           assertDeposit(event, input.deposit ?? current.deposit, input.price ?? current.price);
         }
         const data: Prisma.TableUpdateInput = {};
@@ -158,8 +183,24 @@ export class TablesService {
         if (input.deposit !== undefined) data.deposit = input.deposit;
         if (input.currency !== undefined) data.currency = normalizeCurrency(input.currency);
         if (input.description !== undefined) data.description = nullableText(input.description);
+        if (input.typeLabel !== undefined) data.typeLabel = nullableText(input.typeLabel);
+        if (input.shortDescription !== undefined) data.shortDescription = nullableText(input.shortDescription);
+        if (input.saleMode !== undefined) {
+          if (input.saleMode === "whole_table" && await transaction.seat.count({ where: { tableId: id } })) {
+            throw new ConflictException({ code: "TABLE_HAS_SEAT_INVENTORY", message: "A table with seats cannot switch to whole-table mode" });
+          }
+          data.saleMode = input.saleMode;
+        }
         if (input.status !== undefined) data.status = input.status;
         const table = await transaction.table.update({ where: { id }, data });
+        if (table.saleMode === "per_seat") {
+          const mapped = await transaction.seat.findMany({ where: { tableId: id, ticketTypeId: { not: null } }, select: { ticketTypeId: true } });
+          const ids = [...new Set(mapped.map((seat) => seat.ticketTypeId).filter((value): value is string => Boolean(value)))];
+          for (const ticketTypeId of ids) {
+            const ticketType = await transaction.ticketType.findUniqueOrThrow({ where: { id: ticketTypeId }, select: { quantitySold: true } });
+            await transaction.ticketType.update({ where: { id: ticketTypeId }, data: { price: table.price, deposit: table.deposit, currency: table.currency, quantityTotal: Math.max(table.seats, ticketType.quantitySold) } });
+          }
+        }
         await this.record(transaction, organizerId, id, "table.updated", { layoutId: table.venueLayoutId, changedFields: Object.keys(input) });
         return table;
       });
@@ -179,11 +220,17 @@ export class TablesService {
         throw new ConflictException({ code: "TABLE_HAS_HISTORY", message: "A table with a hold or booking history cannot be deleted" });
       }
       const layout = await transaction.venueLayout.findUniqueOrThrow({ where: { id: table.venueLayoutId } });
+      assertLegacyLayout(layout.layoutJson);
+      if (layout.eventId) {
+        const event = await transaction.event.findUniqueOrThrow({ where: { id: layout.eventId } });
+        const numberedSeats = await transaction.seat.count({ where: { tableId: id } });
+        if (event.status !== EventStatus.draft && numberedSeats > 0) throw new ConflictException({ code: "VENUE_STRUCTURE_DRAFT_ONLY", message: "Venue structure can only be changed while the event is a draft" });
+      }
       const layoutJson = parseLayout(layout.layoutJson);
       await transaction.table.delete({ where: { id } });
       await transaction.venueLayout.update({
         where: { id: table.venueLayoutId },
-        data: { layoutJson: { ...layoutJson, tables: layoutJson.tables.filter((geometry) => geometry.tableId !== id) } },
+        data: { layoutJson: { ...layoutJson, tables: layoutJson.tables.filter((geometry) => geometry.tableId !== id) }, revision: { increment: 1 } },
       });
       await this.record(transaction, organizerId, id, "table.deleted", { layoutId: table.venueLayoutId });
     });
@@ -211,6 +258,7 @@ export class TablesService {
         where: { id: tableId, venueLayout: { event: { status: EventStatus.published } } },
       });
       if (!table) throw tableNotFound();
+      if (table.saleMode === "per_seat") throw new ConflictException({ code: "TABLE_REQUIRES_SEAT_SELECTION", message: "Select individual seats for this table" });
       await this.expireLocked(transaction, table, now);
       table = await transaction.table.findUniqueOrThrow({ where: { id: tableId } });
 
@@ -269,6 +317,9 @@ export class TablesService {
       const refreshed = await transaction.table.findUniqueOrThrow({ where: { id: tableId } });
       if (refreshed.status !== TableStatus.held || refreshed.holdToken !== token) throw holdConflict();
       await transaction.booking.updateMany({ where: { tableId, status: BookingStatus.pending }, data: { status: BookingStatus.expired } });
+      await transaction.seatAllocation.updateMany({ where: { order: { booking: { tableId } }, status: SeatAllocationStatus.active }, data: { status: SeatAllocationStatus.released, releasedAt: this.clock.now() } });
+      await transaction.ticket.updateMany({ where: { order: { booking: { tableId } }, status: TicketStatus.pending_payment }, data: { status: TicketStatus.cancelled, cancelledAt: this.clock.now() } });
+      await transaction.groupPass.updateMany({ where: { table: { id: tableId }, status: "active" }, data: { status: "cancelled" } });
       await transaction.tableHold.update({ where: { id: current.id }, data: { status: TableHoldStatus.released } });
       await transaction.table.update({ where: { id: tableId }, data: clearHold(TableStatus.available) });
       await this.record(transaction, actorId, tableId, "table.hold_released", { holdId: current.id }, true);
@@ -354,6 +405,9 @@ export class TablesService {
     const hold = await transaction.tableHold.findUnique({ where: { token: table.holdToken } });
     if (!hold || hold.status !== TableHoldStatus.active) return false;
     await transaction.booking.updateMany({ where: { tableId: table.id, status: BookingStatus.pending }, data: { status: BookingStatus.expired } });
+    await transaction.seatAllocation.updateMany({ where: { order: { booking: { tableId: table.id } }, status: SeatAllocationStatus.active }, data: { status: SeatAllocationStatus.released, releasedAt: now } });
+    await transaction.ticket.updateMany({ where: { order: { booking: { tableId: table.id } }, status: TicketStatus.pending_payment }, data: { status: TicketStatus.cancelled, cancelledAt: now } });
+    await transaction.groupPass.updateMany({ where: { tableId: table.id, status: "active" }, data: { status: "cancelled" } });
     await transaction.tableHold.update({ where: { id: hold.id }, data: { status: TableHoldStatus.expired } });
     await transaction.table.update({ where: { id: table.id }, data: clearHold(TableStatus.available) });
     await this.domainEvents.append(transaction, {
@@ -416,8 +470,8 @@ function clearHold(status: "available" | "booked"): Prisma.TableUpdateInput {
   return { status, holdToken: null, holdRequestKey: null, holdExpiresAt: null };
 }
 
-function parseLayout(value: Prisma.JsonValue): VenueLayoutJson {
-  const parsed = venueLayoutSchema.safeParse(value);
+function parseLayout(value: Prisma.JsonValue): VenueLayoutAny {
+  const parsed = venueLayoutSchemaAny.safeParse(value);
   if (!parsed.success) throw new ConflictException({ code: "VENUE_LAYOUT_DATA_INVALID", message: "Stored layout geometry is invalid" });
   return parsed.data;
 }

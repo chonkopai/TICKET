@@ -1,11 +1,12 @@
 import { randomBytes } from "node:crypto";
 
 import {
+  GroupPassStatus,
   Prisma,
   TicketStatus,
   type PrismaClient,
 } from "@event-platform/database";
-import type { GuestTicket, OrganizerTicket, TicketStatus as SharedTicketStatus, UseTicketResponse } from "@event-platform/shared-types";
+import type { GuestTicket, OrganizerTicket, TicketStatus as SharedTicketStatus, UseGroupPassResponse, UseTicketResponse } from "@event-platform/shared-types";
 import {
   ConflictException,
   Inject,
@@ -99,6 +100,12 @@ export class TicketsService {
     return this.walletPassForTicket(ticket);
   }
 
+  async renderGroupPassQrForUser(userId: string, id: string): Promise<Buffer> {
+    const pass = await this.database.groupPass.findFirst({ where: { id, order: { buyerUserId: userId, paymentStatus: "paid" }, status: { in: [GroupPassStatus.active, GroupPassStatus.used] } } });
+    if (!pass) throw new NotFoundException({ code: "GROUP_PASS_NOT_FOUND", message: "Group pass was not found" });
+    return QRCode.toBuffer(pass.token, { type: "png", errorCorrectionLevel: "M", margin: 2, width: 320 });
+  }
+
   async transition(
     organizerId: string,
     id: string,
@@ -115,12 +122,65 @@ export class TicketsService {
   async useByQrToken(organizerId: string, qrToken: string): Promise<UseTicketResponse> {
     const ticket = await this.database.$transaction(async (transaction) => {
       const initial = await this.findOwned(transaction, organizerId, { qrToken });
+      if (initial.order.groupPass) await lockGroupPass(transaction, initial.order.groupPass.id);
       await lockTicket(transaction, initial.id);
       const current = await this.findOwned(transaction, organizerId, { id: initial.id });
       if (current.status === TicketStatus.used) throw alreadyUsed(current.usedAt);
-      return this.applyTransition(transaction, organizerId, current, TicketStatus.used);
+      const updated = await this.applyTransition(transaction, organizerId, current, TicketStatus.used);
+      await transaction.seatAllocation.updateMany({ where: { ticketId: current.id, status: "active" }, data: { status: "consumed", consumedAt: new Date() } });
+      if (initial.order.groupPass) {
+        const remaining = await transaction.ticket.count({ where: { orderId: current.orderId, status: TicketStatus.active } });
+        if (remaining === 0) await transaction.groupPass.update({ where: { id: initial.order.groupPass.id }, data: { status: GroupPassStatus.used, usedAt: new Date() } });
+      }
+      return updated;
     });
     return { ticket: presentTicket(ticket) };
+  }
+
+  async useGroupPass(organizerId: string, token: string, confirm: boolean): Promise<UseGroupPassResponse> {
+    if (!confirm) throw new ConflictException({ code: "GROUP_CONFIRM_REQUIRED", message: "Confirm group admission before scanning this pass" });
+    return this.database.$transaction(async (transaction) => {
+      const initial = await transaction.groupPass.findFirst({
+        where: { token, table: { venueLayout: { event: { organizerId } } } },
+        include: { order: { include: { tickets: { include: { seatAllocation: { include: { seat: true } } } } } } },
+      });
+      if (!initial) throw new NotFoundException({ code: "GROUP_PASS_NOT_FOUND", message: "Group pass was not found" });
+      await lockGroupPass(transaction, initial.id);
+      const pass = await transaction.groupPass.findUniqueOrThrow({
+        where: { id: initial.id },
+        include: { order: { include: { tickets: true } } },
+      });
+      if (pass.status === GroupPassStatus.cancelled || pass.order.paymentStatus !== "paid") {
+        throw new ConflictException({ code: "GROUP_PASS_NOT_ACTIVE", message: "This group pass is not active" });
+      }
+      const tickets = [...pass.order.tickets].sort((a, b) => a.id.localeCompare(b.id));
+      for (const ticket of tickets) await lockTicket(transaction, ticket.id);
+      const current = await transaction.ticket.findMany({ where: { orderId: pass.orderId }, orderBy: { id: "asc" } });
+      const eligible = current.filter((ticket) => ticket.status === TicketStatus.active);
+      if (!eligible.length) {
+        throw new ConflictException({ code: "ALREADY_USED", message: "All seats in this group pass have already been admitted", details: { groupPassId: pass.id, admitted: current.filter((ticket) => ticket.status === TicketStatus.used).length, remaining: 0 } });
+      }
+      const now = new Date();
+      await transaction.ticket.updateMany({ where: { id: { in: eligible.map((ticket) => ticket.id) }, status: TicketStatus.active }, data: { status: TicketStatus.used, usedAt: now } });
+      await transaction.seatAllocation.updateMany({ where: { orderId: pass.orderId, status: "active" }, data: { status: "consumed", consumedAt: now } });
+      await transaction.groupPass.update({ where: { id: pass.id }, data: { status: GroupPassStatus.used, usedAt: now } });
+      await this.domainEvents.append(transaction, {
+        eventType: "group_pass.used",
+        aggregateType: "group_pass",
+        aggregateId: pass.id,
+        payload: { organizerId, orderId: pass.orderId, ticketIds: eligible.map((ticket) => ticket.id), admitted: eligible.length },
+      });
+      await transaction.auditLog.create({ data: { actorId: organizerId, action: "group_pass.used", entityType: "group_pass", entityId: pass.id, meta: { orderId: pass.orderId, ticketIds: eligible.map((ticket) => ticket.id), admitted: eligible.length } } });
+      return {
+        groupPassId: pass.id,
+        tableId: pass.tableId,
+        totalSeats: pass.totalSeats,
+        admitted: eligible.length,
+        remaining: 0,
+        status: "used",
+        ticketIds: eligible.map((ticket) => ticket.id),
+      };
+    });
   }
 
   async renderQr(organizerId: string, id: string): Promise<Buffer> {
@@ -154,7 +214,8 @@ export class TicketsService {
     return this.wallet.generate({
       serialNumber: ticket.appleWalletPassId ?? ticket.id,
       eventTitle: event.title,
-      ticketTypeName: ticket.ticketType.name,
+      ticketTypeName: ticket.seatAllocation?.seat.table?.typeLabel ?? ticket.seatAllocation?.seat.row?.typeLabel ?? ticket.ticketType.name,
+      seatLabel: ticket.seatLabelSnapshot ?? ticket.seatAllocation?.seat.label ?? null,
       venueName: event.venueName,
       address: event.address,
       eventDate: event.date.toISOString().slice(0, 10),
@@ -183,6 +244,7 @@ export class TicketsService {
     }
 
     const soldDelta = Number(isSold(target)) - Number(isSold(current.status));
+    let internalAdmission = false;
     if (soldDelta > 0) {
       await lockTicketType(transaction, current.ticketTypeId);
       const [ticketType, sold, reserved] = await Promise.all([
@@ -202,12 +264,17 @@ export class TicketsService {
           _sum: { quantity: true },
         }),
       ]);
-      if (ticketType.quantityTotal - sold - (reserved._sum.quantity ?? 0) < 1) {
+      internalAdmission = ticketType.isInternal;
+      if (!internalAdmission && ticketType.quantityTotal - sold - (reserved._sum.quantity ?? 0) < 1) {
         throw new ConflictException({
           code: "INSUFFICIENT_INVENTORY",
           message: "Not enough tickets remain",
         });
       }
+    }
+    if (soldDelta < 0) {
+      const ticketType = await transaction.ticketType.findUniqueOrThrow({ where: { id: current.ticketTypeId }, select: { isInternal: true } });
+      internalAdmission = ticketType.isInternal;
     }
 
     const now = new Date();
@@ -227,7 +294,7 @@ export class TicketsService {
     });
     if (changed.count !== 1) throw invalidTransition(current.status, target);
 
-    if (soldDelta !== 0) {
+    if (soldDelta !== 0 && !internalAdmission) {
       if (soldDelta < 0) await lockTicketType(transaction, current.ticketTypeId);
       await transaction.ticketType.update({
         where: { id: current.ticketTypeId },
@@ -306,6 +373,10 @@ export class TicketsService {
 
 async function lockTicket(transaction: Prisma.TransactionClient, id: string): Promise<void> {
   await transaction.$queryRaw`SELECT 1 AS "locked" FROM pg_advisory_xact_lock(hashtextextended(${`ticket:${id}`}, 0))`;
+}
+
+async function lockGroupPass(transaction: Prisma.TransactionClient, id: string): Promise<void> {
+  await transaction.$queryRaw`SELECT 1 AS "locked" FROM pg_advisory_xact_lock(hashtextextended(${`group-pass:${id}`}, 0))`;
 }
 
 async function lockTicketType(transaction: Prisma.TransactionClient, id: string): Promise<void> {

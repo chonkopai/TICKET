@@ -7,6 +7,9 @@ import {
   OrderType,
   PaymentStatus,
   Prisma,
+  SeatAllocationStatus,
+  SeatStatus,
+  TableSaleMode,
   TableHoldStatus,
   TableStatus,
   TicketReservationStatus,
@@ -15,13 +18,14 @@ import {
   type PrismaClient,
 } from "@event-platform/database";
 import {
-  venueLayoutSchema,
+  venueLayoutSchemaAny,
   type BookingOptions,
   type CancellationResponse,
   type CancellationTermsResponse,
   type CheckoutResponse,
   type CheckoutSnapshot,
   type CreateTableCheckoutRequest,
+  type CreateSeatCheckoutRequest,
   type CreateTicketCheckoutRequest,
 } from "@event-platform/shared-types";
 import {
@@ -47,6 +51,7 @@ import type { NormalizedPaymentWebhook } from "./payment-provider.js";
 
 const TICKET_CHECKOUT = "checkout.ticket";
 const TABLE_CHECKOUT = "checkout.table";
+const SEAT_CHECKOUT = "checkout.seats";
 const TICKET_CANCEL = "cancel.ticket";
 const BOOKING_CANCEL = "cancel.booking";
 
@@ -88,7 +93,7 @@ export class BookingService {
         if (replay) return replay;
 
         const ticketType = await transaction.ticketType.findFirst({
-          where: { id: input.ticketTypeId, status: TicketTypeStatus.active, event: { status: EventStatus.published } },
+          where: { id: input.ticketTypeId, seats: { none: {} }, status: TicketTypeStatus.active, event: { status: EventStatus.published } },
           include: { event: true },
         });
         if (!ticketType) throw new NotFoundException({ code: "TICKET_TYPE_NOT_FOUND", message: "Ticket type was not found" });
@@ -204,15 +209,17 @@ export class BookingService {
         if (replay) return replay;
         const table = await transaction.table.findFirst({
           where: { id: input.tableId, venueLayout: { event: { status: EventStatus.published } } },
-          include: { venueLayout: { include: { event: true } } },
+          include: { seatRecords: { orderBy: { sortOrder: "asc" } }, venueLayout: { include: { event: true } } },
         });
         const event = table?.venueLayout.event;
         if (!table || !event) throw new NotFoundException({ code: "TABLE_NOT_FOUND", message: "Table was not found" });
+        if (table.saleMode === TableSaleMode.per_seat) throw new ConflictException({ code: "TABLE_REQUIRES_SEAT_SELECTION", message: "Select individual seats for this table" });
 
         const now = this.clock.now();
         const configuredExpiry = new Date(now.getTime() + this.config.checkoutTtlSeconds * 1_000);
         const holdKey = `checkout-${createHash("sha256").update(`${userId}:${key}`).digest("hex")}`;
         const hold = await this.tables.holdInTransaction(transaction, table.id, holdKey, now);
+        const includedSeats = await ensureWholeTableSeats(transaction, table.id, table.venueLayoutId, table.seats, table.seatRecords);
         const expiresAt = hold.expiresAt < configuredExpiry ? hold.expiresAt : configuredExpiry;
         const amounts = paymentAmounts(event, table.price, table.deposit, 1);
         const snapshot: CheckoutSnapshot = {
@@ -230,6 +237,10 @@ export class BookingService {
           currency: table.currency.trim(),
           cancellationTerms: event.cancellationTerms,
           depositTerms: event.depositTerms,
+          seatIds: includedSeats.map((seat) => seat.id),
+          seatLabels: includedSeats.map((seat) => `Стол ${table.number} · Место ${seat.number}`),
+          seatAssignments: includedSeats.map((seat) => ({ seatId: seat.id, seatNumber: seat.number, parentKind: "table", parentNumber: table.number, displayLabel: `Стол ${table.number} · Место ${seat.number}` })),
+          groupPass: true,
         };
         const orderId = randomUUID();
         await transaction.order.create({
@@ -248,6 +259,14 @@ export class BookingService {
         const booking = await transaction.booking.create({
           data: { tableId: table.id, orderId, tableHoldId: hold.id, ...(anonymous ? { guestContact: anonymous.guestContact } : {}) },
         });
+        const admissionType = await ensureAdmissionTicketType(transaction, event.id, table.id, table.currency.trim());
+        const individualTicketIds: string[] = [];
+        for (const seat of includedSeats) {
+          const ticket = await transaction.ticket.create({ data: { ticketTypeId: admissionType.id, orderId, ownerUserId: anonymous ? null : userId, qrToken: randomBytes(32).toString("base64url"), seatLabelSnapshot: `Стол ${table.number} · Место ${seat.number}`, status: TicketStatus.pending_payment } });
+          individualTicketIds.push(ticket.id);
+          await transaction.seatAllocation.create({ data: { seatId: seat.id, orderId, ticketId: ticket.id } });
+        }
+        const groupPass = await transaction.groupPass.create({ data: { orderId, tableId: table.id, token: randomBytes(32).toString("base64url"), totalSeats: includedSeats.length } });
         if (event.paymentMode === EventPaymentMode.deposit) {
           await transaction.deposit.create({
             data: { eventId: event.id, orderId, amount: amounts.amountDue, currency: snapshot.currency, terms: requiredDepositTerms(event.depositTerms) },
@@ -263,14 +282,16 @@ export class BookingService {
           currency: snapshot.currency,
           paymentLink: "",
           expiresAt: expiresAt.toISOString(),
-          ticketIds: [],
+          ticketIds: individualTicketIds,
           bookingId: booking.id,
+          groupPassId: groupPass.id,
+          groupPassQrPath: `/me/group-passes/${groupPass.id}/qr`,
         };
         await this.domainEvents.append(transaction, {
           eventType: "checkout.table_created",
           aggregateType: "order",
           aggregateId: orderId,
-          payload: { userId: anonymous ? null : userId, ...(anonymous ? { anonymousSessionId: userId } : {}), eventId: event.id, tableId: table.id, bookingId: booking.id, amountDue: amounts.amountDue },
+          payload: { userId: anonymous ? null : userId, ...(anonymous ? { anonymousSessionId: userId } : {}), eventId: event.id, tableId: table.id, bookingId: booking.id, ticketIds: individualTicketIds, groupPassId: groupPass.id, amountDue: amounts.amountDue },
         });
         if (!anonymous) await saveResponse(transaction, userId, TABLE_CHECKOUT, key, orderId, response);
         return response;
@@ -287,6 +308,106 @@ export class BookingService {
     }
   }
 
+  async checkoutSeats(
+    userId: string,
+    rawKey: string | undefined,
+    input: CreateSeatCheckoutRequest,
+    anonymous?: AnonymousCheckoutContext,
+  ): Promise<CheckoutResponse> {
+    const key = idempotencyKey(rawKey);
+    const prior = anonymous ? null : await this.replayed(userId, SEAT_CHECKOUT, key);
+    if (prior) {
+      if (prior.paymentLink) return prior;
+      const link = await this.paymentLinks.createLink(userId, prior.orderId, `checkout-${key}`);
+      return { ...prior, paymentLink: link.paymentLink };
+    }
+    const seatIds = [...new Set(input.seatIds)];
+    if (seatIds.length < 1 || seatIds.length > 10 || seatIds.length !== input.seatIds.length) {
+      throw new BadRequestException({ code: "SEAT_SELECTION_INVALID", message: "Choose between 1 and 10 different seats" });
+    }
+    try {
+      const create = async (transaction: Prisma.TransactionClient) => {
+        const replay = anonymous ? null : await claim(transaction, userId, SEAT_CHECKOUT, key);
+        if (replay) return replay;
+        const seats = await transaction.seat.findMany({
+          where: { id: { in: seatIds } },
+          include: {
+            ticketType: { include: { event: true } },
+            table: { select: { id: true, number: true, saleMode: true, venueLayoutId: true } },
+            row: { select: { id: true, number: true, venueLayoutId: true } },
+            allocations: { where: { status: { in: [SeatAllocationStatus.active, SeatAllocationStatus.consumed] } }, select: { id: true } },
+          },
+        });
+        if (seats.length !== seatIds.length || seats.some((seat) => seat.status !== SeatStatus.available || !seat.ticketType || seat.ticketType.status !== TicketTypeStatus.active)) {
+          throw new ConflictException({ code: "SEAT_UNAVAILABLE", message: "One or more selected seats are unavailable" });
+        }
+        if (seats.some((seat) => seat.table && seat.table.saleMode !== TableSaleMode.per_seat)) {
+          throw new ConflictException({ code: "SEAT_SALE_MODE_INVALID", message: "This table is sold as a whole" });
+        }
+        const event = seats[0]!.ticketType!.event;
+        if (event.status !== EventStatus.published || seats.some((seat) => seat.ticketType!.eventId !== event.id || seat.allocations.length > 0 || (seat.table && seat.table.venueLayoutId !== seat.venueLayoutId) || (seat.row && seat.row.venueLayoutId !== seat.venueLayoutId))) {
+          throw new ConflictException({ code: "SEAT_UNAVAILABLE", message: "One or more selected seats are unavailable" });
+        }
+        for (const id of [...seatIds].sort()) await lockSeat(transaction, id);
+        const locked = await transaction.seat.findMany({ where: { id: { in: seatIds } }, include: { allocations: { where: { status: { in: [SeatAllocationStatus.active, SeatAllocationStatus.consumed] } }, select: { id: true } } } });
+        if (locked.some((seat) => seat.status !== SeatStatus.available || seat.allocations.length > 0)) throw new ConflictException({ code: "SEAT_UNAVAILABLE", message: "One or more selected seats are unavailable" });
+        const now = this.clock.now();
+        const expiresAt = new Date(now.getTime() + this.config.checkoutTtlSeconds * 1_000);
+        const currency = seats[0]!.ticketType!.currency.trim();
+        if (seats.some((seat) => seat.ticketType!.currency.trim() !== currency)) throw new ConflictException({ code: "SEAT_CURRENCY_MISMATCH", message: "Selected seats use different currencies" });
+        const fullAmount = seats.reduce((sum, seat) => sum + seat.ticketType!.price, 0);
+        const amountDue = event.paymentMode === EventPaymentMode.deposit ? seats.reduce((sum, seat) => sum + seat.ticketType!.deposit, 0) : fullAmount;
+        if (event.paymentMode === EventPaymentMode.deposit && amountDue <= 0) throw new ConflictException({ code: "DEPOSIT_NOT_CONFIGURED", message: "A positive deposit is required" });
+        const seatAssignments = seats.map((seat) => seat.table
+          ? { seatId: seat.id, seatNumber: seat.number, parentKind: "table" as const, parentNumber: seat.table.number, displayLabel: `Стол ${seat.table.number} · Место ${seat.number}` }
+          : { seatId: seat.id, seatNumber: seat.number, parentKind: "row" as const, parentNumber: seat.row!.number, displayLabel: `Ряд ${seat.row!.number} · Место ${seat.number}` });
+        const snapshot: CheckoutSnapshot = {
+          eventId: event.id,
+          eventTitle: event.title,
+          itemId: seatIds[0]!,
+          itemName: `${seats.length} мест`,
+          itemKind: "ticket",
+          quantity: seats.length,
+          paymentMode: event.paymentMode,
+          paymentLabel: event.paymentMode,
+          unitFullAmount: seats.length === 1 ? seats[0]!.ticketType!.price : fullAmount,
+          fullAmount: event.paymentMode === EventPaymentMode.deposit && !event.showFullAmountForDeposit ? null : fullAmount,
+          amountDue,
+          currency,
+          cancellationTerms: event.cancellationTerms,
+          depositTerms: event.depositTerms,
+          seatIds,
+          seatLabels: seatAssignments.map(({ displayLabel }) => displayLabel),
+          seatAssignments,
+        };
+        const orderId = randomUUID();
+        await transaction.order.create({ data: { id: orderId, type: OrderType.ticket, buyerUserId: anonymous ? null : userId, ...(anonymous ? { guestContact: anonymous.guestContact } : {}), amount: amountDue, currency, checkoutSnapshot: json(snapshot), termsAcceptedAt: now, expiresAt } });
+        const ticketIds: string[] = [];
+        for (const seat of seats) {
+          const displayLabel = seatAssignments.find(({ seatId }) => seatId === seat.id)!.displayLabel;
+          const ticket = await transaction.ticket.create({ data: { ticketTypeId: seat.ticketType!.id, orderId, ownerUserId: anonymous ? null : userId, qrToken: randomBytes(32).toString("base64url"), seatLabelSnapshot: displayLabel, status: TicketStatus.pending_payment } });
+          ticketIds.push(ticket.id);
+          await transaction.seatAllocation.create({ data: { seatId: seat.id, orderId, ticketId: ticket.id } });
+        }
+        if (event.paymentMode === EventPaymentMode.deposit) await transaction.deposit.create({ data: { eventId: event.id, orderId, amount: amountDue, currency, terms: requiredDepositTerms(event.depositTerms) } });
+        const result: CheckoutResponse = { orderId, kind: "ticket", paymentMode: snapshot.paymentMode, paymentLabel: snapshot.paymentLabel, amountDue, fullAmount: snapshot.fullAmount, currency, paymentLink: "", expiresAt: expiresAt.toISOString(), ticketIds, bookingId: null };
+        await this.domainEvents.append(transaction, { eventType: "checkout.seats_created", aggregateType: "order", aggregateId: orderId, payload: { userId: anonymous ? null : userId, ...(anonymous ? { anonymousSessionId: userId } : {}), eventId: event.id, seatIds, amountDue } });
+        if (!anonymous) await saveResponse(transaction, userId, SEAT_CHECKOUT, key, orderId, result);
+        return result;
+      };
+      const response = anonymous ? await create(anonymous.transaction) : await this.database.$transaction(create, { timeout: 15_000 });
+      if (anonymous) return response;
+      const link = await this.paymentLinks.createLink(userId, response.orderId, `checkout-${key}`);
+      if (response.amountDue === 0) await this.settleSucceeded(response.orderId);
+      const finalResponse = { ...response, paymentLink: link.paymentLink };
+      await this.database.idempotencyRecord.update({ where: { userId_operation_key: { userId, operation: SEAT_CHECKOUT, key } }, data: { response: json(finalResponse) } });
+      return finalResponse;
+    } catch (error) {
+      if (anonymous) throw error;
+      return this.resolveRace(error, userId, SEAT_CHECKOUT, key);
+    }
+  }
+
   async options(_userId: string, eventId: string): Promise<BookingOptions> {
     const event = await this.database.event.findFirst({
       where: { id: eventId, status: EventStatus.published },
@@ -294,14 +415,14 @@ export class BookingService {
     });
     if (!event) throw new NotFoundException({ code: "EVENT_NOT_FOUND", message: "Event was not found" });
     if (event.venueLayout) await this.tables.expireLayoutHolds(event.venueLayout.id);
-    const parsed = event.venueLayout ? venueLayoutSchema.safeParse(event.venueLayout.layoutJson) : null;
+    const parsed = event.venueLayout ? venueLayoutSchemaAny.safeParse(event.venueLayout.layoutJson) : null;
     return {
       eventId,
       paymentMode: event.paymentMode,
       showFullAmountForDeposit: event.showFullAmountForDeposit,
       depositTerms: event.depositTerms,
       cancellationTerms: event.cancellationTerms,
-      layout: parsed?.success ? parsed.data : null,
+      layout: parsed?.success ? parsed.data as BookingOptions["layout"] : null,
     };
   }
 
@@ -324,12 +445,16 @@ export class BookingService {
       for (const ticket of order.tickets) byType.set(ticket.ticketTypeId, (byType.get(ticket.ticketTypeId) ?? 0) + 1);
       for (const [ticketTypeId, quantity] of byType) {
         await transaction.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${`ticket-type:${ticketTypeId}`}, 0))`;
-        await transaction.ticketType.update({ where: { id: ticketTypeId }, data: { quantitySold: { increment: quantity } } });
+        const ticketType = await transaction.ticketType.findUniqueOrThrow({ where: { id: ticketTypeId }, select: { isInternal: true } });
+        if (!ticketType.isInternal) await transaction.ticketType.update({ where: { id: ticketTypeId }, data: { quantitySold: { increment: quantity } } });
       }
       await transaction.ticket.updateMany({ where: { orderId, status: TicketStatus.pending_payment }, data: { status: TicketStatus.active, paidAt: this.clock.now(), activatedAt: this.clock.now() } });
       await transaction.ticketReservation.updateMany({ where: { orderId, status: TicketReservationStatus.active }, data: { status: TicketReservationStatus.consumed } });
+      await transaction.seatAllocation.updateMany({ where: { orderId, status: SeatAllocationStatus.active }, data: { status: SeatAllocationStatus.consumed, consumedAt: this.clock.now() } });
     } else if (order.booking?.tableHold) {
       await this.tables.confirmInTransaction(transaction, order.booking.tableId, order.booking.tableHold.token, orderId, order.buyerUserId);
+      await transaction.ticket.updateMany({ where: { orderId, status: TicketStatus.pending_payment }, data: { status: TicketStatus.active, paidAt: this.clock.now(), activatedAt: this.clock.now() } });
+      await transaction.seatAllocation.updateMany({ where: { orderId, status: SeatAllocationStatus.active }, data: { status: SeatAllocationStatus.consumed, consumedAt: this.clock.now() } });
     }
     await transaction.order.update({ where: { id: orderId }, data: { paymentStatus: PaymentStatus.paid } });
     await transaction.deposit.updateMany({ where: { orderId }, data: { status: PaymentStatus.paid, paidAt: this.clock.now() } });
@@ -436,8 +561,9 @@ export class BookingService {
       return await this.database.$transaction(async (transaction) => {
         const replay = await claimCancellation(transaction, userId, TICKET_CANCEL, key);
         if (replay) return replay;
-        const current = await transaction.ticket.findFirst({ where: { id, order: { buyerUserId: userId } }, include: { order: true } });
+        const current = await transaction.ticket.findFirst({ where: { id, order: { buyerUserId: userId } }, include: { order: true, seatAllocation: true } });
         if (!current) throw resourceNotFound("TICKET_NOT_FOUND");
+        if (current.seatAllocation) throw new ConflictException({ code: "TABLE_CHILD_TICKET_CANCEL", message: "Cancel the whole table booking instead of an individual table seat" });
         await lockOrder(transaction, current.orderId);
         if (current.status === TicketStatus.used || current.status === TicketStatus.refunded) {
           throw cancellationNotAllowed("TICKET_CANCELLATION_NOT_ALLOWED");
@@ -478,7 +604,7 @@ export class BookingService {
       return await this.database.$transaction(async (transaction) => {
         const replay = await claimCancellation(transaction, userId, BOOKING_CANCEL, key);
         if (replay) return replay;
-        const booking = await transaction.booking.findFirst({ where: { id, order: { buyerUserId: userId } }, include: { order: true, tableHold: true } });
+        const booking = await transaction.booking.findFirst({ where: { id, order: { buyerUserId: userId } }, include: { order: { include: { tickets: true } }, tableHold: true } });
         if (!booking) throw resourceNotFound("BOOKING_NOT_FOUND");
         await lockOrder(transaction, booking.orderId);
         await lockTable(transaction, booking.tableId);
@@ -493,6 +619,9 @@ export class BookingService {
             where: { id: booking.tableId, status: { in: [TableStatus.held, TableStatus.booked] } },
             data: { status: TableStatus.available, holdToken: null, holdRequestKey: null, holdExpiresAt: null },
           });
+          await transaction.seatAllocation.updateMany({ where: { orderId: booking.orderId, status: { in: [SeatAllocationStatus.active, SeatAllocationStatus.consumed] } }, data: { status: SeatAllocationStatus.released, releasedAt: this.clock.now() } });
+          await transaction.ticket.updateMany({ where: { orderId: booking.orderId, status: { in: [TicketStatus.pending_payment, TicketStatus.paid, TicketStatus.active] } }, data: { status: TicketStatus.cancelled, cancelledAt: this.clock.now() } });
+          await transaction.groupPass.updateMany({ where: { orderId: booking.orderId, status: "active" }, data: { status: "cancelled" } });
           if (booking.order.paymentStatus === PaymentStatus.pending) {
             await transaction.order.update({ where: { id: booking.orderId }, data: { paymentStatus: PaymentStatus.cancelled } });
             await transaction.deposit.updateMany({ where: { orderId: booking.orderId }, data: { status: PaymentStatus.cancelled } });
@@ -513,7 +642,9 @@ export class BookingService {
     const order = await transaction.order.findUnique({ where: { id: orderId }, include: { booking: { include: { tableHold: true } } } });
     if (!order || order.paymentStatus !== PaymentStatus.pending) return;
     await transaction.ticketReservation.updateMany({ where: { orderId, status: TicketReservationStatus.active }, data: { status: TicketReservationStatus.released } });
+    await transaction.seatAllocation.updateMany({ where: { orderId, status: SeatAllocationStatus.active }, data: { status: SeatAllocationStatus.released, releasedAt: this.clock.now() } });
     await transaction.ticket.updateMany({ where: { orderId, status: TicketStatus.pending_payment }, data: { status: TicketStatus.cancelled, cancelledAt: this.clock.now() } });
+    await transaction.groupPass.updateMany({ where: { orderId, status: "active" }, data: { status: "cancelled" } });
     if (order.booking?.tableHold?.status === TableHoldStatus.active) {
       await lockTable(transaction, order.booking.tableId);
       await transaction.booking.update({ where: { id: order.booking.id }, data: { status: BookingStatus.expired } });
@@ -666,6 +797,73 @@ function idempotencyKey(value: string | undefined): string {
 
 async function lockOrder(transaction: Prisma.TransactionClient, id: string): Promise<void> {
   await transaction.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${`order:${id}`}, 0))`;
+}
+
+async function lockSeat(transaction: Prisma.TransactionClient, id: string): Promise<void> {
+  await transaction.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${`seat:${id}`}, 0))`;
+}
+
+type SeatRow = { id: string; number: number; label: string; sortOrder: number };
+
+/** Materialises legacy table capacity into relational seats once, preserving old tables as whole-table inventory. */
+async function ensureWholeTableSeats(
+  transaction: Prisma.TransactionClient,
+  tableId: string,
+  venueLayoutId: string,
+  capacity: number,
+  existing: SeatRow[],
+): Promise<SeatRow[]> {
+  if (!Number.isInteger(capacity) || capacity < 1) {
+    throw new ConflictException({ code: "TABLE_SEAT_COUNT_INVALID", message: "This table has no configured seats" });
+  }
+  const seats = [...existing].sort((a, b) => a.sortOrder - b.sortOrder);
+  if (seats.length >= capacity) return seats.slice(0, capacity);
+  const created: SeatRow[] = [];
+  for (let index = seats.length; index < capacity; index += 1) {
+    created.push(await transaction.seat.create({
+      data: {
+        venueLayoutId,
+        tableId,
+        number: index + 1,
+        label: String(index + 1),
+        sortOrder: index,
+      },
+      select: { id: true, number: true, label: true, sortOrder: true },
+    }));
+  }
+  return [...seats, ...created];
+}
+
+/** Internal admission type keeps individual table tickets in the common ticket system without public sale. */
+async function ensureAdmissionTicketType(
+  transaction: Prisma.TransactionClient,
+  eventId: string,
+  tableId: string,
+  currency: string,
+): Promise<{ id: string }> {
+  const name = `__table_admission:${tableId}`;
+  const existing = await transaction.ticketType.findFirst({ where: { eventId, name, isInternal: true }, select: { id: true } });
+  if (existing) return existing;
+  try {
+    return await transaction.ticketType.create({
+      data: {
+        eventId,
+        name,
+        price: 0,
+        deposit: 0,
+        currency,
+        quantityTotal: 1_000_000_000,
+        status: TicketTypeStatus.active,
+        isInternal: true,
+      },
+      select: { id: true },
+    });
+  } catch (error) {
+    if (!isUniqueError(error)) throw error;
+    const raced = await transaction.ticketType.findFirst({ where: { eventId, name, isInternal: true }, select: { id: true } });
+    if (raced) return raced;
+    throw error;
+  }
 }
 
 function orderNotFound(): NotFoundException { return resourceNotFound("ORDER_NOT_FOUND"); }

@@ -2,7 +2,8 @@ import type {
   DeleteEventResponse,
   OrganizerEvent,
   OrganizerEventPreview,
-  OrganizerEventList,
+  OrganizerDashboard,
+  OrganizerWorkspaceEventList,
 } from "@event-platform/shared-types";
 import {
   Body,
@@ -52,8 +53,13 @@ export class EventsController {
   list(
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Query(new ExplicitDtoPipe(EventListQueryDto)) query: EventListQueryDto,
-  ): Promise<OrganizerEventList> {
+  ): Promise<OrganizerWorkspaceEventList> {
     return this.events.list(principal.userId, query);
+  }
+
+  @Get("dashboard/summary")
+  dashboard(@CurrentUser() principal: AuthenticatedPrincipal): Promise<OrganizerDashboard> {
+    return this.events.dashboard(principal.userId);
   }
 
   @Get(":id/preview")

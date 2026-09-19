@@ -9,18 +9,25 @@ import {
   type OrganizerEvent,
   type OrganizerEventPreview,
 } from "@event-platform/shared-types";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { ProtectedRoute } from "../../../(auth)/_components/protected-route";
 import { apiRequest } from "../../../(auth)/_lib/api";
 import { BackLink } from "../../../../components/back-link";
-import { TicketTypesManager } from "./ticket-types-manager";
+import { SalesResources } from "./sales-resources";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 type Step = 0 | 1 | 2 | 3 | 4 | 5;
 const STEPS = ru.events.wizardStepLabels;
+const STEP_DESCRIPTIONS = [
+  "Укажите название, категорию, площадку и время события.",
+  "Добавьте описание программы и загрузите постер отдельным действием.",
+  "Опишите условия посещения, правила и возврат билетов.",
+  "Выберите способ оплаты и укажите условия депозита, если он нужен.",
+  "Настройте входные билеты или интерактивную схему зала.",
+  "Проверьте данные и откройте предпросмотр перед публикацией.",
+] as const;
 
 interface FormValues extends CreateEventRequest {
   timezone: string;
@@ -44,7 +51,7 @@ const EMPTY_FORM: FormValues = {
 };
 
 export function EventForm({ eventId }: { eventId?: string | undefined }) {
-  return <main className="mx-auto min-h-screen max-w-4xl px-6 py-12"><ProtectedRoute><EventEditor eventId={eventId} /></ProtectedRoute></main>;
+  return <main className="mx-auto min-h-screen max-w-7xl px-4 py-8 sm:px-6 lg:px-8"><ProtectedRoute><EventEditor eventId={eventId} /></ProtectedRoute></main>;
 }
 
 function EventEditor({ eventId }: { eventId?: string | undefined }) {
@@ -67,7 +74,7 @@ function EventEditor({ eventId }: { eventId?: string | undefined }) {
   useEffect(() => {
     if (!eventId) { setLoading(false); return; }
     apiRequest<OrganizerEvent>(`/api/organizer/events/${eventId}`)
-      .then((loaded) => { setEvent(loaded); setValues(toFormValues(loaded)); hydrated.current = true; })
+      .then((loaded) => { setEvent(loaded); setValues(toFormValues(loaded)); hydrated.current = true; const requested = Number(new URLSearchParams(window.location.search).get("step")); if (Number.isInteger(requested) && requested >= 1 && requested <= 6) setStep((requested - 1) as Step); })
       .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : ru.events.loadFailed))
       .finally(() => setLoading(false));
   }, [eventId]);
@@ -117,12 +124,8 @@ function EventEditor({ eventId }: { eventId?: string | undefined }) {
 
   async function saveCurrentStep(silent = false): Promise<boolean> {
     if (!validateStep(step)) return false;
-    // The resources and review steps contain links/preview actions, not event fields.
-    // Never send an empty PATCH (the API correctly rejects EVENT_UPDATE_EMPTY).
-    if (step >= 4) {
-      if (!silent) setMessage(ru.events.saved);
-      return true;
-    }
+    // Resources and review save through their own actions; never claim an empty PATCH was saved.
+    if (step >= 4) return true;
     setBusy(!silent); setAutoSaving(silent); setError(null); if (!silent) setMessage(null);
     try {
       const payload = activeEventId ? toStepPayload(values, step) : toPayload(values);
@@ -130,7 +133,7 @@ function EventEditor({ eventId }: { eventId?: string | undefined }) {
         ? await apiRequest<OrganizerEvent>(`/api/organizer/events/${activeEventId}`, { method: "PATCH", body: JSON.stringify(payload) })
         : await apiRequest<OrganizerEvent>("/api/organizer/events", { method: "POST", body: JSON.stringify(payload) });
       setEvent(saved); setDirty(false);
-      if (!activeEventId) router.replace(`/organizer/events/${saved.id}`);
+      if (!activeEventId) router.replace(`/organizer/events/${saved.id}?step=2`);
       if (!silent) setMessage(ru.events.saved);
       return true;
     } catch (reason) {
@@ -141,7 +144,11 @@ function EventEditor({ eventId }: { eventId?: string | undefined }) {
 
   async function saveAndContinue(): Promise<void> {
     const saved = await saveCurrentStep();
-    if (saved) setStep((current) => Math.min(5, current + 1) as Step);
+    if (saved) {
+      const next = Math.min(5, step + 1) as Step;
+      setStep(next);
+      if (activeEventId) window.history.replaceState(null, "", `${window.location.pathname}?step=${next + 1}`);
+    }
   }
 
   async function lifecycle(action: "publish" | "cancel" | "complete"): Promise<void> {
@@ -207,26 +214,31 @@ function EventEditor({ eventId }: { eventId?: string | undefined }) {
     }
     setError(null);
     setStep(target);
+    window.history.replaceState(null, "", `${window.location.pathname}?step=${target + 1}`);
   }
 
   if (loading) return <p className="text-zinc-600">{ru.common.loading}</p>;
   return <section>
     <BackLink href="/organizer/events" />
-    <div className="mt-6 flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-500">{ru.events.eyebrow}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">{eventId ? ru.events.formEditTitle : ru.events.formCreateTitle}</h1><p className="mt-3 text-zinc-600">{ru.events.formDescription}</p></div>{event ? <Status status={event.status} /> : null}</div>
-    <nav aria-label={ru.events.wizardSteps} className="mt-8 overflow-x-auto pb-2"><ol className="flex min-w-max gap-2">{STEPS.map((title, index) => <li key={title}><button className={`rounded-xl px-3 py-2 text-sm font-semibold ${step === index ? "bg-black text-white" : "border border-zinc-200 bg-white text-zinc-600"}`} onClick={() => void goToStep(index as Step)} type="button"><span className="mr-1">{index + 1}.</span>{title}</button></li>)}</ol></nav>
-    <form className="mt-6 grid gap-6 rounded-3xl border border-black/10 bg-white p-7 shadow-sm" onSubmit={(formEvent) => { formEvent.preventDefault(); void saveAndContinue(); }}>
+    <div className="mt-6 flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-700">{ru.events.eyebrow} / {eventId ? "Редактирование" : "Создание мероприятия"}</p><div className="mt-2 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">{eventId ? ru.events.formEditTitle : ru.events.formCreateTitle}</h1>{event ? <Status status={event.status} /> : null}</div><p className="mt-3 text-zinc-600">{ru.events.formDescription}</p></div>{event ? <span className="rounded-lg bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-800">ID: {event.id.slice(0, 8)}</span> : null}</div>
+    <nav aria-label={ru.events.wizardSteps} className="mt-8 overflow-x-auto rounded-2xl border border-violet-100 bg-violet-50/70 p-2"><ol className="flex min-w-max gap-1">{STEPS.map((title, index) => <li key={title}><button aria-current={step === index ? "step" : undefined} className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-700 ${step === index ? "bg-violet-700 text-white shadow-sm" : index < step ? "text-emerald-800 hover:bg-white" : "text-zinc-600 hover:bg-white"}`} onClick={() => void goToStep(index as Step)} type="button"><span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-xs ${step === index ? "bg-white/20" : index < step ? "bg-emerald-100" : "bg-white"}`}>{index < step ? "✓" : index + 1}</span>{title}</button></li>)}</ol></nav>
+    <div className="mt-7 border-b border-zinc-200 pb-5"><p className="text-xs font-bold uppercase tracking-widest text-violet-700">Шаг {step + 1} из 6</p><h2 className="mt-2 text-2xl font-bold text-zinc-900 sm:text-3xl">{step + 1}. {STEPS[step]}</h2><p className="mt-2 text-sm text-zinc-600">{STEP_DESCRIPTIONS[step]}</p></div>
+    <div className="mt-6 grid gap-6">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]"><div className="min-w-0 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-7">
+      {step < 4 ? <form id="event-details-form" onSubmit={(formEvent) => { formEvent.preventDefault(); void saveAndContinue(); }}>
       {step === 0 ? <Basics values={values} errors={fieldErrors} update={update} /> : null}
       {step === 1 ? <Description values={values} update={update} poster={poster} setPoster={setPoster} event={event} busy={busy} onUpload={() => void uploadPoster()} onRemove={() => void removePoster()} /> : null}
       {step === 2 ? <Terms values={values} update={update} /> : null}
       {step === 3 ? <Payment values={values} update={update} errors={fieldErrors} /> : null}
-      {step === 4 ? <Resources event={event} activeEventId={activeEventId} /> : null}
+      </form> : null}
+      {step === 4 ? <SalesResources event={event} /> : null}
       {step === 5 ? <Review values={values} event={event} preview={preview} onPreview={() => void loadPreview()} /> : null}
+      </div><StepSidebar step={step} event={event} values={values} /></div>
       {error ? <p className="rounded-xl bg-red-50 p-4 text-sm text-red-800" role="alert">{error}</p> : null}
       {message ? <p className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800" role="status">{message}</p> : null}
       {autoSaving ? <p className="text-sm text-zinc-500" role="status">{ru.events.autoSaving}</p> : null}
-      <div className="flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-5"><button className="rounded-xl border border-zinc-300 bg-white px-5 py-3 font-semibold disabled:opacity-40" disabled={busy || step === 0} onClick={() => setStep((current) => Math.max(0, current - 1) as Step)} type="button">{ru.events.previousStep}</button>{step < 5 ? <button className="rounded-xl bg-black px-5 py-3 font-semibold text-white disabled:opacity-40" disabled={busy} type="submit">{busy ? ru.common.saving : ru.events.saveContinue}</button> : <button className="rounded-xl border border-zinc-300 bg-white px-5 py-3 font-semibold" disabled={busy} onClick={() => void saveCurrentStep()} type="button">{ru.common.save}</button>}{step === 5 && event ? <button className="rounded-xl border border-indigo-300 px-5 py-3 font-semibold text-indigo-800 disabled:opacity-40" disabled={busy} onClick={() => void loadPreview()} type="button">{ru.events.preview}</button> : null}{event?.status === "draft" ? <button className="rounded-xl border border-emerald-300 px-5 py-3 font-semibold text-emerald-800 disabled:opacity-40" disabled={busy} onClick={() => void lifecycle("publish")} type="button">{ru.events.publish}</button> : null}{event?.status === "published" ? <><button className="rounded-xl border border-blue-300 px-5 py-3 font-semibold text-blue-800 disabled:opacity-40" disabled={busy} onClick={() => void lifecycle("complete")} type="button">{ru.events.complete}</button><button className="rounded-xl border border-red-300 px-5 py-3 font-semibold text-red-800 disabled:opacity-40" disabled={busy} onClick={() => void lifecycle("cancel")} type="button">{ru.events.cancelEvent}</button></> : null}{event?.status === "draft" ? <button className="ml-auto text-sm text-red-700 underline disabled:opacity-40" disabled={busy} onClick={() => void deleteDraft()} type="button">{ru.events.deleteDraft}</button> : null}</div>
-    </form>
-    {event ? <TicketTypesManager event={event} /> : null}
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"><button className="rounded-xl bg-violet-50 px-5 py-3 font-semibold text-violet-900 disabled:opacity-40" disabled={busy || step === 0} onClick={() => void goToStep(Math.max(0, step - 1) as Step)} type="button">{ru.events.previousStep}</button>{step < 5 ? <button className="ml-auto rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white disabled:opacity-40" disabled={busy} form={step < 4 ? "event-details-form" : undefined} onClick={step === 4 ? () => void saveAndContinue() : undefined} type={step < 4 ? "submit" : "button"}>{busy ? ru.common.saving : step === 4 ? "Перейти к проверке" : ru.events.saveContinue}</button> : null}{step === 5 && event ? <button className="ml-auto rounded-xl border border-violet-300 px-5 py-3 font-semibold text-violet-800 disabled:opacity-40" disabled={busy} onClick={() => void loadPreview()} type="button">{ru.events.preview}</button> : null}{step === 5 && event?.status === "draft" ? <button className="rounded-xl bg-emerald-800 px-5 py-3 font-semibold text-white disabled:opacity-40" disabled={busy} onClick={() => void lifecycle("publish")} type="button">{ru.events.publish}</button> : null}{step === 5 && event?.status === "published" ? <><button className="rounded-xl border border-blue-300 px-5 py-3 font-semibold text-blue-800 disabled:opacity-40" disabled={busy} onClick={() => void lifecycle("complete")} type="button">{ru.events.complete}</button><button className="rounded-xl border border-red-300 px-5 py-3 font-semibold text-red-800 disabled:opacity-40" disabled={busy} onClick={() => void lifecycle("cancel")} type="button">{ru.events.cancelEvent}</button></> : null}{event?.status === "draft" ? <button className="text-sm text-red-700 underline disabled:opacity-40" disabled={busy} onClick={() => void deleteDraft()} type="button">{ru.events.deleteDraft}</button> : null}</div>
+    </div>
   </section>;
 }
 
@@ -247,9 +259,18 @@ function Terms({ values, update }: { values: FormValues; update: <K extends keyo
 
 function Payment({ values, update, errors }: { values: FormValues; update: <K extends keyof FormValues>(key: K, value: FormValues[K]) => void; errors: Record<string, string> }) { return <fieldset className="grid gap-4"><legend className="text-sm font-semibold">{ru.events.fields.paymentMode}</legend><label className="flex items-center gap-3"><input checked={values.paymentMode === "full_payment"} name="paymentMode" onChange={() => update("paymentMode", "full_payment")} type="radio" />{ru.events.paymentModes.full_payment}</label><label className="flex items-center gap-3"><input checked={values.paymentMode === "deposit"} name="paymentMode" onChange={() => update("paymentMode", "deposit")} type="radio" />{ru.events.paymentModes.deposit}</label>{values.paymentMode === "deposit" ? <><label className="flex items-center gap-3 font-medium"><input checked={values.showFullAmountForDeposit} onChange={(input) => update("showFullAmountForDeposit", input.target.checked)} type="checkbox" />{ru.events.fields.showFullAmountForDeposit}</label><div><TextArea id="event-depositTerms" label={ru.events.fields.depositTerms} value={values.depositTerms} onChange={(value) => update("depositTerms", value)} />{errors.depositTerms ? <p className="text-xs font-normal text-red-700">{errors.depositTerms}</p> : null}</div></> : <p className="text-sm text-zinc-500">{ru.events.fullPaymentHint}</p>}</fieldset>; }
 
-function Resources({ event, activeEventId }: { event: OrganizerEvent | null; activeEventId: string | undefined }) { if (!activeEventId) return <p className="rounded-2xl bg-zinc-50 p-5 text-zinc-600">{ru.events.saveStepFirst}</p>; return <div className="grid gap-4"><h2 className="text-xl font-semibold">{ru.events.resourcesTitle}</h2><p className="text-zinc-600">{ru.events.resourcesDescription}</p><div className="flex flex-wrap gap-3"><Link className="rounded-xl border border-zinc-300 bg-white px-4 py-3 font-semibold" href={`/organizer/venue-builder/${activeEventId}`}>{ru.venue.open}</Link><span className="rounded-xl bg-zinc-100 px-4 py-3 text-sm">{event?.status === "published" ? ru.events.publishedResources : ru.events.resourcesHint}</span></div></div>; }
-
 function Review({ values, event, preview, onPreview }: { values: FormValues; event: OrganizerEvent | null; preview: OrganizerEventPreview | null; onPreview: () => void }) { return <div className="grid gap-5"><h2 className="text-xl font-semibold">{ru.events.reviewTitle}</h2><dl className="grid gap-3 rounded-2xl bg-zinc-50 p-5 sm:grid-cols-2"><Summary label={ru.events.fields.title} value={values.title || "—"} /><Summary label={ru.events.fields.category} value={ru.events.categories[values.category]} /><Summary label={ru.events.fields.city} value={values.city || "—"} /><Summary label={ru.events.fields.date} value={`${values.date || "—"} ${values.time || ""}`} /><Summary label={ru.events.fields.venueName} value={values.venueName || "—"} /><Summary label={ru.events.fields.paymentMode} value={ru.events.paymentModes[values.paymentMode]} /></dl><p className="text-sm text-zinc-600">{ru.events.reviewHint}</p>{event ? <button className="w-fit rounded-xl border border-indigo-300 px-4 py-3 font-semibold text-indigo-800" onClick={onPreview} type="button">{ru.events.preview}</button> : null}{preview ? <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-5"><p className="font-semibold">{preview.status === "draft" ? ru.events.previewDraftBanner : ru.events.previewPublishedBanner}</p><p className="mt-2 text-sm text-zinc-700">{preview.title} · {preview.city} · {preview.venueName}</p><p className="mt-2 text-sm text-zinc-600">{preview.ticketTypes.length} {ru.events.previewTickets}, {preview.tables.length} {ru.events.previewTables}</p></div> : null}</div>; }
+
+function StepSidebar({ step, event, values }: { step: Step; event: OrganizerEvent | null; values: FormValues }) {
+  return <aside className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm lg:sticky lg:top-6">
+    <p className="text-xs font-bold uppercase tracking-widest text-violet-700">Мероприятие</p>
+    <h3 className="mt-3 break-words text-lg font-bold text-zinc-900">{values.title.trim() || "Новый черновик"}</h3>
+    {event ? <p className="mt-2 text-xs text-zinc-600">{ru.events.statuses[event.status]} · {event.id.slice(0, 8)}</p> : <p className="mt-2 text-xs text-zinc-600">Черновик появится после сохранения первого шага.</p>}
+    <dl className="mt-5 grid gap-4 border-t border-zinc-200 pt-5 text-sm"><Summary label={ru.events.fields.city} value={values.city || "—"} /><Summary label={ru.events.fields.venueName} value={values.venueName || "—"} /><Summary label={ru.events.fields.date} value={`${values.date || "—"} ${values.time || ""}`} /><Summary label={ru.events.fields.timezone} value={values.timezone || "—"} /></dl>
+    {step === 1 && event?.posterUrl ? <img alt={ru.events.missingPosterAlt} className="mt-5 aspect-video w-full rounded-xl object-cover" src={posterUrl(event.posterUrl)} /> : null}
+    <p className="mt-5 rounded-xl bg-violet-50 p-4 text-xs leading-relaxed text-violet-900">{step === 5 ? "Публикацию подтверждает сервер после проверки всех обязательных данных и настроек продаж." : "Предпросмотр и продажи используют только сохранённые данные мероприятия."}</p>
+  </aside>;
+}
 
 function Summary({ label, value }: { label: string; value: string }) { return <div><dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</dt><dd className="mt-1 font-medium text-zinc-900">{value}</dd></div>; }
 function TextField({ id, label, onChange, required = false, type = "text", value, error }: { id: string; label: string; onChange: (value: string) => void; required?: boolean; type?: string; value: string; error?: string | undefined }) { return <label className="grid gap-2 text-sm font-semibold" htmlFor={id}>{label}{required ? <span aria-hidden="true"> *</span> : null}<input aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} className="rounded-xl border border-zinc-300 px-4 py-3 font-normal outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" id={id} onChange={(input) => onChange(input.currentTarget.value)} required={required} type={type} value={value} />{error ? <p className="text-xs font-normal text-red-700" id={`${id}-error`}>{error}</p> : null}</label>; }

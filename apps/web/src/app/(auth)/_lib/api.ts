@@ -99,7 +99,19 @@ function venueError(code: string | undefined): string | null {
       return ru.venue.errors.hasHistory;
     case "VENUE_LAYOUT_INVALID":
     case "VENUE_LAYOUT_TABLE_IDS_INVALID":
+    case "VENUE_LAYOUT_ROW_IDS_INVALID":
       return ru.venue.errors.invalidLayout;
+    case "ROW_NUMBER_EXISTS":
+      return ru.venue.errors.duplicateRowNumber;
+    case "SEAT_NUMBER_EXISTS":
+      return ru.venue.errors.duplicateSeatNumber;
+    case "VENUE_STRUCTURE_DRAFT_ONLY":
+    case "ROW_EDIT_DRAFT_ONLY":
+      return ru.venue.errors.structureLocked;
+    case "VENUE_LAYOUT_STALE_REVISION":
+      return ru.venue.errors.staleRevision;
+    case "VENUE_DUPLICATE_NO_SPACE":
+      return ru.venue.errors.duplicateNoSpace;
     default:
       return null;
   }

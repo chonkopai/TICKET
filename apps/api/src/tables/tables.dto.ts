@@ -25,6 +25,9 @@ export class CreateTableDto implements CreateTableRequest {
   @IsInt() @Min(0) deposit!: number;
   @IsOptional() @IsString() @Matches(/^[A-Za-z]{3}$/) currency?: string;
   @IsOptional() @IsString() @MaxLength(5_000) description?: string | null;
+  @IsOptional() @IsString() @MaxLength(40) typeLabel?: string | null;
+  @IsOptional() @IsString() @MaxLength(200) shortDescription?: string | null;
+  @IsOptional() @IsIn(["whole_table", "per_seat"]) saleMode?: "whole_table" | "per_seat";
   @IsOptional() @IsIn(["available", "unavailable"]) status?: "available" | "unavailable";
   @IsObject() geometry!: CreateTableRequest["geometry"];
 }
@@ -37,6 +40,9 @@ export class UpdateTableDto implements UpdateTableRequest {
   @IsOptional() @IsInt() @Min(0) deposit?: number;
   @IsOptional() @IsString() @Matches(/^[A-Za-z]{3}$/) currency?: string;
   @IsOptional() @IsString() @MaxLength(5_000) description?: string | null;
+  @IsOptional() @IsString() @MaxLength(40) typeLabel?: string | null;
+  @IsOptional() @IsString() @MaxLength(200) shortDescription?: string | null;
+  @IsOptional() @IsIn(["whole_table", "per_seat"]) saleMode?: "whole_table" | "per_seat";
   @IsOptional() @IsIn(["available", "unavailable"]) status?: "available" | "unavailable";
 }
 

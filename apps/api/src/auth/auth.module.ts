@@ -6,6 +6,7 @@ import { AuthController } from "./auth.controller.js";
 import { AUTH_CONFIG, DATABASE_CLIENT, type AuthConfig } from "./auth.constants.js";
 import { BotActorGuard, BotApiGuard, JwtAuthGuard, RolesGuard } from "./auth.guards.js";
 import { AuthService } from "./auth.service.js";
+import { AccountService } from "./account.service.js";
 import { MeController } from "./me.controller.js";
 import { TelegramLinkService } from "./telegram-link.service.js";
 import { TokenService } from "./token.service.js";
@@ -29,6 +30,7 @@ import { TokenService } from "./token.service.js";
       },
     },
     AuthService,
+    AccountService,
     TokenService,
     TelegramLinkService,
     JwtAuthGuard,

@@ -1,4 +1,4 @@
-import { EVENT_CATEGORIES, type CreateEventRequest, type UpdateEventRequest } from "@event-platform/shared-types";
+import { EVENT_CATEGORIES, ORGANIZER_EVENT_SORTS, ORGANIZER_STATUS_GROUPS, type CreateEventRequest, type OrganizerEventSort, type OrganizerEventStatusGroup, type UpdateEventRequest } from "@event-platform/shared-types";
 import { Type } from "class-transformer";
 import {
   IsBoolean,
@@ -206,4 +206,12 @@ export class EventListQueryDto {
   @Min(1)
   @Max(50)
   limit = 20;
+
+  @IsOptional()
+  @IsIn(ORGANIZER_STATUS_GROUPS)
+  statusGroup?: OrganizerEventStatusGroup = "all";
+
+  @IsOptional()
+  @IsIn(ORGANIZER_EVENT_SORTS)
+  sort?: OrganizerEventSort = "updated_desc";
 }

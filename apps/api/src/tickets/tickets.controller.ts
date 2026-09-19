@@ -17,7 +17,7 @@ import type { AuthenticatedPrincipal } from "../auth/auth.constants.js";
 import { CurrentUser, Roles } from "../auth/auth.decorators.js";
 import { JwtAuthGuard, RolesGuard } from "../auth/auth.guards.js";
 import { ExplicitDtoPipe } from "../events/explicit-dto.pipe.js";
-import { UseTicketDto } from "./tickets.dto.js";
+import { UseGroupPassDto, UseTicketDto } from "./tickets.dto.js";
 import { TicketsService } from "./tickets.service.js";
 
 @Controller("organizer/tickets")
@@ -64,6 +64,15 @@ export class TicketsController {
   ): Promise<UseTicketResponse> {
     return this.tickets.useByQrToken(principal.userId, body.qrToken);
   }
+
+  @Post("group-pass/use")
+  @HttpCode(HttpStatus.OK)
+  useGroupPass(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Body(new ExplicitDtoPipe(UseGroupPassDto)) body: UseGroupPassDto,
+  ) {
+    return this.tickets.useGroupPass(principal.userId, body.token, body.confirm);
+  }
 }
 
 @Controller("me/tickets")
@@ -84,5 +93,10 @@ export class GuestTicketsController {
   @Get(":id/wallet")
   async wallet(@CurrentUser() principal: AuthenticatedPrincipal, @Param("id", new ParseUUIDPipe({ version: "4" })) id: string): Promise<StreamableFile> {
     return new StreamableFile(await this.tickets.walletPassForUser(principal.userId, id), { type: "application/vnd.apple.pkpass", disposition: `attachment; filename="ticket-${id}.pkpass"` });
+  }
+
+  @Get("group-passes/:id/qr")
+  async groupPassQr(@CurrentUser() principal: AuthenticatedPrincipal, @Param("id", new ParseUUIDPipe({ version: "4" })) id: string): Promise<StreamableFile> {
+    return new StreamableFile(await this.tickets.renderGroupPassQrForUser(principal.userId, id), { type: "image/png", disposition: `inline; filename="group-pass-${id}.png"` });
   }
 }

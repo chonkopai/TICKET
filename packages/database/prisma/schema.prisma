@@ -70,6 +70,28 @@ enum TableStatus {
   unavailable
 }
 
+enum TableSaleMode {
+  whole_table
+  per_seat
+}
+
+enum SeatStatus {
+  available
+  disabled
+}
+
+enum SeatAllocationStatus {
+  active
+  released
+  consumed
+}
+
+enum GroupPassStatus {
+  active
+  used
+  cancelled
+}
+
 enum TableHoldStatus {
   active
   released
@@ -145,6 +167,7 @@ model User {
   photoUrl       String?
   phone          String?
   email          String?
+  defaultCity    String?
   createdAt      DateTime @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime @updatedAt @db.Timestamptz(3)
 
@@ -161,8 +184,30 @@ model User {
   telegramLinkTokens TelegramLinkToken[]
   idempotencyRecords IdempotencyRecord[]
   favorites          Favorite[]
+  organizerProfile   OrganizerProfile?
+  notificationPreference UserNotificationPreference?
 
   @@index([role])
+}
+
+model OrganizerProfile {
+  userId           String   @id @db.Uuid
+  organizationName String   @db.VarChar(160)
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserNotificationPreference {
+  userId                      String   @id @db.Uuid
+  transactionalTicketDelivery Boolean @default(true)
+  eventReminders              Boolean @default(true)
+  marketingAnnouncements      Boolean @default(false)
+  createdAt                   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt                   DateTime @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model RefreshToken {
@@ -267,6 +312,7 @@ model OutboxEvent {
 }
 
 model TicketType {
+  venueObjectId String? @unique @db.Uuid
   id            String           @id @default(uuid()) @db.Uuid
   eventId       String           @db.Uuid
   name          String
@@ -280,12 +326,14 @@ model TicketType {
   salesEndAt    DateTime?        @db.Timestamptz(3)
   restrictions  String?          @db.Text
   status        TicketTypeStatus @default(draft)
+  isInternal    Boolean          @default(false)
   createdAt     DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime         @updatedAt @db.Timestamptz(3)
 
   event        Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
   tickets      Ticket[]
   reservations TicketReservation[]
+  seats        Seat[]
 
   @@unique([eventId, name])
   @@index([eventId, status])
@@ -304,12 +352,14 @@ model Ticket {
   cancelledAt       DateTime?    @db.Timestamptz(3)
   refundedAt        DateTime?    @db.Timestamptz(3)
   appleWalletPassId String?      @unique
+  seatLabelSnapshot String?      @db.VarChar(120)
   createdAt         DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime     @updatedAt @db.Timestamptz(3)
 
   ticketType TicketType @relation(fields: [ticketTypeId], references: [id], onDelete: Cascade)
   order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
   owner      User?      @relation("TicketOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  seatAllocation SeatAllocation?
 
   @@index([ticketTypeId, status])
   @@index([orderId])
@@ -340,12 +390,15 @@ model VenueLayout {
   organizerId  String?  @db.Uuid
   layoutJson   Json
   templateName String
+  revision     Int      @default(1)
   createdAt    DateTime @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @db.Timestamptz(3)
 
   event     Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
   organizer User?   @relation("VenueLayoutOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
   tables    Table[]
+  rows      VenueRow[]
+  seats     Seat[]
 
   @@index([organizerId])
 }
@@ -360,6 +413,9 @@ model Table {
   deposit        Int
   currency       String      @db.Char(3)
   description    String?     @db.Text
+  typeLabel      String?     @db.VarChar(40)
+  shortDescription String?   @db.VarChar(200)
+  saleMode       TableSaleMode @default(whole_table)
   status         TableStatus @default(available)
   holdToken      String?     @unique
   holdRequestKey String?
@@ -370,10 +426,92 @@ model Table {
   venueLayout VenueLayout @relation(fields: [venueLayoutId], references: [id], onDelete: Cascade)
   bookings    Booking[]
   holds       TableHold[]
+  seatRecords Seat[] @relation("TableSeats")
+  groupPasses GroupPass[]
 
   @@unique([venueLayoutId, number])
   @@index([venueLayoutId, status])
   @@index([holdExpiresAt])
+}
+
+model VenueRow {
+  id               String      @id @default(uuid()) @db.Uuid
+  venueLayoutId    String      @db.Uuid
+  number           Int
+  name             String?
+  typeLabel        String?     @db.VarChar(40)
+  shortDescription String?     @db.VarChar(200)
+  price            Int         @default(0)
+  deposit          Int         @default(0)
+  currency         String      @db.Char(3)
+  status           TableStatus @default(available)
+  createdAt        DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime    @updatedAt @db.Timestamptz(3)
+
+  venueLayout VenueLayout @relation(fields: [venueLayoutId], references: [id], onDelete: Cascade)
+  seats       Seat[]      @relation("RowSeats")
+
+  @@unique([venueLayoutId, number])
+  @@index([venueLayoutId, status])
+}
+
+model Seat {
+  id            String     @id @default(uuid()) @db.Uuid
+  venueLayoutId String     @db.Uuid
+  tableId       String?    @db.Uuid
+  rowId         String?    @db.Uuid
+  number        Int
+  label         String
+  sortOrder     Int
+  status        SeatStatus @default(available)
+  ticketTypeId  String?    @db.Uuid
+  createdAt     DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime   @updatedAt @db.Timestamptz(3)
+
+  venueLayout VenueLayout @relation(fields: [venueLayoutId], references: [id], onDelete: Cascade)
+  table       Table?      @relation("TableSeats", fields: [tableId], references: [id], onDelete: Cascade)
+  row         VenueRow?   @relation("RowSeats", fields: [rowId], references: [id], onDelete: Cascade)
+  ticketType  TicketType? @relation(fields: [ticketTypeId], references: [id], onDelete: SetNull)
+  allocations SeatAllocation[]
+
+  @@unique([tableId, number])
+  @@unique([rowId, number])
+  @@index([venueLayoutId, status])
+  @@index([ticketTypeId, status])
+}
+
+model SeatAllocation {
+  id         String               @id @default(uuid()) @db.Uuid
+  seatId     String               @db.Uuid
+  orderId    String               @db.Uuid
+  ticketId   String?              @unique @db.Uuid
+  status     SeatAllocationStatus @default(active)
+  createdAt  DateTime             @default(now()) @db.Timestamptz(3)
+  releasedAt DateTime?            @db.Timestamptz(3)
+  consumedAt DateTime?            @db.Timestamptz(3)
+
+  seat   Seat    @relation(fields: [seatId], references: [id], onDelete: Restrict)
+  order  Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ticket Ticket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@index([seatId, status])
+  @@index([orderId, status])
+}
+
+model GroupPass {
+  id         String         @id @default(uuid()) @db.Uuid
+  orderId    String         @unique @db.Uuid
+  tableId    String         @db.Uuid
+  token      String         @unique
+  totalSeats Int
+  status     GroupPassStatus @default(active)
+  usedAt     DateTime?       @db.Timestamptz(3)
+  createdAt  DateTime        @default(now()) @db.Timestamptz(3)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  table Table @relation(fields: [tableId], references: [id], onDelete: Restrict)
+
+  @@index([tableId, status])
 }
 
 model TableHold {
@@ -430,6 +568,8 @@ model Order {
   webhookEvents WebhookEvent[]
   deposit  Deposit?
   reservations TicketReservation[]
+  seatAllocations SeatAllocation[]
+  groupPass GroupPass?
   anonymousSession AnonymousCheckoutSession?
 
   @@index([buyerUserId, createdAt])

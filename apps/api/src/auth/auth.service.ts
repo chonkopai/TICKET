@@ -70,12 +70,23 @@ export class AuthService {
   }
 
   async updateMe(userId: string, input: UpdateMeDto): Promise<AuthUser> {
-    const user = await this.database.user.update({
-      where: { id: userId },
-      data: {
-        ...(input.phone !== undefined ? { phone: input.phone } : {}),
-        ...(input.email !== undefined ? { email: input.email } : {}),
-      },
+    const changedFields = Object.keys(input);
+    const user = await this.database.$transaction(async (transaction) => {
+      const updated = await transaction.user.update({
+        where: { id: userId },
+        data: {
+          ...(input.phone !== undefined ? { phone: normalized(input.phone) } : {}),
+          ...(input.email !== undefined ? { email: normalized(input.email) } : {}),
+          ...(input.defaultCity !== undefined ? { defaultCity: normalized(input.defaultCity) } : {}),
+        },
+      });
+      await transaction.auditLog.create({
+        data: { actorId: userId, action: "profile.updated", entityType: "user", entityId: userId, meta: { changedFields } },
+      });
+      await transaction.outboxEvent.create({
+        data: { eventType: "profile.updated", aggregateType: "user", aggregateId: userId, payload: { changedFields } },
+      });
+      return updated;
     });
     return presentUser(user);
   }
@@ -110,4 +121,9 @@ export class AuthService {
     if (!user) throw new NotFoundException("User was not found");
     return user;
   }
+}
+
+function normalized(value: string | null): string | null {
+  const trimmed = value?.trim() ?? "";
+  return trimmed || null;
 }

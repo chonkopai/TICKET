@@ -209,6 +209,25 @@ describe("EventsService", () => {
       service.create(organizerA, { ...completeInput(), date: "2027-02-31" }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  it("returns server-side inventory and paid revenue metrics for organizer workspaces", async () => {
+    const service = new EventsService(prisma, new MemoryStorage(), new DomainEventsService());
+    const event = await service.create(organizerA, completeInput());
+    eventIds.push(event.id);
+    const ticketType = await prisma.ticketType.create({ data: { eventId: event.id, name: "Workspace", price: 250_000, currency: "KZT", quantityTotal: 10, quantitySold: 2, status: "active" } });
+    const order = await prisma.order.create({ data: { type: "ticket", buyerUserId: organizerA, amount: 500_000, currency: "KZT", paymentStatus: "paid", checkoutSnapshot: { eventId: event.id, eventTitle: event.title, itemName: ticketType.name, quantity: 2 } } });
+    await prisma.ticket.create({ data: { ticketTypeId: ticketType.id, orderId: order.id, ownerUserId: organizerA, qrToken: randomUUID(), status: "active" } });
+
+    try {
+      const list = await service.list(organizerA, { page: 1, limit: 50, statusGroup: "all", sort: "updated_desc" });
+      expect(list.items.find(({ id }) => id === event.id)?.metrics).toMatchObject({ mode: "ordinary", sold: 2, capacity: 10, remaining: 8, settledRevenue: 500_000, currency: "KZT" });
+      const dashboard = await service.dashboard(organizerA);
+      expect(dashboard.currency).toBe("KZT");
+      expect(dashboard.settledRevenue).toBeGreaterThanOrEqual(500_000);
+    } finally {
+      await prisma.order.delete({ where: { id: order.id } });
+    }
+  });
 });
 
 function completeInput(): CreateEventRequest {

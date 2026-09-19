@@ -2,6 +2,7 @@ export interface WalletPassInput {
   serialNumber: string;
   eventTitle: string;
   ticketTypeName: string;
+  seatLabel?: string | null;
   venueName: string;
   address: string;
   eventDate: string;

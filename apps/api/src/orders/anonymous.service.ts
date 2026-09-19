@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Prisma, type PrismaClient } from "@event-platform/database";
-import type { CheckoutResponse, CreateTableCheckoutRequest, CreateTicketCheckoutRequest } from "@event-platform/shared-types";
+import type { CheckoutResponse, CreateSeatCheckoutRequest, CreateTableCheckoutRequest, CreateTicketCheckoutRequest } from "@event-platform/shared-types";
 import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { DATABASE_CLIENT } from "../auth/auth.constants.js";
 import { BOOKING_CLOCK, type BookingClock } from "../booking/booking.constants.js";
@@ -75,7 +75,7 @@ export class AnonymousService {
     return row;
   }
 
-  async checkout(raw: string, key: string, kind: "ticket" | "table", input: CreateTicketCheckoutRequest | CreateTableCheckoutRequest): Promise<CheckoutResponse> {
+  async checkout(raw: string, key: string, kind: "ticket" | "table" | "seats", input: CreateTicketCheckoutRequest | CreateTableCheckoutRequest | CreateSeatCheckoutRequest): Promise<CheckoutResponse> {
     const session = await this.session(raw);
     const fingerprint = secretHash(JSON.stringify({ kind, ...input }));
     const response = await this.db.$transaction(async tx => {
@@ -89,7 +89,9 @@ export class AnonymousService {
       const context = { transaction: tx, guestContact: { name: current.name, channel: "telegram", telegramId: current.telegramId.toString(), chatId: current.chatId.toString() } };
       const created = kind === "ticket"
         ? await this.booking.checkoutTickets(current.id, key, input as CreateTicketCheckoutRequest, context)
-        : await this.booking.checkoutTable(current.id, key, input as CreateTableCheckoutRequest, context);
+        : kind === "table"
+          ? await this.booking.checkoutTable(current.id, key, input as CreateTableCheckoutRequest, context)
+          : await this.booking.checkoutSeats(current.id, key, input as CreateSeatCheckoutRequest, context);
       await tx.anonymousCheckoutSession.update({ where: { id: current.id }, data: {
         orderId: created.orderId, requestKey: key, requestHash: fingerprint, response: created as unknown as Prisma.InputJsonObject,
       } });
