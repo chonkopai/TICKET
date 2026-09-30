@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { loadFavoriteIds, toggleFavorite } from "../lib/favorites";
 import { readLocalFavoriteIds } from "../lib/local-preferences";
 
-export function FavoriteButton({ eventId }: { eventId: string }) {
+export function FavoriteButton({ eventId, compact = false, heroOverlay = false }: { eventId: string; compact?: boolean; heroOverlay?: boolean }) {
   const [favorite, setFavorite] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -36,5 +36,5 @@ export function FavoriteButton({ eventId }: { eventId: string }) {
     } finally { setBusy(false); }
   }
 
-  return <button aria-label={favorite ? ru.publicEvent.favoriteRemove : ru.publicEvent.favoriteAdd} aria-pressed={favorite} className="absolute right-4 top-4 z-10 flex size-9 items-center justify-center rounded-full border border-white/35 bg-white/50 text-lg leading-none text-indigo-700 shadow-sm backdrop-blur-sm transition hover:scale-105 hover:bg-white/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 disabled:opacity-60" disabled={busy} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void change(); }} type="button">{favorite ? "♥" : "♡"}</button>;
+  return <button aria-label={favorite ? ru.publicEvent.favoriteRemove : ru.publicEvent.favoriteAdd} aria-pressed={favorite} className={`absolute z-10 flex items-center justify-center rounded-full text-white transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-60 ${compact ? "right-2 top-1 size-9" : heroOverlay ? "right-4 top-40 size-11 sm:right-8 sm:top-32 lg:right-10" : "right-4 top-4 size-11"}`} disabled={busy} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void change(); }} type="button">{<svg aria-hidden="true" className={`${compact ? "h-5 w-5" : "h-6 w-6"} drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]`} viewBox="0 0 24 24" fill={favorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" /></svg>}</button>;
 }

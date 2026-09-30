@@ -206,6 +206,7 @@ model User {
   guestMessages      ChatMessage[]       @relation("ChatGuest")
   auditLogs          AuditLog[]          @relation("AuditActor")
   refreshTokens      RefreshToken[]
+  googleIdentity     GoogleIdentity?
   contactIdentities  ContactIdentity[]
   verificationChallenges VerificationChallenge[]
   verificationGrants VerificationGrant[]
@@ -357,6 +358,7 @@ model Event {
   countryCode       String      @default("KZ") @db.VarChar(2)
   city              String      @default("Алматы")
   posterUrl         String?
+  galleryUrls       String[]    @default([])
   announcement      String?     @db.Text
   description       String?     @db.Text
   program           String?     @db.Text
@@ -986,4 +988,19 @@ model TelegramUpdate {
 
   @@unique([botId, updateId])
   @@index([status, leaseUntil])
+}
+
+model GoogleIdentity {
+  subject   String   @id @db.VarChar(255)
+  userId    String   @unique @db.Uuid
+  email     String   @db.VarChar(320)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// One-use browser nonce; expired entries can be removed after the token expires.
+model GoogleLoginProof {
+  nonce     String   @id @db.VarChar(64)
+  expiresAt DateTime @db.Timestamptz(3)
+  @@index([expiresAt])
 }

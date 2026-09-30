@@ -90,7 +90,7 @@ function Ticket({ params }: { params: Promise<{ id: string }> }) {
   const status = copy.statuses[ticket.status as keyof typeof copy.statuses] ?? ticket.status;
 
   return <section className="rounded-3xl border border-black/10 bg-white p-7 text-center shadow-sm">
-    <BackLink href={localeUrl("/my-events", locale)} />
+    <BackLink href={localeUrl("/account", locale)} />
     <h1 className="mt-6 text-3xl font-semibold">{ticket.eventTitle}</h1>
     <div className="mt-2"><ContentLanguageNote contentLocale={ticket.contentLocale ?? ticket.sourceLocale ?? "ru"} /></div>
     <p className="mt-2 text-zinc-600">{ticket.ticketTypeName}</p>

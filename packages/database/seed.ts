@@ -1,10 +1,33 @@
 import { EventStatus, OrderType, PaymentStatus, SeatAllocationStatus, TicketStatus, TicketTypeStatus, UserRole, prisma } from "./src/index.js";
 import { demoEvents, demoOrganizers, seedIds } from "./src/seed-data.js";
+import { localizedDemoContent } from "./src/demo-translations.js";
 
 const eventDate = new Date("2026-12-20T00:00:00.000Z");
 const eventTime = new Date("1970-01-01T19:00:00.000Z");
+const stockImage = (photoId: string) => `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=1400&q=85`;
+const galleryImagePool: Record<string, string[]> = {
+  music: ["photo-1492684223066-81342ee5ff30", "photo-1514525253161-7a46d19cd819", "photo-1501386761578-eac5c94b800a", "photo-1542751371-adc38448a05e"],
+  nightlife: ["photo-1514525253161-7a46d19cd819", "photo-1492684223066-81342ee5ff30", "photo-1501386761578-eac5c94b800a"],
+  festival: ["photo-1501386761578-eac5c94b800a", "photo-1512389142860-9c449e58a543", "photo-1492684223066-81342ee5ff30"],
+  business: ["photo-1540575467063-178a50c2df87", "photo-1551836022-d5d88e9218df", "photo-1521737711867-e3b97375f902", "photo-1505373877841-8d25f7d46678"],
+  education: ["photo-1532094349884-543bc11b234d", "photo-1452780212940-6f5c0d14d848", "photo-1540575467063-178a50c2df87"],
+  workshop: ["photo-1565193566173-7a0ee3dbe261", "photo-1452780212940-6f5c0d14d848", "photo-1464822759023-fed622ff2c3b", "photo-1528698827591-e19ccd7bc23d"],
+  food: ["photo-1488459716781-31db52582fe9", "photo-1414235077428-338989a2e8c0", "photo-1519167758481-83f550bb49b3", "photo-1528698827591-e19ccd7bc23d"],
+  theatre: ["photo-1507676184212-d03ab07a01bf", "photo-1489599849927-2ee91cede3ba", "photo-1585699324551-f6c3097c29a4", "photo-1564399579883-451a5d44ec08"],
+  comedy: ["photo-1585699324551-f6c3097c29a4", "photo-1507676184212-d03ab07a01bf", "photo-1489599849927-2ee91cede3ba"],
+  family: ["photo-1512389142860-9c449e58a543", "photo-1472162072942-cd5147eb3902", "photo-1564399579883-451a5d44ec08", "photo-1528698827591-e19ccd7bc23d"],
+  sport: ["photo-1552674605-db6ffd4facb5", "photo-1542751371-adc38448a05e", "photo-1501386761578-eac5c94b800a"],
+  other: ["photo-1528698827591-e19ccd7bc23d", "photo-1519167758481-83f550bb49b3", "photo-1488459716781-31db52582fe9"],
+};
 
-type DemoLayoutKind = "whole_tables" | "numbered_rows" | "per_seat_tables" | "standing_zones" | "mixed_studio" | "mini_stadium";
+function galleryUrlsFor(eventId: string, category: string, posterUrl: string | null): string[] {
+  const pool = galleryImagePool[category] ?? galleryImagePool.other!;
+  const candidates = pool.map(stockImage).filter((url) => url !== posterUrl);
+  const offset = Number(eventId.slice(-3)) % candidates.length;
+  return [candidates[offset]!, candidates[(offset + 1) % candidates.length]!];
+}
+
+type DemoLayoutKind = "whole_tables" | "numbered_rows" | "per_seat_tables" | "standing_zones" | "mixed_studio" | "mini_stadium" | "cabaret" | "theatre_balcony" | "expo_islands";
 type EditorObject = {
   id: string; type: "table_rect" | "table_round" | "seat" | "row" | "zone" | "prop" | "entrance";
   name: string; x: number; y: number; width: number; height: number; rotation: number; color: string;
@@ -32,7 +55,7 @@ function editorObject(id: string, type: EditorObject["type"], name: string, x: n
   };
 }
 
-async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode: "deposit" | "full_payment"): Promise<void> {
+async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode: "deposit" | "full_payment", currency = "KZT"): Promise<void> {
   const layoutId = fixtureId(4, eventId, 1);
   if (kind === "mini_stadium") {
     await prisma.$transaction(async (transaction) => {
@@ -42,11 +65,23 @@ async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode
       await transaction.ticketType.deleteMany({ where: { eventId, venueObjectId: { not: null } } });
     });
   }
+  const multiplier = currency === "UZS" ? 10 : currency === "RUB" ? 0.25 : 1;
+  const palette: Record<DemoLayoutKind, string[]> = {
+    whole_tables: ["#047857", "#9333EA", "#C2410C", "#CA8A04"],
+    numbered_rows: ["#1D4ED8", "#D97706", "#A21CAF", "#0F766E"],
+    per_seat_tables: ["#0F766E", "#BE123C", "#2563EB", "#7C3AED"],
+    standing_zones: ["#15803D", "#C2410C", "#7E22CE", "#0369A1"],
+    mixed_studio: ["#0F766E", "#9333EA", "#B45309", "#BE185D"],
+    mini_stadium: ["#059669", "#7C3AED", "#0284C7", "#DB2777"],
+    cabaret: ["#BE123C", "#B45309", "#6D28D9", "#0F766E"],
+    theatre_balcony: ["#1D4ED8", "#7C3AED", "#C2410C", "#047857"],
+    expo_islands: ["#0369A1", "#15803D", "#C2410C", "#9333EA"],
+  };
   const tariffs = [
-    { id: fixtureId(9, eventId, 1), name: "Стандарт", color: "#065F46", price: 1_500_000 },
-    { id: fixtureId(9, eventId, 2), name: "VIP", color: "#5B21B6", price: 3_500_000 },
-    { id: fixtureId(9, eventId, 3), name: "Нижний ярус", color: "#0369A1", price: 2_400_000 },
-    { id: fixtureId(9, eventId, 4), name: "Platinum", color: "#BE185D", price: 5_500_000 },
+    { id: fixtureId(9, eventId, 1), name: "Стандарт", color: palette[kind][0]!, price: Math.round(1_500_000 * multiplier) },
+    { id: fixtureId(9, eventId, 2), name: "VIP", color: palette[kind][1]!, price: Math.round(3_500_000 * multiplier) },
+    { id: fixtureId(9, eventId, 3), name: "Нижний ярус", color: palette[kind][2]!, price: Math.round(2_400_000 * multiplier) },
+    { id: fixtureId(9, eventId, 4), name: "Platinum", color: palette[kind][3]!, price: Math.round(5_500_000 * multiplier) },
   ];
   const objects: EditorObject[] = [];
   const tables: Array<{ object: EditorObject; seats: EditorObject[] }> = [];
@@ -58,7 +93,7 @@ async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode
   const addTable = (name: string, x: number, y: number, shape: "rect" | "round", saleMode: "whole_table" | "per_seat", count: number, tariff = 0) => {
     const table = editorObject(fixtureId(5, eventId, objectIndex++), shape === "round" ? "table_round" : "table_rect", name, x, y, {
       width: shape === "round" ? 1.8 : 2.4, height: shape === "round" ? 1.8 : 1.2,
-      saleMode, tariffId: tariffs[tariff]!.id, deposit: paymentMode === "deposit" ? 500_000 : 0,
+      saleMode, tariffId: tariffs[tariff]!.id, deposit: paymentMode === "deposit" ? Math.round(500_000 * multiplier) : 0,
     });
     const seats: EditorObject[] = [];
     for (let i = 0; i < count; i += 1) {
@@ -78,7 +113,7 @@ async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode
       }
       seats.push(editorObject(fixtureId(7, eventId, seatIndex++), "seat", `Место ${i + 1}`, sx, sy, {
         parentId: table.id, side, number: i + 1, attachedOrder: i + 1, rotation,
-        tariffId: tariffs[tariff]!.id, deposit: paymentMode === "deposit" ? 150_000 : 0,
+        tariffId: tariffs[tariff]!.id, deposit: paymentMode === "deposit" ? Math.round(150_000 * multiplier) : 0,
       }));
     }
     objects.push(table, ...seats); tables.push({ object: table, seats });
@@ -99,6 +134,7 @@ async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode
   const addZone = (name: string, x: number, y: number, width: number, height: number, capacity: number, tariff: number) => {
     const zone = editorObject(fixtureId(8, eventId, objectIndex++), "zone", name, x, y, {
       width, height, capacity, tariffId: tariffs[tariff]!.id, color: tariffs[tariff]!.color, opacity: 0.18,
+      deposit: paymentMode === "deposit" ? Math.round(250_000 * multiplier) : 0,
       points: [{ x: -width / 2, y: -height / 2 }, { x: width / 2, y: -height / 2 }, { x: width / 2, y: height / 2 }, { x: -width / 2, y: height / 2 }],
     });
     objects.push(zone);
@@ -123,6 +159,33 @@ async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode
   } else if (kind === "mixed_studio") {
     addStageAndEntrance(); addTable("Банкетный стол", 5, 6, "rect", "whole_table", 6, 1);
     addTable("Chef table", 11, 6, "round", "per_seat", 6, 1); addRow("Ряд у сцены", 10, 10, 8); addZone("Барная зона", 17, 9, 3, 6, 40, 0);
+  } else if (kind === "cabaret") {
+    objects.push(editorObject(fixtureId(8, eventId, objectIndex++), "prop", "ЖИВАЯ СЦЕНА", 10, 2, { width: 6.5, height: 1.6, color: "#7F1D1D", description: "Камерная сцена с живой музыкой" }));
+    objects.push(editorObject(fixtureId(8, eventId, objectIndex++), "entrance", "Вход во двор", 10, 13.8, { width: 1.8, height: .2, rotation: 180, entranceType: "in" }));
+    addTable("Стол у сцены", 5, 5.7, "round", "whole_table", 6, 1);
+    addTable("Стол у сцены", 15, 5.7, "round", "whole_table", 6, 1);
+    addTable("Общий стол", 5, 10, "rect", "per_seat", 6);
+    addTable("Общий стол", 15, 10, "rect", "per_seat", 6);
+    addZone("Танцевальная площадка", 10, 8, 4.5, 3.5, 45, 0);
+    objects.push(editorObject(fixtureId(8, eventId, objectIndex++), "prop", "БАР", 18.8, 8.5, { width: 1.3, height: 4, color: "#0F766E", description: "Безалкогольный бар" }));
+  } else if (kind === "theatre_balcony") {
+    objects.push(editorObject(fixtureId(8, eventId, objectIndex++), "prop", "ЭКРАН", 12, 2.2, { width: 12, height: 1.3, color: "#1E3A8A", description: "Киноэкран" }));
+    objects.push(editorObject(fixtureId(8, eventId, objectIndex++), "entrance", "Вход A", 6, 21, { width: 1.4, height: .25, rotation: 180, entranceType: "in" }));
+    objects.push(editorObject(fixtureId(8, eventId, objectIndex++), "entrance", "Вход B", 18, 21, { width: 1.4, height: .25, rotation: 180, entranceType: "in" }));
+    addRow("Партер A", 12, 6, 16, 3, .08, 15);
+    addRow("Партер B", 12, 8.6, 18, 2, .12, 17);
+    addRow("Партер C", 12, 11.2, 20, 0, .15, 19);
+    addRow("Балкон A", 12, 15.2, 18, 1, .18, 17);
+    addRow("Балкон B", 12, 17.8, 20, 0, .2, 19);
+    objects.push(editorObject(fixtureId(8, eventId, objectIndex++), "prop", "ЦЕНТРАЛЬНЫЙ ПРОХОД", 12, 12.8, { width: 1.1, height: 1.1, color: "#CBD5E1", description: "Проход к балкону" }));
+  } else if (kind === "expo_islands") {
+    objects.push(editorObject(fixtureId(8, eventId, objectIndex++), "prop", "ЭТНО-СЦЕНА", 16, 2.3, { width: 9, height: 1.6, color: "#7C2D12", description: "Концертная и демонстрационная сцена" }));
+    objects.push(editorObject(fixtureId(8, eventId, objectIndex++), "entrance", "Главный вход", 16, 21.7, { width: 2.2, height: .25, rotation: 180, entranceType: "in" }));
+    addZone("Гастрономия", 7, 7.5, 9, 5.5, 180, 0);
+    addZone("Семейные мастерские", 24.5, 7.5, 9, 5.5, 90, 1);
+    addTable("Мастера керамики", 6, 16, "rect", "whole_table", 6, 2);
+    addTable("Текстиль и вышивка", 16, 16, "rect", "whole_table", 6, 2);
+    addTable("Дерево и орнамент", 26, 16, "rect", "whole_table", 6, 2);
   } else {
     objects.push(editorObject(fixtureId(8, eventId, objectIndex++), "prop", "ГЛАВНАЯ СЦЕНА", 36, 4, { width: 22, height: 4.5, color: "#3B0764", description: "After Hours main stage" }));
     objects.push(editorObject(fixtureId(8, eventId, objectIndex++), "prop", "ПОДИУМ", 36, 9.5, { width: 4, height: 7, color: "#6D28D9", description: "Центральный подиум" }));
@@ -143,7 +206,10 @@ async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode
     objects.push(editorObject(fixtureId(8, eventId, objectIndex++), "entrance", "Вход C", 54, 47.85, { width: 3, height: .3, rotation: 180, entranceType: "in" }));
   }
 
-  const room = kind === "mini_stadium" ? { widthM: 72, heightM: 48 } : { widthM: 20, heightM: 14 };
+  const room = kind === "mini_stadium" ? { widthM: 72, heightM: 48 }
+    : kind === "theatre_balcony" ? { widthM: 24, heightM: 23 }
+      : kind === "expo_islands" ? { widthM: 32, heightM: 24 }
+        : { widthM: 20, heightM: 14 };
   const layoutJson = {
     version: 2, room, editor: { version: 1, objects, tariffs },
     tables: tables.map(({ object, seats }) => ({
@@ -164,15 +230,15 @@ async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode
   for (const [index, { object, seats }] of tables.entries()) {
     await prisma.table.upsert({
       where: { id: object.id },
-      create: { id: object.id, venueLayoutId: layoutId, number: index + 1, name: object.name, seats: seats.length, price: tariffs.find((tariff) => tariff.id === object.tariffId)!.price, deposit: object.deposit, currency: "KZT", saleMode: object.saleMode },
-      update: { number: index + 1, name: object.name, seats: seats.length, price: tariffs.find((tariff) => tariff.id === object.tariffId)!.price, deposit: object.deposit, currency: "KZT", saleMode: object.saleMode },
+      create: { id: object.id, venueLayoutId: layoutId, number: index + 1, name: object.name, seats: seats.length, price: tariffs.find((tariff) => tariff.id === object.tariffId)!.price, deposit: object.deposit, currency, saleMode: object.saleMode },
+      update: { number: index + 1, name: object.name, seats: seats.length, price: tariffs.find((tariff) => tariff.id === object.tariffId)!.price, deposit: object.deposit, currency, saleMode: object.saleMode },
     });
   }
   for (const [index, { object }] of rows.entries()) {
     await prisma.venueRow.upsert({
       where: { id: object.id },
-      create: { id: object.id, venueLayoutId: layoutId, number: index + 1, name: object.name, price: tariffs.find((tariff) => tariff.id === object.tariffId)!.price, deposit: object.deposit, currency: "KZT" },
-      update: { number: index + 1, name: object.name, price: tariffs.find((tariff) => tariff.id === object.tariffId)!.price, deposit: object.deposit, currency: "KZT" },
+      create: { id: object.id, venueLayoutId: layoutId, number: index + 1, name: object.name, price: tariffs.find((tariff) => tariff.id === object.tariffId)!.price, deposit: object.deposit, currency },
+      update: { number: index + 1, name: object.name, price: tariffs.find((tariff) => tariff.id === object.tariffId)!.price, deposit: object.deposit, currency },
     });
   }
   for (const seat of objects.filter((object) => object.type === "seat")) {
@@ -184,8 +250,8 @@ async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode
       const tariff = tariffs.find((item) => item.id === seat.tariffId)!;
       await prisma.ticketType.upsert({
         where: { venueObjectId: seat.id },
-        create: { id: ticketTypeId, eventId, venueObjectId: seat.id, name: `${seat.name} · ${seat.id}`, price: tariff.price, deposit: seat.deposit || parent?.deposit || 0, currency: "KZT", quantityTotal: 1, status: TicketTypeStatus.active },
-        update: { eventId, name: `${seat.name} · ${seat.id}`, price: tariff.price, deposit: seat.deposit || parent?.deposit || 0, currency: "KZT", quantityTotal: 1, status: TicketTypeStatus.active },
+        create: { id: ticketTypeId, eventId, venueObjectId: seat.id, name: `${seat.name} · ${seat.id}`, price: tariff.price, deposit: seat.deposit || parent?.deposit || 0, currency, quantityTotal: 1, status: TicketTypeStatus.active },
+        update: { eventId, name: `${seat.name} · ${seat.id}`, price: tariff.price, deposit: seat.deposit || parent?.deposit || 0, currency, quantityTotal: 1, status: TicketTypeStatus.active },
       });
       sellableSeats.push({ object: seat, ticketTypeId, price: tariff.price });
     }
@@ -248,8 +314,8 @@ async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode
     const tariff = tariffs.find((item) => item.id === zone.tariffId)!;
     await prisma.ticketType.upsert({
       where: { venueObjectId: zone.id },
-      create: { id: fixtureId(3, eventId, seatIndex++), eventId, venueObjectId: zone.id, name: `${zone.name} · ${zone.id}`, price: tariff.price, deposit: zone.deposit, currency: "KZT", quantityTotal: zone.capacity, status: TicketTypeStatus.active },
-      update: { eventId, name: `${zone.name} · ${zone.id}`, price: tariff.price, deposit: zone.deposit, currency: "KZT", quantityTotal: zone.capacity, status: TicketTypeStatus.active },
+      create: { id: fixtureId(3, eventId, seatIndex++), eventId, venueObjectId: zone.id, name: `${zone.name} · ${zone.id}`, price: tariff.price, deposit: zone.deposit, currency, quantityTotal: zone.capacity, status: TicketTypeStatus.active },
+      update: { eventId, name: `${zone.name} · ${zone.id}`, price: tariff.price, deposit: zone.deposit, currency, quantityTotal: zone.capacity, status: TicketTypeStatus.active },
     });
   }
 }
@@ -280,10 +346,13 @@ async function seed(): Promise<void> {
     create: {
       id: seedIds.event,
       organizerId: organizer.id,
+      sourceLocale: "ru",
       title: "Ночной фестиваль Алматы",
       category: "festival",
+      countryCode: "KZ",
       city: "Алматы",
-      posterUrl: "https://example.com/seed/event-poster.jpg",
+      posterUrl: stockImage("photo-1501386761578-eac5c94b800a"),
+      galleryUrls: galleryUrlsFor(seedIds.event, "festival", stockImage("photo-1501386761578-eac5c94b800a")),
       announcement: "Один вечер музыки, гастрономии и новых знакомств.",
       description: "Демонстрационное опубликованное мероприятие для локальной разработки.",
       program: "19:00 — открытие; 20:00 — концерт; 23:00 — завершение.",
@@ -304,9 +373,19 @@ async function seed(): Promise<void> {
     },
     update: {
       organizerId: organizer.id,
+      sourceLocale: "ru",
       title: "Ночной фестиваль Алматы",
       category: "festival",
+      countryCode: "KZ",
       city: "Алматы",
+      posterUrl: stockImage("photo-1501386761578-eac5c94b800a"),
+      galleryUrls: galleryUrlsFor(seedIds.event, "festival", stockImage("photo-1501386761578-eac5c94b800a")),
+      announcement: "Один вечер музыки, гастрономии и новых знакомств.",
+      description: "Демонстрационное опубликованное мероприятие для локальной разработки.",
+      program: "19:00 — открытие; 20:00 — концерт; 23:00 — завершение.",
+      rules: "Вход по действующему QR-билету.",
+      visitTerms: "Гостям необходимо иметь документ, удостоверяющий личность.",
+      cancellationTerms: "Возврат возможен не позднее чем за 48 часов до начала.",
       date: eventDate,
       time: eventTime,
       timezone: "Asia/Almaty",
@@ -314,9 +393,25 @@ async function seed(): Promise<void> {
       paymentMode: "deposit",
       showFullAmountForDeposit: true,
       depositTerms: "Депозит полностью засчитывается в счёт заказа на площадке.",
+      extraConditions: "Мероприятие предназначено для гостей старше 18 лет.",
+      venueName: "Event Hall Almaty",
+      address: "проспект Абая, 1, Алматы",
       status: EventStatus.published,
     },
   });
+
+  for (const locale of ["kk", "en"] as const) {
+    const translation = localizedDemoContent("seed", locale, {
+      paymentMode: "deposit",
+      venueName: "Event Hall Almaty",
+      address: "проспект Абая, 1, Алматы",
+    });
+    await prisma.eventTranslation.upsert({
+      where: { eventId_locale: { eventId: event.id, locale } },
+      create: { eventId: event.id, locale, ...translation, origin: "manual", translatedFrom: null, sourceHash: null },
+      update: { ...translation, origin: "manual", translatedFrom: null, sourceHash: null },
+    });
+  }
 
   const ticketTypes = await Promise.all([
     prisma.ticketType.upsert({
@@ -435,8 +530,8 @@ async function seed(): Promise<void> {
     },
   });
 
-  // Extra published fixtures keep the local catalog useful for demos and
-  // exercise search, date, recent/popular and payment-policy states.
+  // Extra fixtures keep the local catalog and organizer workspace useful for
+  // demos, covering search, locations, payment policies and event lifecycles.
   for (const profile of demoOrganizers) {
     await prisma.user.upsert({
       where: { telegramId: profile.telegramId },
@@ -461,8 +556,11 @@ async function seed(): Promise<void> {
       organizerId: demo.organizerId,
       title: demo.title,
       category: demo.category,
+      sourceLocale: "ru",
+      countryCode: "countryCode" in demo ? demo.countryCode : "KZ",
       city: demo.city,
       posterUrl: demo.posterUrl,
+      galleryUrls: galleryUrlsFor(demo.id, demo.category, demo.posterUrl),
       announcement: demo.announcement,
       description: demo.description,
       program: demo.program,
@@ -488,6 +586,7 @@ async function seed(): Promise<void> {
       update: eventFields,
     });
 
+    const currency = "currency" in demo ? demo.currency : "KZT";
     for (const ticket of demo.ticketTypes) {
       const ticketStatus = "status" in ticket ? TicketTypeStatus[ticket.status] : TicketTypeStatus.active;
       const isInternal = "isInternal" in ticket ? ticket.isInternal : false;
@@ -499,7 +598,7 @@ async function seed(): Promise<void> {
           name: ticket.name,
           price: ticket.price,
           deposit: ticket.deposit,
-          currency: "KZT",
+          currency,
           quantityTotal: ticket.quantityTotal,
           description: ticket.description,
           restrictions: ticket.restrictions,
@@ -511,7 +610,7 @@ async function seed(): Promise<void> {
           name: ticket.name,
           price: ticket.price,
           deposit: ticket.deposit,
-          currency: "KZT",
+          currency,
           quantityTotal: ticket.quantityTotal,
           description: ticket.description,
           restrictions: ticket.restrictions,
@@ -520,13 +619,22 @@ async function seed(): Promise<void> {
         },
       });
     }
-    if ("layout" in demo) await seedDemoLayout(event.id, demo.layout, demo.paymentMode);
+    for (const locale of ["kk", "en"] as const) {
+      const translation = localizedDemoContent(demo.id, locale, demo);
+      await prisma.eventTranslation.upsert({
+        where: { eventId_locale: { eventId: event.id, locale } },
+        create: { eventId: event.id, locale, ...translation, origin: "manual", translatedFrom: null, sourceHash: null },
+        update: { ...translation, origin: "manual", translatedFrom: null, sourceHash: null },
+      });
+    }
+    if ("layout" in demo) await seedDemoLayout(event.id, demo.layout, demo.paymentMode, currency);
   }
 
   console.log(
     JSON.stringify({
       organizer: organizer.name,
       event: event.title,
+      totalSeedEvents: demoEvents.length + 1,
       ticketTypes: ticketTypes.length,
       venueLayout: venueLayout.templateName,
       tables: tables.length,

@@ -21,6 +21,89 @@ function normalizeLocale(value: string | undefined): EventLocale {
   return EVENT_LOCALES.find((locale) => locale === value) ?? "ru";
 }
 
+const LOCALIZED_CITIES: Record<string, Partial<Record<EventLocale, string>>> = {
+  "Алматы": { kk: "Алматы", en: "Almaty" },
+  "Астана": { kk: "Астана", en: "Astana" },
+  "Шымкент": { kk: "Шымкент", en: "Shymkent" },
+  "Туркестан": { kk: "Түркістан", en: "Turkestan" },
+  "Караганда": { kk: "Қарағанды", en: "Karaganda" },
+  "Москва": { kk: "Мәскеу", en: "Moscow" },
+  "Ташкент": { kk: "Ташкент", en: "Tashkent" },
+};
+
+function localizedCity(city: string, locale: EventLocale): string {
+  return LOCALIZED_CITIES[city]?.[locale] ?? city;
+}
+
+const LOCALIZED_TICKET_NAMES: Record<string, Partial<Record<EventLocale, string>>> = {
+  "Стандарт": { kk: "Стандарт", en: "Standard" },
+  "Стандартный билет": { kk: "Стандарт билет", en: "Standard ticket" },
+  "Вход": { kk: "Кіру", en: "Entry" },
+  "Входной билет": { kk: "Кіру билеті", en: "Admission" },
+  "Вход на день": { kk: "Бір күндік билет", en: "Day pass" },
+  "VIP-зона": { kk: "VIP аймағы", en: "VIP area" },
+  "Лаунж и VIP-зона": { kk: "Лаунж және VIP аймағы", en: "Lounge & VIP" },
+  "Участник": { kk: "Қатысушы", en: "Participant" },
+  "Студент": { kk: "Студент", en: "Student" },
+  "Пара": { kk: "Жұптық билет", en: "Pair ticket" },
+  "Парный билет": { kk: "Жұптық билет", en: "Pair ticket" },
+  "Партер": { kk: "Партер", en: "Floor" },
+  "Балкон": { kk: "Балкон", en: "Balcony" },
+  "Взрослый": { kk: "Ересек", en: "Adult" },
+  "Детский": { kk: "Балалар билеті", en: "Child" },
+  "Обычный билет": { kk: "Қалыпты билет", en: "General admission" },
+  "Стартовый пакет": { kk: "Старттық жинақ", en: "Starter pack" },
+  "Конференция": { kk: "Конференция", en: "Conference" },
+  "Утренний поток": { kk: "Таңғы топ", en: "Morning session" },
+  "Дневной поток": { kk: "Күндізгі топ", en: "Afternoon session" },
+  "Корпоративное приглашение": { kk: "Корпоративтік шақыру", en: "Corporate invitation" },
+  "Семейный": { kk: "Отбасылық", en: "Family" },
+  "Тихий сеанс": { kk: "Тыныш сеанс", en: "Quiet session" },
+  "Мастер-класс": { kk: "Шеберлік сабағы", en: "Workshop pass" },
+  "Семейный билет": { kk: "Отбасылық билет", en: "Family pass" },
+  "Фан-зона": { kk: "Жанкүйер аймағы", en: "Fan zone" },
+  "Гастрономия": { kk: "Ас аймағы", en: "Food court" },
+  "Семейные мастерские": { kk: "Отбасылық шеберханалар", en: "Family workshops" },
+  "Танцевальная площадка": { kk: "Би алаңы", en: "Dance floor" },
+};
+
+function localizedTicketTypes<T extends PublicEvent["ticketTypes"]>(ticketTypes: T, locale: EventLocale): T {
+  if (locale === "ru") return ticketTypes;
+  return ticketTypes.map((ticket) => {
+    const seat = ticket.name.match(/^Место (\d+)$/);
+    const name = seat
+      ? locale === "en" ? `Seat ${seat[1]}` : `${seat[1]}-орын`
+      : LOCALIZED_TICKET_NAMES[ticket.name]?.[locale] ?? ticket.name;
+    return { ...ticket, name };
+  }) as T;
+}
+
+const LOCALIZED_TABLE_NAMES: Record<string, Partial<Record<EventLocale, string>>> = {
+  "Стол у сцены": { kk: "Сахна жанындағы үстел", en: "Stage-side table" },
+  "Общий стол": { kk: "Ортақ үстел", en: "Community table" },
+  "Мастера керамики": { kk: "Керамика шеберлері", en: "Ceramics makers" },
+  "Текстиль и вышивка": { kk: "Тоқыма және кесте", en: "Textiles & embroidery" },
+  "Дерево и орнамент": { kk: "Ағаш пен өрнек", en: "Woodwork & ornament" },
+};
+
+function localizedTableLabel(value: string, locale: EventLocale): string {
+  if (locale === "ru") return value;
+  const tableNumber = value.match(/^Стол (\d+)$/);
+  if (tableNumber) return locale === "en" ? `Table ${tableNumber[1]}` : `${tableNumber[1]}-үстел`;
+  const seatNumber = value.match(/^Место (\d+)$/);
+  if (seatNumber) return locale === "en" ? `Seat ${seatNumber[1]}` : `${seatNumber[1]}-орын`;
+  return LOCALIZED_TABLE_NAMES[value]?.[locale] ?? value;
+}
+
+function localizedTables<T extends PublicEvent["tables"]>(tables: T, locale: EventLocale): T {
+  if (locale === "ru") return tables;
+  return tables.map((table) => ({
+    ...table,
+    name: table.name ? localizedTableLabel(table.name, locale) : null,
+    seatsDetail: table.seatsDetail.map((seat) => ({ ...seat, label: localizedTableLabel(seat.label, locale) })),
+  })) as T;
+}
+
 function localizedFields(translation: {
   title: string; venueName: string; address: string; announcement: string | null;
   description: string | null; program: string | null; rules: string | null;
@@ -137,7 +220,6 @@ export class PublicEventsService {
     // These modes need live inventory or event-local date evaluation before
     // sorting/filtering. Scan in bounded chunks; never silently truncate totals.
     const candidateCount = await this.database.event.count({ where });
-    if (candidateCount > 2_000) throw new BadRequestException({ code: "CATALOG_FILTER_TOO_BROAD", message: "Narrow the catalog filters to fewer than 2,000 events" });
     let summaries: Array<PublicEventSummary & { popularity: number; publishedAt: string }> = [];
     for (let skip = 0; skip < candidateCount; skip += 100) {
       const events = await this.database.event.findMany({
@@ -224,6 +306,9 @@ export class PublicEventsService {
     return {
       ...serialized,
       ...(translation ? localizedFields(translation) : {}),
+      city: localizedCity(event.city, requested),
+      ticketTypes: localizedTicketTypes(serialized.ticketTypes, requested),
+      tables: localizedTables(serialized.tables, requested),
       contentLocale: translation ? requested : event.sourceLocale as EventLocale,
       sourceLocale: event.sourceLocale as EventLocale,
     };
@@ -247,6 +332,7 @@ export class PublicEventsService {
       return {
         ...item,
         ...(translation ? { title: translation.title, announcement: translation.announcement, venueName: translation.venueName, address: translation.address } : {}),
+        city: localizedCity(item.city, requested),
         contentLocale: translation ? requested : sourceLocale,
         sourceLocale,
       };
@@ -274,6 +360,9 @@ export class PublicEventsService {
     return {
       ...serialized,
       ...(translation ? localizedFields(translation) : {}),
+      city: localizedCity(event.city, requested),
+      ticketTypes: localizedTicketTypes(serialized.ticketTypes, requested),
+      tables: localizedTables(serialized.tables, requested),
       contentLocale: translation ? requested : event.sourceLocale as EventLocale,
       sourceLocale: event.sourceLocale as EventLocale,
       status: event.status,
@@ -298,6 +387,7 @@ export class PublicEventsService {
       city: event.city,
       countryCode: event.countryCode,
       posterUrl: event.posterUrl,
+      galleryUrls: event.galleryUrls,
       announcement: event.announcement,
       description: event.description,
       program: event.program,

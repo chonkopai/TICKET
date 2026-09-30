@@ -5,7 +5,7 @@ import { useLocale } from "./locale-provider";
 
 export type PickerOption = { value: string; label: string; disabled?: boolean | undefined };
 
-export function OptionPicker({ label, value, options, onChange, className = "", disabled = false, id: buttonId, appearance = "default", icon }: {
+export function OptionPicker({ label, value, options, onChange, className = "", disabled = false, id: buttonId, appearance = "default", icon, onDark = false }: {
   label: string;
   value: string;
   options: PickerOption[];
@@ -15,6 +15,7 @@ export function OptionPicker({ label, value, options, onChange, className = "", 
   id?: string | undefined;
   appearance?: "default" | "bare" | "borderless";
   icon?: ReactNode;
+  onDark?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
@@ -52,7 +53,7 @@ export function OptionPicker({ label, value, options, onChange, className = "", 
   }
 
   return <div className={`relative ${className}`} ref={root}>
-    <button aria-controls={id} aria-expanded={open} aria-haspopup="listbox" aria-label={label} className={`inline-flex min-h-10 items-center text-left text-sm font-semibold text-slate-700 transition focus-visible:outline-none disabled:opacity-50 ${appearance === "bare" ? "w-auto justify-start gap-1.5 rounded-full bg-transparent px-1 py-2 focus-visible:ring-2 focus-visible:ring-violet-500" : appearance === "borderless" ? "w-full justify-between gap-3 rounded-xl bg-transparent px-2 py-2 hover:bg-slate-50 focus-visible:bg-violet-50" : "w-full justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm hover:border-violet-300 focus-visible:ring-2 focus-visible:ring-violet-500"}`} disabled={disabled} id={buttonId} onClick={() => { setFocusIndex(Math.max(current, 0)); setOpen((previous) => !previous); }} onKeyDown={(event) => { if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setOpen(true); setFocusIndex(nextEnabled(Math.max(current, 0), event.key === "ArrowDown" ? 1 : -1)); } }} type="button">
+    <button aria-controls={id} aria-expanded={open} aria-haspopup="listbox" aria-label={label} className={`inline-flex min-h-10 items-center text-left text-sm font-semibold transition focus-visible:outline-none disabled:opacity-50 ${onDark ? "text-white" : "text-slate-700"} ${appearance === "bare" ? "w-auto justify-start gap-1.5 rounded-full bg-transparent px-1 py-2 focus-visible:ring-2 focus-visible:ring-violet-500" : appearance === "borderless" ? "w-full justify-between gap-3 rounded-xl bg-transparent px-2 py-2 hover:bg-slate-50 focus-visible:bg-violet-50" : "w-full justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm hover:border-violet-300 focus-visible:ring-2 focus-visible:ring-violet-500"}`} disabled={disabled} id={buttonId} onClick={() => { setFocusIndex(Math.max(current, 0)); setOpen((previous) => !previous); }} onKeyDown={(event) => { if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setOpen(true); setFocusIndex(nextEnabled(Math.max(current, 0), event.key === "ArrowDown" ? 1 : -1)); } }} type="button">
       <span className="inline-flex min-w-0 items-center gap-1.5">{icon}<span className="truncate">{options[current]?.label ?? options[0]?.label ?? label}</span></span><svg aria-hidden="true" className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" /></svg>
     </button>
     {open ? <div aria-label={label} className="absolute right-0 top-full z-50 mt-2 max-h-64 min-w-[13rem] max-w-[90vw] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_18px_45px_rgba(15,23,42,.16)]" id={id} ref={list} role="listbox">

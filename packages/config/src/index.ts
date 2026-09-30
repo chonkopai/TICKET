@@ -44,6 +44,7 @@ export const apiEnvSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().min(1),
   TELEGRAM_BOT_USERNAME: z.string().regex(/^[A-Za-z0-9_]{5,32}$/),
   BOT_API_SECRET: z.string().min(32),
+  GOOGLE_CLIENT_ID: z.string().endsWith(".apps.googleusercontent.com").optional(),
   WEB_ORIGIN: z.url().default("http://localhost:3000"),
   ORGANIZER_REQUIRES_APPROVAL: booleanSchema,
   TRANSACTIONAL_NOTIFICATIONS_ENABLED: booleanSchema,
@@ -81,6 +82,7 @@ export const botEnvSchema = z.object({
 });
 
 export const webEnvSchema = z.object({
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID: z.string().endsWith(".apps.googleusercontent.com").optional(),
   NODE_ENV: nodeEnvironmentSchema,
   NEXT_PUBLIC_API_URL: z.url(),
   NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: z.string().regex(/^[A-Za-z0-9_]{5,32}$/),

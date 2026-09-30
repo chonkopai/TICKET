@@ -1,7 +1,7 @@
 import type { EventLocale } from "@event-platform/shared-types";
 
 interface NavbarCopy {
-  city: string; allCities: string; catalog: string; favorites: string; myEvents: string;
+  city: string; allCities: string; allCountries: string; catalog: string; favorites: string;
   language: string; navigation: string; mobileNavigation: string; openMenu: string;
   closeMenu: string; createEvent: string; account: string; profile: string;
   logout: string; organizer: string; logoutFailed: string;
@@ -10,24 +10,24 @@ interface NavbarCopy {
 
 export const NAV_COPY: Record<EventLocale, NavbarCopy> = {
   ru: {
-    city: "Город", allCities: "Все города", catalog: "Афиша", favorites: "Избранное",
-    myEvents: "Мои мероприятия", language: "Язык", navigation: "Основная навигация",
+    city: "Город", allCities: "Все города", allCountries: "Все страны", catalog: "Афиша", favorites: "Избранное",
+    language: "Язык", navigation: "Основная навигация",
     mobileNavigation: "Мобильная навигация", openMenu: "Открыть меню", closeMenu: "Закрыть меню",
     createEvent: "Создать мероприятие", account: "Личный кабинет", profile: "Профиль",
     logout: "Выйти", organizer: "Кабинет организатора", logoutFailed: "Не удалось закрыть серверную сессию.",
     location: "Местоположение", country: "Страна", chooseCountry: "Выберите страну", chooseCity: "Выберите город", searchCountry: "Найти страну", searchCity: "Найти город", backToCountries: "Назад к странам", noCities: "Здесь пока нет опубликованных событий", noMatches: "Ничего не найдено", loadingCities: "Загружаем города…", citiesUnavailable: "Не удалось загрузить города", retry: "Повторить",
   },
   kk: {
-    city: "Қала", allCities: "Барлық қалалар", catalog: "Афиша", favorites: "Таңдаулылар",
-    myEvents: "Менің іс-шараларым", language: "Тіл", navigation: "Негізгі навигация",
+    city: "Қала", allCities: "Барлық қалалар", allCountries: "Барлық елдер", catalog: "Афиша", favorites: "Таңдаулылар",
+    language: "Тіл", navigation: "Негізгі навигация",
     mobileNavigation: "Мобильді навигация", openMenu: "Мәзірді ашу", closeMenu: "Мәзірді жабу",
     createEvent: "Іс-шара жасау", account: "Жеке кабинет", profile: "Профиль",
     logout: "Шығу", organizer: "Ұйымдастырушы кабинеті", logoutFailed: "Сервердегі сеансты жабу мүмкін болмады.",
     location: "Орналасқан жер", country: "Ел", chooseCountry: "Елді таңдаңыз", chooseCity: "Қаланы таңдаңыз", searchCountry: "Елді іздеу", searchCity: "Қаланы іздеу", backToCountries: "Елдерге оралу", noCities: "Мұнда әзірге жарияланған іс-шара жоқ", noMatches: "Ештеңе табылмады", loadingCities: "Қалалар жүктелуде…", citiesUnavailable: "Қалаларды жүктеу мүмкін болмады", retry: "Қайталау",
   },
   en: {
-    city: "City", allCities: "All cities", catalog: "Events", favorites: "Favorites",
-    myEvents: "My events", language: "Language", navigation: "Main navigation",
+    city: "City", allCities: "All cities", allCountries: "All countries", catalog: "Events", favorites: "Favorites",
+    language: "Language", navigation: "Main navigation",
     mobileNavigation: "Mobile navigation", openMenu: "Open menu", closeMenu: "Close menu",
     createEvent: "Create an event", account: "My account", profile: "Profile",
     logout: "Sign out", organizer: "Organizer dashboard", logoutFailed: "Could not end the server session.",

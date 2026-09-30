@@ -1,34 +1,35 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CATALOG_CITY_SELECTED, CATALOG_QUERY_UPDATED } from "../lib/catalog-query-events";
 import { COUNTRY_CODES, cityName, countryName } from "../lib/countries";
-import { rememberCatalogLocation, savedCatalogLocation, validCountryCode } from "../lib/catalog-location";
+import { clearCatalogLocation, rememberCatalogLocation, savedCatalogLocation, validCountryCode } from "../lib/catalog-location";
 import { useLocale } from "./locale-provider";
 import { NAV_COPY } from "./navbar-copy";
 
 type LocationGroup = { countryCode: string; cities: string[] };
-const DEFAULT_COUNTRY = "KZ";
-const DEFAULT_CITY = "Алматы";
 const FEATURED_COUNTRIES = ["KZ", "RU", "UZ", "KG", "TR", "AE", "GB", "US"] as const;
 
 function readSelection(): { countryCode: string; city: string } {
-  const params = new URLSearchParams(window.location.search);
-  const saved = !params.has("countryCode") && !params.has("city") ? savedCatalogLocation() : null;
+  const onCatalog = window.location.pathname === "/";
+  const params = new URLSearchParams(onCatalog ? window.location.search : "");
+  const saved = onCatalog ? null : savedCatalogLocation();
   return {
-    countryCode: validCountryCode(params.get("countryCode")) ?? saved?.countryCode ?? DEFAULT_COUNTRY,
-    city: params.has("city") ? params.get("city") ?? "" : saved?.city ?? (params.has("countryCode") ? "" : DEFAULT_CITY),
+    countryCode: validCountryCode(params.get("countryCode")) ?? saved?.countryCode ?? "",
+    city: params.has("city") ? params.get("city") ?? "" : saved?.city ?? "",
   };
 }
 
-export function CatalogLocationPicker() {
+export function CatalogLocationPicker({ onDark = false }: { onDark?: boolean }) {
   const locale = useLocale();
+  const pathname = usePathname();
   const copy = NAV_COPY[locale];
   const root = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const [selection, setSelection] = useState({ countryCode: DEFAULT_COUNTRY, city: DEFAULT_CITY });
-  const [draftCountry, setDraftCountry] = useState(DEFAULT_COUNTRY);
+  const [selection, setSelection] = useState({ countryCode: "", city: "" });
+  const [draftCountry, setDraftCountry] = useState("");
   const [step, setStep] = useState<"country" | "city">("country");
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -40,18 +41,13 @@ export function CatalogLocationPicker() {
     const sync = () => {
       const next = readSelection();
       setSelection(next);
-      const params = new URLSearchParams(window.location.search);
-      if (params.has("countryCode") || params.has("city")) rememberCatalogLocation(next);
-      else {
-        const saved = savedCatalogLocation();
-        if (saved && (saved.countryCode !== DEFAULT_COUNTRY || saved.city !== DEFAULT_CITY)) {
-          const url = new URL(window.location.href);
-          if (saved.countryCode !== DEFAULT_COUNTRY) url.searchParams.set("countryCode", saved.countryCode);
-          url.searchParams.set("city", saved.city);
-          window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-        }
+      const params = new URLSearchParams(window.location.pathname === "/" ? window.location.search : "");
+      if (params.has("countryCode") || params.has("city")) {
+        if (next.countryCode) rememberCatalogLocation(next);
+        else clearCatalogLocation();
       }
     };
+    setOpen(false);
     sync();
     window.addEventListener("popstate", sync);
     window.addEventListener(CATALOG_QUERY_UPDATED, sync);
@@ -59,7 +55,7 @@ export function CatalogLocationPicker() {
       window.removeEventListener("popstate", sync);
       window.removeEventListener(CATALOG_QUERY_UPDATED, sync);
     };
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     let active = true;
@@ -88,7 +84,7 @@ export function CatalogLocationPicker() {
     };
   }, [open, step]);
 
-  const countries = useMemo(() => [selection.countryCode, ...FEATURED_COUNTRIES, ...[...COUNTRY_CODES].sort((left, right) => countryName(left, locale).localeCompare(countryName(right, locale), locale))].filter((code, index, all) => all.indexOf(code) === index), [locale, selection.countryCode]);
+  const countries = useMemo(() => [selection.countryCode, ...FEATURED_COUNTRIES, ...[...COUNTRY_CODES].sort((left, right) => countryName(left, locale).localeCompare(countryName(right, locale), locale))].filter((code, index, all) => Boolean(code) && all.indexOf(code) === index), [locale, selection.countryCode]);
   const matchingCountries = countries.filter((code) => `${countryName(code, locale)} ${code}`.toLocaleLowerCase(locale).includes(search.trim().toLocaleLowerCase(locale)));
   const publishedCities = locations.find((group) => group.countryCode === draftCountry)?.cities ?? [];
   const cities = [...new Set([...publishedCities, ...(selection.countryCode === draftCountry && selection.city ? [selection.city] : [])])]
@@ -96,13 +92,17 @@ export function CatalogLocationPicker() {
     .sort((left, right) => cityName(left, locale).localeCompare(cityName(right, locale), locale));
 
   function commit(countryCode: string, city: string) {
-    const url = new URL(window.location.href);
-    if (countryCode === DEFAULT_COUNTRY) url.searchParams.delete("countryCode");
-    else url.searchParams.set("countryCode", countryCode);
-    if (countryCode === DEFAULT_COUNTRY && city === DEFAULT_CITY) url.searchParams.delete("city");
-    else url.searchParams.set("city", city);
-    window.history.pushState(null, "", `${url.pathname}${url.search}${url.hash}`);
-    rememberCatalogLocation({ countryCode, city });
+    if (window.location.pathname === "/") {
+      const url = new URL(window.location.href);
+      if (countryCode) url.searchParams.set("countryCode", countryCode);
+      else url.searchParams.delete("countryCode");
+      if (city) url.searchParams.set("city", city);
+      else url.searchParams.delete("city");
+      url.searchParams.delete("page");
+      window.history.pushState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+    if (countryCode) rememberCatalogLocation({ countryCode, city });
+    else clearCatalogLocation();
     setSelection({ countryCode, city });
     setOpen(false);
     window.dispatchEvent(new Event(CATALOG_CITY_SELECTED));
@@ -115,11 +115,11 @@ export function CatalogLocationPicker() {
     setOpen((current) => !current);
   }
 
-  const selectionLabel = selection.city ? cityName(selection.city, locale) : `${countryName(selection.countryCode, locale)} · ${copy.allCities}`;
+  const selectionLabel = selection.city ? cityName(selection.city, locale) : selection.countryCode ? `${countryName(selection.countryCode, locale)} · ${copy.allCities}` : copy.allCountries;
   return <div className="relative min-w-0" ref={root}>
-    <button aria-expanded={open} aria-haspopup="dialog" aria-label={`${copy.location}: ${countryName(selection.countryCode, locale)}, ${selection.city ? cityName(selection.city, locale) : copy.allCities}`} className="inline-flex min-h-10 max-w-[120px] items-center gap-1.5 rounded-full px-1 text-sm font-semibold text-slate-700 transition hover:text-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 sm:max-w-[180px]" onClick={openPicker} type="button">
-      <svg aria-hidden="true" className="h-4 w-4 shrink-0 text-violet-600" fill="none" viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" stroke="currentColor" strokeWidth="2" /><circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="2" /></svg>
-      <span className="truncate">{selectionLabel}</span><span aria-hidden="true" className="text-xs">⌄</span>
+    <button aria-expanded={open} aria-haspopup="dialog" aria-label={`${copy.location}: ${selectionLabel}`} className={`inline-flex min-h-10 max-w-[120px] items-center gap-1.5 rounded-full px-1 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 sm:max-w-[180px] ${onDark ? "text-white hover:text-white/75" : "text-slate-700 hover:text-violet-700"}`} onClick={openPicker} type="button">
+      <svg aria-hidden="true" className={`h-4 w-4 shrink-0 ${onDark ? "text-white" : "text-violet-600"}`} fill="none" viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" stroke="currentColor" strokeWidth="2" /><circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="2" /></svg>
+      <span className="truncate">{selectionLabel}</span><svg aria-hidden="true" className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m7 10 5 5 5-5" /></svg>
     </button>
     {open ? <div aria-label={copy.location} className="fixed left-3 right-3 top-16 z-50 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-full sm:mt-2 sm:w-[360px]" role="dialog">
       <div className="mb-3 flex items-center gap-2">
@@ -128,14 +128,14 @@ export function CatalogLocationPicker() {
       </div>
       <input aria-label={step === "country" ? copy.searchCountry : copy.searchCity} className="mb-2 min-h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100" onChange={(event) => setSearch(event.currentTarget.value)} placeholder={step === "country" ? copy.searchCountry : copy.searchCity} ref={searchRef} type="search" value={search} />
       <div className="max-h-[min(48vh,320px)] overflow-y-auto overscroll-contain">
-        {step === "country" ? matchingCountries.map((code) => <button aria-pressed={code === selection.countryCode} className="flex min-h-10 w-full items-center justify-between rounded-lg px-3 text-left text-sm hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500" key={code} onClick={() => { setDraftCountry(code); setStep("city"); setSearch(""); }} type="button"><span>{countryName(code, locale)}</span><span className="text-xs text-slate-400">{code}</span></button>) : <>
-          <button aria-pressed={selection.countryCode === draftCountry && selection.city === ""} className="min-h-10 w-full rounded-lg px-3 text-left text-sm font-semibold text-violet-700 hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500" onClick={() => commit(draftCountry, "")} type="button">{copy.allCities}</button>
+        {step === "country" ? <>{copy.allCountries.toLocaleLowerCase(locale).includes(search.trim().toLocaleLowerCase(locale)) ? <button aria-pressed={!selection.countryCode} className="min-h-10 w-full rounded-lg px-3 text-left text-sm font-semibold text-violet-700 hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500" onClick={() => commit("", "")} type="button">{copy.allCountries}</button> : null}{matchingCountries.map((code) => <button aria-pressed={code === selection.countryCode} className="flex min-h-10 w-full items-center justify-between rounded-lg px-3 text-left text-sm hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500" key={code} onClick={() => { setDraftCountry(code); setStep("city"); setSearch(""); }} type="button"><span>{countryName(code, locale)}</span><span className="text-xs text-slate-400">{code}</span></button>)}</> : <>
+          <button aria-pressed={selection.countryCode === draftCountry && selection.city === ""} className="min-h-10 w-full rounded-lg px-3 text-left text-sm font-semibold text-violet-700 hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500" onClick={() => commit(draftCountry, "")} type="button">{copy.allCities} · {countryName(draftCountry, locale)}</button>
           {cities.map((city) => <button aria-pressed={selection.countryCode === draftCountry && selection.city === city} className="min-h-10 w-full rounded-lg px-3 text-left text-sm hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500" key={city} onClick={() => commit(draftCountry, city)} type="button">{cityName(city, locale)}</button>)}
           {locationsStatus === "loading" ? <p className="px-3 py-2 text-xs text-slate-500">{copy.loadingCities}</p> : null}
           {locationsStatus === "error" ? <div className="flex items-center justify-between px-3 py-2 text-xs text-slate-500"><span>{copy.citiesUnavailable}</span><button className="font-semibold text-violet-700" onClick={() => setRetry((value) => value + 1)} type="button">{copy.retry}</button></div> : null}
           {locationsStatus === "ready" && !publishedCities.length ? <p className="px-3 py-2 text-xs text-slate-500">{copy.noCities}</p> : null}
         </>}
-        {(step === "country" && !matchingCountries.length) || (step === "city" && publishedCities.length > 0 && !cities.length) ? <p className="px-3 py-2 text-xs text-slate-500">{copy.noMatches}</p> : null}
+        {(step === "country" && !matchingCountries.length && !copy.allCountries.toLocaleLowerCase(locale).includes(search.trim().toLocaleLowerCase(locale))) || (step === "city" && publishedCities.length > 0 && !cities.length) ? <p className="px-3 py-2 text-xs text-slate-500">{copy.noMatches}</p> : null}
       </div>
     </div> : null}
   </div>;

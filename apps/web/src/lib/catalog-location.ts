@@ -21,3 +21,7 @@ export function savedCatalogLocation(): CatalogLocation | null {
 export function rememberCatalogLocation(location: CatalogLocation): void {
   try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(location)); } catch { /* Storage can be unavailable. */ }
 }
+
+export function clearCatalogLocation(): void {
+  try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* Storage can be unavailable. */ }
+}

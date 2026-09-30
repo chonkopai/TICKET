@@ -168,6 +168,7 @@ export interface PublicEvent {
   countryCode: string;
   city: string;
   posterUrl: string | null;
+  galleryUrls?: string[];
   announcement: string | null;
   description: string | null;
   program: string | null;

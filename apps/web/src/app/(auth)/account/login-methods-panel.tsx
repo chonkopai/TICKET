@@ -4,6 +4,7 @@ import type { LinkedMethodsResponse, LoginContactMethod, TelegramLinkTokenRespon
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
+import { GoogleLoginButton } from "../_components/google-login-button";
 import { apiRequest } from "../_lib/api";
 import { clearSession } from "../_lib/session";
 import { useLocale } from "../../../components/locale-provider";
@@ -138,6 +139,7 @@ export function LoginMethodsPanel({ onUpdated }: { onUpdated: () => void }) {
     <h2 className="text-xl font-bold">{copy.title}</h2>
     <p className="mt-2 text-sm text-[#665d70]">{copy.intro}</p>
     {methods ? <div className="mt-5 grid gap-3 sm:grid-cols-3"><Status label="Telegram" value={methods.telegram.linked ? copy.linked : copy.unlinked} /><Status label="Email" value={methods.email.address ?? copy.unlinked} /><Status label={copy.phone} value={methods.phone.number ?? copy.unlinked} /></div> : <p className="mt-4 text-sm text-[#665d70]">{copy.loading}</p>}
+    {methods ? <div className="mt-4 max-w-sm">{methods.google?.linked ? <Status label="Google" value={methods.google.email ?? copy.linked} /> : <GoogleLoginButton link onLinked={() => { void apiRequest<LinkedMethodsResponse>("/me/identities").then(setMethods).catch(error => setMessage(readError(error, copy.failed))); onUpdated(); }} />}</div> : null}
     {methods && (!methods.email.linked || !methods.phone.linked) ? <div className="mt-6 border-t border-[#ece7f1] pt-6">
       <h3 className="font-bold">{copy.connectContact}</h3>
       <div className="mt-3 flex gap-2" role="group" aria-label={copy.contactGroup}>{(["email", "phone"] as const).filter(item => !methods[item].linked).map(item => <button key={item} type="button" aria-pressed={method === item} onClick={() => reset(item)} className={`rounded-full px-4 py-2 text-sm font-semibold ${method === item ? "bg-[#5b21b6] text-white" : "border border-[#d2cadc]"}`}>{item === "email" ? "Email" : copy.phone}</button>)}</div>

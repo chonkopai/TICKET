@@ -1,4 +1,4 @@
-import type { PublicEvent, PublicEventList, PublicEventSummary } from "@event-platform/shared-types";
+import type { PublicEvent, PublicEventList, PublicEventSummary, PublicVenueLayout } from "@event-platform/shared-types";
 import { localeFromBrowser } from "./locale";
 
 export interface PublicEventsQuery {
@@ -51,4 +51,13 @@ export async function fetchPublicEventSummary(id: string): Promise<PublicEventSu
   if (response.status === 404) return null;
   if (!response.ok) throw new Error("EVENT_UNAVAILABLE");
   return response.json() as Promise<PublicEventSummary | null>;
+}
+
+export async function fetchPublicVenueLayout(id: string): Promise<PublicVenueLayout | null> {
+  const response = await fetch(`/api/events/${encodeURIComponent(id)}/venue-layout`, { cache: "no-store" });
+  if (response.status === 404 || response.status === 204) return null;
+  if (!response.ok) throw new Error("VENUE_LAYOUT_UNAVAILABLE");
+  // Ticket-only events can return an empty 200 response when no layout exists.
+  const body = await response.text();
+  return body.trim() ? JSON.parse(body) as PublicVenueLayout : null;
 }

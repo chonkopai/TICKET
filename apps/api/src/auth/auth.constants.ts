@@ -5,6 +5,8 @@ export const DATABASE_CLIENT = Symbol("DATABASE_CLIENT");
 export const ROLES_KEY = "auth:roles";
 
 export interface AuthConfig {
+  googleClientId?: string | undefined;
+  webOrigin?: string;
   accessTokenSecret: string;
   refreshTokenSecret: string;
   telegramBotToken: string;

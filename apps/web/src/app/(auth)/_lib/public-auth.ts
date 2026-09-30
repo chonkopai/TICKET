@@ -1,9 +1,13 @@
 import type { EventLocale } from "@event-platform/shared-types";
-import { localeFromBrowser } from "../../../lib/locale";
+import { localeFromBrowser, localeUrl } from "../../../lib/locale";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 const ruMessages = {
+  GOOGLE_UNAVAILABLE: "Google сейчас недоступен. Выберите другой способ входа.",
+  GOOGLE_INVALID: "Не удалось подтвердить вход через Google. Попробуйте снова.",
+  GOOGLE_LINK_REQUIRED: "Войдите существующим способом, затем подключите Google в настройках аккаунта.",
+  GOOGLE_RETRY_OR_LINK: "Попробуйте снова. Этот Google-аккаунт или способ входа уже использован.",
   INVALID_CREDENTIALS: "Неверные данные для входа.",
   INVALID_VERIFICATION_CODE: "Код неверен, истёк или уже использован.",
   INVALID_VERIFICATION_GRANT: "Подтверждение истекло. Запросите новый код.",
@@ -25,6 +29,10 @@ type AuthErrorCode = keyof typeof ruMessages;
 const messages: Record<EventLocale, Record<AuthErrorCode, string>> = {
   ru: ruMessages,
   kk: {
+  GOOGLE_UNAVAILABLE: "Google қазір қолжетімсіз. Басқа кіру тәсілін таңдаңыз.",
+  GOOGLE_INVALID: "Google арқылы кіру расталмады. Қайталап көріңіз.",
+  GOOGLE_LINK_REQUIRED: "Бұрынғы тәсілмен кіріп, аккаунт баптауларында Google қосыңыз.",
+  GOOGLE_RETRY_OR_LINK: "Қайталап көріңіз. Бұл Google аккаунты немесе кіру тәсілі бұрын қолданылған.",
     INVALID_CREDENTIALS: "Кіру деректері қате.",
     INVALID_VERIFICATION_CODE: "Код қате, мерзімі өткен немесе бұрын қолданылған.",
     INVALID_VERIFICATION_GRANT: "Растау мерзімі өтті. Жаңа код сұраңыз.",
@@ -42,6 +50,10 @@ const messages: Record<EventLocale, Record<AuthErrorCode, string>> = {
     VERIFICATION_ATTEMPTS_EXCEEDED: "Әрекет саны таусылды. Жаңа код сұраңыз.",
   },
   en: {
+  GOOGLE_UNAVAILABLE: "Google is currently unavailable. Choose another sign-in method.",
+  GOOGLE_INVALID: "Could not verify Google sign-in. Please try again.",
+  GOOGLE_LINK_REQUIRED: "Sign in using your existing method, then connect Google in account settings.",
+  GOOGLE_RETRY_OR_LINK: "Please try again. This Google account or sign-in attempt has already been used.",
     INVALID_CREDENTIALS: "Incorrect sign-in details.",
     INVALID_VERIFICATION_CODE: "The code is invalid, expired, or already used.",
     INVALID_VERIFICATION_GRANT: "Verification expired. Request a new code.",
@@ -86,9 +98,10 @@ export async function publicAuthRequest<T>(path: string, body: unknown): Promise
 }
 
 export function safeReturnPath(): string {
-  if (typeof window === "undefined") return "/account";
+  const home = localeUrl("/", localeFromBrowser());
+  if (typeof window === "undefined") return home;
   const candidate = new URLSearchParams(window.location.search).get("returnTo");
-  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//") || [...candidate].some(character => character === "\\" || character.charCodeAt(0) < 32)) return "/account";
+  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//") || [...candidate].some(character => character === "\\" || character.charCodeAt(0) < 32)) return home;
   const resolved = new URL(candidate, window.location.origin);
-  return resolved.origin === window.location.origin ? resolved.pathname + resolved.search + resolved.hash : "/account";
+  return resolved.origin === window.location.origin ? resolved.pathname + resolved.search + resolved.hash : home;
 }

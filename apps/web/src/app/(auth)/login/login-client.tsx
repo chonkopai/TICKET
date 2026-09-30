@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
+import { GoogleLoginButton } from "../_components/google-login-button";
 import { TelegramLoginButton } from "../_components/telegram-login-button";
 import { publicAuthRequest, safeReturnPath } from "../_lib/public-auth";
 import { saveSession } from "../_lib/session";
@@ -159,7 +160,7 @@ export function LoginClient() {
           <h1 className="mb-5 text-[26px] font-extrabold leading-tight tracking-[-0.035em] text-[#0b1c30] sm:text-3xl">{title}</h1>
 
           <div className="grid grid-cols-3 gap-2 sm:gap-3" aria-label={copy.methods}>
-            <ProviderButton provider="google" />
+            {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? <GoogleLoginButton /> : <ProviderButton provider="google" />}
             <ProviderButton provider="apple" />
             <button
               aria-controls={telegramOpen ? "telegram-login-panel" : undefined}

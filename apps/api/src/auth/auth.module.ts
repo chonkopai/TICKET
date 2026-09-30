@@ -20,8 +20,11 @@ import { VERIFICATION_CONFIG, VERIFICATION_SENDER, type VerificationConfig } fro
 import { IdentityAuthController, IdentityMethodsController } from "./identity.controller.js";
 import { IdentityAuthService } from "./identity-auth.service.js";
 
+import { GoogleAuthController, GoogleLinkController } from "./google-auth.controller.js";
+import { GoogleAuthService } from "./google-auth.service.js";
+
 @Module({
-  controllers: [AuthController, MeController, IdentityAuthController, IdentityMethodsController],
+  controllers: [GoogleAuthController, GoogleLinkController, AuthController, MeController, IdentityAuthController, IdentityMethodsController],
   providers: [
     { provide: DATABASE_CLIENT, useValue: prisma },
     {
@@ -29,6 +32,8 @@ import { IdentityAuthService } from "./identity-auth.service.js";
       useFactory: (): AuthConfig => {
         const env = loadApiEnv();
         return {
+          googleClientId: env.GOOGLE_CLIENT_ID,
+          webOrigin: env.WEB_ORIGIN,
           accessTokenSecret: env.JWT_SECRET,
           refreshTokenSecret: env.JWT_REFRESH_SECRET,
           telegramBotToken: env.TELEGRAM_BOT_TOKEN,
@@ -55,6 +60,7 @@ import { IdentityAuthService } from "./identity-auth.service.js";
     } },
     VerificationService,
     IdentityAuthService,
+    GoogleAuthService,
     TokenService,
     TelegramLinkService,
     JwtAuthGuard,

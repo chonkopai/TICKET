@@ -14,7 +14,7 @@ import { CheckoutPanel } from "./checkout-panel";
 import { ContentLanguageNote } from "../../../components/content-language-note";
 import { useLocale } from "../../../components/locale-provider";
 import { EVENT_COPY } from "./event-copy";
-import { HOME_COPY } from "../../home-copy";
+import { fetchPublicVenueLayout } from "../../../lib/public-events";
 
 function useEventCopy() { return EVENT_COPY[useLocale()]; }
 
@@ -45,9 +45,7 @@ export default function PublicEventPage({ id }: { id: string }) {
       const eventResponse = await fetch(`/api/events/${encodeURIComponent(id)}?locale=${localeFromBrowser()}`);
       if (!eventResponse.ok) throw new Error("EVENT_NOT_FOUND");
       const nextEvent = await eventResponse.json() as PublicEvent;
-      const nextLayout = await fetch(`/api/events/${encodeURIComponent(id)}/venue-layout`)
-        .then((response) => response.ok ? response.json() as Promise<PublicVenueLayout | null> : null)
-        .catch(() => null);
+      const nextLayout = await fetchPublicVenueLayout(id).catch(() => null);
       if (active) {
         setEvent(nextEvent);
         setLayout(nextLayout);
@@ -73,13 +71,13 @@ export default function PublicEventPage({ id }: { id: string }) {
 
   const refreshAvailability = useCallback(async (): Promise<void> => {
     if (!event) return;
-    const [eventResponse, layoutResponse] = await Promise.all([
+    const [eventResponse, nextLayout] = await Promise.all([
       fetch(`/api/events/${encodeURIComponent(event.id)}?locale=${localeFromBrowser()}`, { cache: "no-store" }),
-      fetch(`/api/events/${encodeURIComponent(event.id)}/venue-layout`, { cache: "no-store" }),
+      fetchPublicVenueLayout(event.id),
     ]);
     if (eventResponse.status === 404) { setError(true); return; }
     if (!eventResponse.ok) throw new Error(copy.refreshFailed);
-    const [nextEvent, nextLayout] = await Promise.all([eventResponse.json() as Promise<PublicEvent>, layoutResponse.ok ? layoutResponse.json() as Promise<PublicVenueLayout | null> : Promise.resolve(null)]);
+    const nextEvent = await eventResponse.json() as PublicEvent;
     setEvent(nextEvent);
     setLayout(nextLayout);
     setSelectedSeatIds((current) => current.filter((id) => nextLayout?.seats?.some((seat) => seat.id === id && seat.availability === "available")));
@@ -110,34 +108,33 @@ export default function PublicEventPage({ id }: { id: string }) {
     return () => { active = false; if (timer) clearTimeout(timer); document.removeEventListener("visibilitychange", visible); };
   }, [event?.id, error, refreshAvailability]);
 
-  if (error) return <main className="mx-auto min-h-screen max-w-4xl px-5 py-16"><div className="rounded-2xl bg-white p-10 text-center shadow-sm"><h1 className="text-2xl font-bold">{copy.notFound}</h1><Link className="mt-5 inline-flex rounded-lg bg-[#5b21b6] px-5 py-3 font-semibold text-white" href="/">{copy.returnToEvents}</Link></div></main>;
+  if (error) return <main className="min-h-screen bg-[#10192b] px-5 pt-40 text-center text-white"><h1 className="text-2xl font-bold">{copy.notFound}</h1><Link className="mt-5 inline-flex rounded-full bg-[#5b21b6] px-5 py-3 font-semibold text-white" href="/">{copy.returnToEvents}</Link></main>;
   if (!event) return <EventPageSkeleton />;
 
   const hasHall = Boolean(layout && (layout.tables.length > 0 || layout.rows.length > 0 || (layout.layoutJson.version === 2 && (layout.layoutJson.editor?.objects.length ?? 0) > 0)));
   const canChooseSeats = Boolean(layout && (layout.rows.length > 0 || layout.tables.some((table) => table.saleMode === "per_seat") || layout.seats?.some((seat) => !seat.tableId)));
   const hero = resolveMedia(event.posterUrl, FALLBACK_IMAGES[0]!);
 
-  return <main className="min-h-screen bg-[#f9f9ff] text-[#151c27]">
-    <div className="mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-8 lg:px-10">
-      {syncError ? <div aria-live="polite" className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{copy.syncFailed} <button className="font-bold underline" onClick={() => void refreshAvailability().catch(() => setSyncError(true))} type="button">{copy.retry}</button></div> : null}
-      <nav aria-label={copy.breadcrumbs} className="mb-5 flex items-center gap-2 text-sm text-[#4a4453]"><Link className="hover:text-[#581db3] hover:underline" href="/">{copy.catalog}</Link><span aria-hidden="true">/</span><span className="truncate">{event.title}</span></nav>
-
-      <section className="relative min-h-[420px] overflow-hidden rounded-2xl bg-[#151c27] shadow-[0_12px_34px_rgba(37,0,89,0.14)]">
+  return <main className="min-h-screen bg-white text-[#151c27]">
+      <section className="relative isolate flex min-h-[470px] w-full items-end overflow-hidden bg-[#10192b] sm:min-h-[500px]">
         <img alt="" className="absolute inset-0 h-full w-full object-cover" onError={(image) => { image.currentTarget.src = FALLBACK_IMAGES[0]!; }} src={hero} />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#121824]/95 via-[#121824]/70 to-[#121824]/10" />
-        <div className="relative flex min-h-[420px] max-w-4xl flex-col justify-end p-6 text-white sm:p-10 lg:p-12">
-          <div className="mb-auto flex flex-wrap gap-2"><span className="rounded bg-[#5b21b6] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em]">{HOME_COPY[locale].categories[event.category]}</span><span className="rounded bg-white/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] backdrop-blur">{event.city}</span>{hasHall ? <span className="rounded bg-[#85f8c4] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[#003b27]">{canChooseSeats ? copy.seatMapSelection : copy.hallMap}</span> : null}</div>
+        <div className="absolute inset-0 bg-[#081527]/55" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#081527]/85 via-[#081527]/45 to-[#081527]/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#081527]/95 via-transparent to-[#081527]/40" />
+        <div className="relative mx-auto flex w-full max-w-7xl flex-col px-4 pb-12 pt-36 text-white sm:px-8 sm:pb-16 sm:pt-32 lg:px-10">
           <h1 className="max-w-4xl text-4xl font-bold leading-[1.08] tracking-[-0.035em] sm:text-5xl lg:text-6xl">{event.title}</h1>
           <div className="mt-3"><ContentLanguageNote contentLocale={event.contentLocale} /></div>
           {event.announcement ? <p className="mt-4 max-w-2xl text-base leading-7 text-white/80 sm:text-lg">{event.announcement}</p> : null}
           <div className="mt-7 flex flex-wrap gap-3 text-sm font-semibold"><MetaChip icon="calendar">{formatEventDate(event, locale)}</MetaChip><MetaChip icon="pin">{event.venueName}</MetaChip><MetaChip icon="clock">{event.timezone}</MetaChip></div>
         </div>
-        <div className="absolute right-16 top-4 flex gap-2"><button aria-label={copy.share} className="flex h-11 items-center gap-2 rounded-full bg-white/95 px-4 text-sm font-semibold text-[#151c27] shadow-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d3bbff]" onClick={() => void share()} type="button"><ShareIcon />{copied ? copy.copied : <span className="hidden sm:inline">{copy.share}</span>}</button></div>
-        <FavoriteButton eventId={event.id} />
+        <div className="absolute right-16 top-40 z-10 sm:right-20 sm:top-32 lg:right-24"><button aria-label={copied ? copy.copied : copy.share} title={copied ? copy.copied : copy.share} className="flex size-11 items-center justify-center rounded-full text-white transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" onClick={() => void share()} type="button"><ShareIcon /></button><span className="sr-only" role="status">{copied ? copy.copied : ""}</span></div>
+        <FavoriteButton eventId={event.id} heroOverlay />
       </section>
 
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-6">
+    <div className="mx-auto max-w-7xl px-4 pb-20 pt-12 sm:px-8 lg:px-10">
+      {syncError ? <div aria-live="polite" className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{copy.syncFailed} <button className="font-bold underline" onClick={() => void refreshAvailability().catch(() => setSyncError(true))} type="button">{copy.retry}</button></div> : null}
+      <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-12">
           <ContentCard icon="spark" title={copy.about}><RichText text={event.description ?? event.announcement} /></ContentCard>
           <Gallery event={event} />
         </div>
@@ -146,13 +143,13 @@ export default function PublicEventPage({ id }: { id: string }) {
 
       {hasHall && layout ? <VenueSection layout={layout} event={event} paymentMode={event.paymentMode} canChooseSeats={canChooseSeats} selectedSeatIds={selectedSeatIds} onChange={setSelectedSeatIds} selectedTableId={selectedTableId} onTableChange={setSelectedTableId} ticketQuantities={ticketQuantities} onTicketChange={changeTicket} /> : null}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-16 grid gap-12 lg:grid-cols-2">
         <ProgramCard text={event.program} eventTime={event.time} />
         <LocationCard event={event} />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-6"><TermsCard event={event} /></div>
+      <div className="mt-16 grid gap-12 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div><TermsCard event={event} /></div>
         <OrganizerCard event={event} />
       </div>
     </div>
@@ -244,8 +241,8 @@ function VenueSection({ layout, event, paymentMode, canChooseSeats, selectedSeat
   const chooseTable = (id: string) => { const table = event.tables.find((item) => item.id === id && item.saleMode === "whole_table" && item.availability === "available"); if (table) onTableChange(selectedTableId === id ? null : id); };
   const chooseZone = (id: string) => { const ticket = event.ticketTypes.find((item) => item.venueObjectId === id && item.status === "active" && item.remaining > 0); if (ticket) onTicketChange(ticket.id, (ticketQuantities[ticket.id] ?? 0) ? 0 : 1); };
 
-  return <section className="mt-6 overflow-hidden rounded-2xl border border-[#dce2f3] bg-white shadow-sm" id="venue-plan">
-    <div className="flex flex-col justify-between gap-4 border-b border-[#e2e8f8] p-5 sm:flex-row sm:items-center sm:p-7"><div><p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#581db3]">{copy.interactiveMap}</p><h2 className="mt-1 text-2xl font-bold tracking-[-0.02em]">{copy.chooseSeat}</h2><p className="mt-1 text-sm text-[#4a4453]">{copy.selectionHint}</p></div><div className="flex flex-col items-start gap-2 sm:items-end"><span className="rounded-lg bg-[#f0f3ff] px-3 py-1.5 font-mono text-xs font-semibold text-[#4a4453]">{copy.dimensions} {dimensions}</span>{canChooseSeats ? <div className="flex flex-wrap gap-3 text-xs text-[#4a4453]"><Legend color="#713dcc" label={copy.available} /><Legend color="#5b21b6" label={copy.selected} /><Legend color="#dce2f3" label={copy.unavailable} /></div> : null}</div></div>
+  return <section className="mt-16" id="venue-plan">
+    <div className="flex flex-col justify-between gap-4 pb-6 sm:flex-row sm:items-center"><div><p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#581db3]">{copy.interactiveMap}</p><h2 className="mt-1 text-2xl font-bold tracking-[-0.02em]">{copy.chooseSeat}</h2><p className="mt-1 text-sm text-[#4a4453]">{copy.selectionHint}</p></div><div className="flex flex-col items-start gap-2 sm:items-end"><span className="rounded-lg bg-[#f0f3ff] px-3 py-1.5 font-mono text-xs font-semibold text-[#4a4453]">{copy.dimensions} {dimensions}</span>{canChooseSeats ? <div className="flex flex-wrap gap-3 text-xs text-[#4a4453]"><Legend color="#713dcc" label={copy.available} /><Legend color="#5b21b6" label={copy.selected} /><Legend color="#dce2f3" label={copy.unavailable} /></div> : null}</div></div>
     <div className="grid lg:grid-cols-[minmax(0,1fr)_280px]">
       <div className="relative min-w-0 bg-[#f0f3ff]"><div aria-label={copy.mapZoom} className="absolute left-6 top-6 z-10 flex items-center rounded-xl border border-[#dce2f3] bg-white/95 p-1 shadow-lg backdrop-blur-sm sm:left-10 sm:top-10"><button aria-label={copy.zoomOut} className="grid h-9 w-9 place-items-center rounded-lg text-lg font-bold hover:bg-[#f0f3ff] disabled:opacity-35" disabled={mapZoom <= .6} onClick={() => changeZoom(Math.max(.6, Number((mapZoom - .2).toFixed(1))))} type="button">−</button><button aria-label={copy.zoomReset} className="min-w-14 rounded-lg px-2 py-2 font-mono text-xs font-semibold hover:bg-[#f0f3ff]" onClick={() => changeZoom(initialZoom)} type="button">{Math.round(mapZoom * 100)}%</button><button aria-label={copy.zoomIn} className="grid h-9 w-9 place-items-center rounded-lg text-lg font-bold hover:bg-[#f0f3ff] disabled:opacity-35" disabled={mapZoom >= 3} onClick={() => changeZoom(Math.min(3, Number((mapZoom + .2).toFixed(1))))} type="button">+</button></div><div className="max-h-[75vh] overflow-auto p-4 sm:p-8" ref={mapViewport}><svg aria-label={copy.hallMap} className="mx-auto block rounded-2xl bg-white shadow-inner" role="group" style={{ width: `${mapZoom * 100}%`, minWidth: `${620 * mapZoom}px` }} viewBox={`0 0 ${width} ${height}`}>
         {isV2 && json.editor ? [...json.editor.objects].sort((a,b) => a.zIndex - b.zIndex || (a.type === "seat" ? 1 : 0) - (b.type === "seat" ? 1 : 0)).map((object) => {
@@ -304,23 +301,41 @@ function SeatNode({ cx, cy, number, available, selected, onClick, size, tariffCo
 }
 function Legend({ color, label }: { color: string; label: string }) { return <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />{label}</span>; }
 
-function ContentCard({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) { return <section className="rounded-2xl border border-[#dce2f3] bg-white p-6 shadow-sm sm:p-8"><div className="flex items-center gap-3"><span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#ebddff] text-[#581db3]">{icon === "spark" ? "✦" : "•"}</span><h2 className="text-2xl font-bold tracking-[-0.02em]">{title}</h2></div><div className="mt-5">{children}</div></section>; }
+function ContentCard({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) { return <section><div className="flex items-center gap-3"><span aria-hidden="true" className="text-lg text-[#6320ee]">{icon === "spark" ? "✦" : "•"}</span><h2 className="text-2xl font-bold tracking-[-0.02em]">{title}</h2></div><div className="mt-5">{children}</div></section>; }
 function RichText({ text }: { text: string | null }) { const copy = useEventCopy(); return text ? <p className="whitespace-pre-wrap text-[15px] leading-7 text-[#4a4453]">{text}</p> : <p className="text-[#4a4453]">{copy.descriptionSoon}</p>; }
 
-function Gallery({ event }: { event: PublicEvent }) { const copy = useEventCopy(); const images = [resolveMedia(event.posterUrl, FALLBACK_IMAGES[0]!), FALLBACK_IMAGES[1]!, FALLBACK_IMAGES[2]!]; return <section className="rounded-2xl border border-[#dce2f3] bg-white p-5 shadow-sm sm:p-7"><h2 className="text-xl font-bold">{copy.gallery}</h2><div className="mt-4 grid h-64 min-h-0 grid-cols-2 grid-rows-1 gap-2 overflow-hidden rounded-xl sm:h-72 sm:grid-cols-3 sm:grid-rows-2"><img alt={copy.galleryAtmosphere} className="col-span-2 min-h-0 h-full w-full object-cover sm:row-span-2" onError={(image) => { image.currentTarget.src = FALLBACK_IMAGES[0]!; }} src={images[0]} /><img alt={copy.galleryDetail} className="hidden min-h-0 h-full w-full object-cover sm:block" src={images[1]} /><img alt={copy.galleryGuests} className="hidden min-h-0 h-full w-full object-cover sm:block" src={images[2]} /></div></section>; }
+function Gallery({ event }: { event: PublicEvent }) { const copy = useEventCopy(); const fallbackGallery = [FALLBACK_IMAGES[1]!, FALLBACK_IMAGES[2]!]; const galleryUrls = event.galleryUrls ?? []; const images = [resolveMedia(event.posterUrl, FALLBACK_IMAGES[0]!), ...(galleryUrls.length ? galleryUrls.slice(0, 2).map((url, index) => resolveMedia(url, fallbackGallery[index]!)) : fallbackGallery)]; return <section><h2 className="text-xl font-bold">{copy.gallery}</h2><div className="mt-4 grid h-64 min-h-0 grid-cols-2 grid-rows-1 gap-2 overflow-hidden rounded-xl sm:h-72 sm:grid-cols-3 sm:grid-rows-2"><img alt={copy.galleryAtmosphere} className="col-span-2 min-h-0 h-full w-full object-cover sm:row-span-2" onError={(image) => { image.currentTarget.src = FALLBACK_IMAGES[0]!; }} src={images[0]} /><img alt={copy.galleryDetail} className="hidden min-h-0 h-full w-full object-cover sm:block" onError={(image) => { image.currentTarget.src = FALLBACK_IMAGES[1]!; }} src={images[1]} /><img alt={copy.galleryGuests} className="hidden min-h-0 h-full w-full object-cover sm:block" onError={(image) => { image.currentTarget.src = FALLBACK_IMAGES[2]!; }} src={images[2]} /></div></section>; }
 
-function ProgramCard({ text, eventTime }: { text: string | null; eventTime: string }) { const copy = useEventCopy(); const items = parseProgram(text, eventTime, copy); return <section className="rounded-2xl border border-[#dce2f3] bg-white p-6 shadow-sm sm:p-8"><div className="flex items-center gap-3"><span className="text-[#713dcc]">◷</span><div><h2 className="text-2xl font-bold">{copy.program}</h2><p className="text-sm text-[#4a4453]">{copy.schedule}</p></div></div><ol className="relative mt-6 space-y-3 border-l-2 border-[#ebddff] pl-5">{items.map((item, index) => <li className="relative rounded-lg bg-[#f9f9ff] px-4 py-3" key={`${item.time}-${index}`}><span className="absolute -left-[27px] top-5 h-3 w-3 rounded-full bg-[#713dcc] ring-4 ring-white" /><div className="flex gap-3"><time className="shrink-0 font-mono text-sm font-bold text-[#581db3]">{item.time}</time><span className="text-sm font-semibold">{item.label}</span></div></li>)}</ol></section>; }
+function ProgramCard({ text, eventTime }: { text: string | null; eventTime: string }) { const copy = useEventCopy(); const items = parseProgram(text, eventTime, copy); return <section><div className="flex items-center gap-3"><span className="text-[#713dcc]"><EventMetaIcon icon="clock" /></span><div><h2 className="text-2xl font-bold">{copy.program}</h2><p className="text-sm text-[#4a4453]">{copy.schedule}</p></div></div><ol className="relative mt-6 space-y-3 border-l-2 border-[#ebddff] pl-5">{items.map((item, index) => <li className="relative border-b border-slate-100 px-4 py-3" key={`${item.time}-${index}`}><span className="absolute -left-[27px] top-5 h-3 w-3 rounded-full bg-[#713dcc] ring-4 ring-white" /><div className="flex gap-3"><time className="shrink-0 font-mono text-sm font-bold text-[#581db3]">{item.time}</time><span className="text-sm font-semibold">{item.label}</span></div></li>)}</ol></section>; }
 
-function LocationCard({ event }: { event: PublicEvent }) { const copy = useEventCopy(); return <section className="flex flex-col rounded-2xl border border-[#dce2f3] bg-white p-6 shadow-sm sm:p-8"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-2xl font-bold">{copy.location}</h2><p className="mt-1 text-sm text-[#4a4453]">{event.venueName} · {event.address}</p></div><a className="rounded-lg bg-[#5b21b6] px-4 py-2 text-sm font-semibold text-white" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.venueName}, ${event.address}`)}`} rel="noreferrer" target="_blank">{copy.openMap}</a></div><div className="relative mt-5 min-h-64 flex-1 overflow-hidden rounded-xl border border-[#dce2f3] bg-[#f0f3ff]"><div className="absolute inset-x-0 top-[30%] h-8 rotate-[-4deg] bg-white" /><div className="absolute bottom-[24%] left-0 right-0 h-6 rotate-[3deg] bg-white" /><div className="absolute bottom-0 left-[36%] top-0 w-7 rotate-[8deg] bg-white" /><div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#5b21b6] text-xl text-white shadow-lg">●</span><span className="mt-2 rounded-lg bg-[#151c27] px-3 py-2 text-center text-xs font-semibold text-white shadow">{event.venueName}</span></div></div></section>; }
+function LocationCard({ event }: { event: PublicEvent }) {
+  const copy = useEventCopy();
+  const query = [event.address || event.venueName, event.city, event.countryCode].filter(Boolean).join(", ");
+  const encodedQuery = encodeURIComponent(query);
+  const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_API_KEY;
+  const embedUrl = mapsKey
+    ? `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(mapsKey)}&q=${encodedQuery}`
+    : `https://www.google.com/maps?q=${encodedQuery}&output=embed`;
+  return <section className="flex flex-col">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-2xl font-bold">{copy.location}</h2><p className="mt-1 text-sm text-[#4a4453]">{event.venueName} · {event.address}</p></div><a className="rounded-full bg-[#5b21b6] px-4 py-2 text-sm font-semibold text-white" href={`https://www.google.com/maps/search/?api=1&query=${encodedQuery}`} rel="noreferrer" target="_blank">{copy.openMap}</a></div>
+    <div className="relative mt-5 min-h-64 flex-1 overflow-hidden rounded-xl bg-[#f0f3ff]"><iframe className="absolute inset-0 h-full w-full border-0" loading="lazy" referrerPolicy="strict-origin-when-cross-origin" src={embedUrl} title={`${copy.location}: ${event.venueName}`} /></div>
+  </section>;
+}
 
-function TermsCard({ event }: { event: PublicEvent }) { const copy = useEventCopy(); const terms = [[copy.visitRules, event.rules], [copy.visitTerms, event.visitTerms], [copy.cancellationTerms, event.cancellationTerms], ...(event.paymentMode === "deposit" ? [[copy.depositTerms, event.depositTerms]] : []), [copy.extraConditions, event.extraConditions]] as [string, string | null][]; return <section className="rounded-2xl border border-[#dce2f3] bg-white p-6 shadow-sm sm:p-8"><h2 className="text-2xl font-bold">{copy.terms}</h2><div className="mt-4 divide-y divide-[#e2e8f8]">{terms.filter(([, text]) => text).map(([title, text]) => <details className="group py-4" key={title}><summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold"><span>{title}</span><span className="text-[#713dcc] transition group-open:rotate-45">＋</span></summary><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#4a4453]">{text}</p></details>)}</div></section>; }
+function TermsCard({ event }: { event: PublicEvent }) { const copy = useEventCopy(); const terms = [[copy.visitRules, event.rules], [copy.visitTerms, event.visitTerms], [copy.cancellationTerms, event.cancellationTerms], ...(event.paymentMode === "deposit" ? [[copy.depositTerms, event.depositTerms]] : []), [copy.extraConditions, event.extraConditions]] as [string, string | null][]; return <section><h2 className="text-2xl font-bold">{copy.terms}</h2><div className="mt-4 divide-y divide-[#e2e8f8]">{terms.filter(([, text]) => text).map(([title, text]) => <details className="group py-4" key={title}><summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold"><span>{title}</span><span className="text-[#713dcc] transition group-open:rotate-45">＋</span></summary><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#4a4453]">{text}</p></details>)}</div></section>; }
 
-function OrganizerCard({ event }: { event: PublicEvent }) { const copy = useEventCopy(); return <aside className="rounded-2xl border border-[#dce2f3] bg-white p-6 shadow-sm"><p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#4a4453]">{copy.organizer}</p><div className="mt-4 flex items-center gap-3">{event.organizer.photoUrl ? <img alt="" className="h-12 w-12 rounded-full object-cover" onError={(image) => { image.currentTarget.src = FALLBACK_IMAGES[2]!; }} src={resolveMedia(event.organizer.photoUrl, FALLBACK_IMAGES[2]!)} /> : <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ebddff] font-bold text-[#581db3]">{event.organizer.name?.slice(0, 1) || "T"}</span>}<div><h2 className="font-bold">{event.organizer.name || copy.organizerTeam}</h2>{event.organizer.personName && event.organizer.personName !== event.organizer.name ? <p className="text-sm text-[#4a4453]">{event.organizer.personName}</p> : null}<p className="text-sm text-[#4a4453]">{copy.verifiedOrganizer}</p></div></div><p className="mt-4 text-sm text-[#4a4453]">{event.organizer.contact ?? copy.contactUnavailable}</p></aside>; }
+function OrganizerCard({ event }: { event: PublicEvent }) { const copy = useEventCopy(); return <aside><p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#4a4453]">{copy.organizer}</p><div className="mt-4 flex items-center gap-3">{event.organizer.photoUrl ? <img alt="" className="h-12 w-12 rounded-full object-cover" onError={(image) => { image.currentTarget.src = FALLBACK_IMAGES[2]!; }} src={resolveMedia(event.organizer.photoUrl, FALLBACK_IMAGES[2]!)} /> : <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ebddff] font-bold text-[#581db3]">{event.organizer.name?.slice(0, 1) || "T"}</span>}<div><h2 className="font-bold">{event.organizer.name || copy.organizerTeam}</h2>{event.organizer.personName && event.organizer.personName !== event.organizer.name ? <p className="text-sm text-[#4a4453]">{event.organizer.personName}</p> : null}<p className="text-sm text-[#4a4453]">{copy.verifiedOrganizer}</p></div></div><p className="mt-4 text-sm text-[#4a4453]">{event.organizer.contact ?? copy.contactUnavailable}</p></aside>; }
 
-function MetaChip({ icon, children }: { icon: "calendar" | "pin" | "clock"; children: React.ReactNode }) { return <span className="inline-flex items-center gap-2 rounded-lg bg-white/12 px-3 py-2 backdrop-blur">{icon === "pin" ? "⌖" : icon === "clock" ? "◷" : "▣"}{children}</span>; }
-function ShareIcon() { return <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5" stroke="currentColor" strokeWidth="2"/><circle cx="6" cy="12" r="2.5" stroke="currentColor" strokeWidth="2"/><circle cx="18" cy="19" r="2.5" stroke="currentColor" strokeWidth="2"/><path d="m8.2 10.8 7.6-4.5M8.2 13.2l7.6 4.5" stroke="currentColor" strokeWidth="2"/></svg>; }
+function MetaChip({ icon, children }: { icon: "calendar" | "pin" | "clock"; children: React.ReactNode }) { return <span className="inline-flex items-center gap-2 rounded-lg bg-white/12 px-3 py-2 backdrop-blur"><EventMetaIcon icon={icon} />{children}</span>; }
+function ShareIcon() { return <svg aria-hidden="true" className="h-6 w-6 drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]" fill="none" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5" stroke="currentColor" strokeWidth="2"/><circle cx="6" cy="12" r="2.5" stroke="currentColor" strokeWidth="2"/><circle cx="18" cy="19" r="2.5" stroke="currentColor" strokeWidth="2"/><path d="m8.2 10.8 7.6-4.5M8.2 13.2l7.6 4.5" stroke="currentColor" strokeWidth="2"/></svg>; }
 
 function parseProgram(value: string | null, fallbackTime: string, copy: typeof EVENT_COPY[EventLocale]): Array<{ time: string; label: string }> { if (!value) return [{ time: fallbackTime.slice(0, 5), label: copy.eventStart }]; const chunks = value.split(/[;\n]+/).map((part) => part.trim()).filter(Boolean); return chunks.slice(0, 8).map((part, index) => { const match = part.match(/^(\d{1,2}:\d{2})\s*[—–-]?\s*(.*)$/); return match ? { time: match[1]!, label: match[2] || copy.programStep } : { time: index === 0 ? fallbackTime.slice(0, 5) : "—", label: part }; }); }
 function formatEventDate(event: PublicEvent, locale: EventLocale): string { const date = new Date(`${event.date}T00:00:00Z`); return `${new Intl.DateTimeFormat(INTL_LOCALES[locale], { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(date)}, ${event.time.slice(0, 5)}`; }
 function resolveMedia(value: string | null, fallback: string): string { if (!value) return fallback; try { return new URL(value, API_URL).toString(); } catch { return fallback; } }
-function EventPageSkeleton() { return <main className="mx-auto min-h-screen max-w-7xl animate-pulse px-4 py-8 sm:px-8"><div className="h-5 w-52 rounded bg-[#e2e8f8]" /><div className="mt-5 h-[420px] rounded-2xl bg-[#dce2f3]" /><div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]"><div className="h-96 rounded-2xl bg-[#e2e8f8]"/><div className="h-96 rounded-2xl bg-[#e2e8f8]"/></div></main>; }
+function EventPageSkeleton() { return <main className="min-h-screen animate-pulse bg-white"><div className="h-[470px] w-full bg-[#10192b] sm:h-[500px]" /><div className="mx-auto mt-12 grid max-w-7xl gap-12 px-4 sm:px-8 lg:grid-cols-[1fr_360px] lg:px-10"><div className="h-64 rounded-xl bg-[#e2e8f8]"/><div className="h-64 rounded-xl bg-[#e2e8f8]"/></div></main>; }
+
+function EventMetaIcon({ icon }: { icon: "calendar" | "pin" | "clock" }) {
+  return <svg aria-hidden="true" className="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    {icon === "calendar" ? <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M7 3v4m10-4v4M3 11h18" /></> : icon === "pin" ? <><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></> : <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>}
+  </svg>;
+}

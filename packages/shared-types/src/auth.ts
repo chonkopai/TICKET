@@ -13,6 +13,7 @@ export interface VerificationGrantResponse {
 }
 
 export interface LinkedMethodsResponse {
+  google?: { linked: boolean; email: string | null };
   telegram: { linked: boolean; id: string | null };
   email: { linked: boolean; address: string | null; verifiedAt: string | null };
   phone: { linked: boolean; number: string | null; verifiedAt: string | null };

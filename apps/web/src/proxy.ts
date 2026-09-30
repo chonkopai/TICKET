@@ -4,7 +4,9 @@ import { DEFAULT_LOCALE, isLocale } from "./lib/locale";
 export function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
   const path = url.pathname;
-  if (path.startsWith("/api/") || path.startsWith("/_next/") || /\/[^/]+\.[^/]+$/.test(path)) {
+  // Backend rewrites must not receive page-only locale redirects or cookies.
+  const backendRoute = ["/api", "/auth", "/me", "/orders", "/media", "/telegram/webhook"].some(prefix => path === prefix || path.startsWith(`${prefix}/`));
+  if (backendRoute || path.startsWith("/_next/") || /\/[^/]+\.[^/]+$/.test(path)) {
     return NextResponse.next();
   }
   const requested = url.searchParams.get("lang");

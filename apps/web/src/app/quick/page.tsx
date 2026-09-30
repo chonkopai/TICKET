@@ -13,6 +13,7 @@ import { useDisplayCurrency } from "../../components/currency-provider";
 import { useLocale } from "../../components/locale-provider";
 import { QUICK_COPY, QUICK_EXTRA } from "../../lib/quick-copy";
 import { ContentLanguageNote } from "../../components/content-language-note";
+import { fetchPublicVenueLayout } from "../../lib/public-events";
 
 export default function QuickCheckoutPage() {
   const locale = useLocale();
@@ -54,7 +55,7 @@ export default function QuickCheckoutPage() {
     } catch { /* Ignore invalid shared URL. */ }
     const requestedQuantity = Number(search.get("quantity"));
     const validChoice = requestedChoice && /^(ticket|table):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedChoice);
-    void Promise.all([fetch(`/api/events/${id}?locale=${locale}`).then(async r => { if (!r.ok) throw new Error(); return r.json() as Promise<PublicEvent>; }), quickRequest<BookingOptions>(`events/${id}/options`), fetch(`/api/events/${id}/venue-layout`).then(async r => r.ok ? r.json() as Promise<PublicVenueLayout> : null)]).then(([data, layout, seats]) => {
+    void Promise.all([fetch(`/api/events/${id}?locale=${locale}`).then(async r => { if (!r.ok) throw new Error(); return r.json() as Promise<PublicEvent>; }), quickRequest<BookingOptions>(`events/${id}/options`), fetchPublicVenueLayout(id)]).then(([data, layout, seats]) => {
       if (!stopped) {
         setEvent(data);
         setOptions(layout);
@@ -84,7 +85,7 @@ export default function QuickCheckoutPage() {
     }).catch(() => undefined);
     return () => { active = false; };
   }, [session]);
-  async function act(work: () => Promise<void>) { if (busy) return; setBusy(true); setError(""); try { await work(); } catch (reason) { setError(reason instanceof Error ? reason.message : text.error); if (event && selected.startsWith("seats:")) { try { const response = await fetch(`/api/events/${event.id}/venue-layout`, { cache: "no-store" }); if (response.ok) setSeatLayout(await response.json() as PublicVenueLayout); } catch { /* Keep the original checkout error. */ } } } finally { setBusy(false); } }
+  async function act(work: () => Promise<void>) { if (busy) return; setBusy(true); setError(""); try { await work(); } catch (reason) { setError(reason instanceof Error ? reason.message : text.error); if (event && selected.startsWith("seats:")) { try { setSeatLayout(await fetchPublicVenueLayout(event.id)); } catch { /* Keep the original checkout error. */ } } } finally { setBusy(false); } }
   async function checkout() {
     if (!event || !session || !verified || !accepted || (!selected && !cartSelection) || (emailRequested && !emailChoice) || (!telegramVerified && !emailChoice)) return;
     const [kind, id] = selected.split(":");

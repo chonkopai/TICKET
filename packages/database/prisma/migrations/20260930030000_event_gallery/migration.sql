@@ -1,0 +1,2 @@
+ALTER TABLE "Event"
+ADD COLUMN "galleryUrls" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

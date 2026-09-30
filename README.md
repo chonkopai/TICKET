@@ -169,3 +169,31 @@ pnpm db:migrate
 
 Run `pnpm build` after pulling. If `.env.example` changes, add the new variables to the local
 `.env` without copying real credentials into Git.
+
+### Google sign-in
+
+Set `GOOGLE_CLIENT_ID` for the API and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` for the web
+app to the same Google OAuth web client ID. Apply `db:migrate`, rebuild shared
+packages, and restart the API/web app after changing environment values (the web
+client ID is embedded at build time). No Google client secret is used by this
+Google Identity Services popup integration.
+
+Register the exact public website origin in Google Auth Platform → Clients →
+Authorized JavaScript origins. `WEB_ORIGIN` must match that browser origin; the
+Google endpoints reject other or missing origins. For local-only development,
+set it to `http://localhost:3000` and register that origin with Google. No redirect
+URI is needed for this callback flow. Use separate test/production client IDs;
+keep production branding, privacy-policy links, and audience settings current.
+
+Google sign-in creates a passwordless guest or signs in by the stable Google
+subject ID. It never merges accounts by email. If a verified email login already
+exists, sign in with that method and connect Google from Account → Login methods
+within ten minutes of signing in. Telegram users can connect Google there too.
+Google email is stored as profile metadata, not an email/password recovery
+identity; setting up email login still uses the existing verification flow.
+
+The API verifies Google's signature, audience, issuer, expiry, verified-email
+claim, and a browser-bound nonce. A database uniqueness constraint rejects nonce
+replay. Authentication tokens and Google credentials must not be logged. Test
+sign-up, returning login, and linking with a real Google account in a regular
+browser before release; automated tests use locally signed tokens.

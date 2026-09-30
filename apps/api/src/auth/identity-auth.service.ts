@@ -134,12 +134,14 @@ export class IdentityAuthService {
       this.db.user.findUniqueOrThrow({ where: { id: userId }, select: { telegramId: true, passwordHash: true } }),
       this.db.contactIdentity.findMany({ where: { userId }, select: { method: true, normalizedIdentifier: true, verifiedAt: true } }),
     ]);
+    const google = await this.db.googleIdentity.findUnique({ where: { userId } });
     const email = identities.find(x => x.method === "email");
     const phone = identities.find(x => x.method === "phone");
     return {
       telegram: { linked: user.telegramId !== null, id: user.telegramId?.toString() ?? null },
       email: { linked: Boolean(email), address: email?.normalizedIdentifier ?? null, verifiedAt: email?.verifiedAt.toISOString() ?? null },
       phone: { linked: Boolean(phone), number: phone?.normalizedIdentifier ?? null, verifiedAt: phone?.verifiedAt.toISOString() ?? null },
+      google: { linked: Boolean(google), email: google?.email ?? null },
       passwordSet: Boolean(user.passwordHash),
     };
   }

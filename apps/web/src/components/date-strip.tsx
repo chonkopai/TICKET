@@ -74,7 +74,7 @@ export function DateStrip({ from, to, todaySelected, onSelect }: {
         <div className="flex gap-0.5">{month.days.map((date) => {
           const selected = date.iso === from || date.iso === to || (todaySelected && date.iso === firstDay);
           const inRange = Boolean(from && to && date.iso > from && date.iso < to);
-          return <button aria-label={date.label} aria-pressed={selected} className={`flex h-11 w-12 shrink-0 flex-col items-center justify-center rounded-xl text-xs leading-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${selected ? "bg-violet-600 font-bold text-white shadow-sm" : inRange ? "bg-violet-50 text-violet-800" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`} key={date.iso} onClick={() => onSelect(date.iso)} type="button"><span className="font-medium capitalize">{date.weekday}</span><span className="text-sm font-semibold">{date.day}</span></button>;
+          return <button aria-label={date.label} aria-pressed={selected} className={`flex h-11 w-12 shrink-0 flex-col items-center justify-center rounded-xl text-xs leading-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${selected ? "bg-violet-600 font-bold text-white shadow-sm" : inRange ? "bg-violet-50 text-violet-800" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`} key={date.iso} onClick={() => onSelect(date.iso)} type="button"><span className={`font-medium capitalize ${selected ? "text-white" : [0, 6].includes(new Date(`${date.iso}T00:00:00Z`).getUTCDay()) ? "text-violet-700" : ""}`}>{date.weekday}</span><span className="text-sm font-semibold">{date.day}</span></button>;
         })}</div>
       </div>)}
     </div>

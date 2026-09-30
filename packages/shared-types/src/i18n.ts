@@ -345,7 +345,6 @@ export const ru = {
     },
   },
   guest: {
-    myEvents: "Мои мероприятия",
     upcoming: "Предстоящие",
     past: "Прошедшие",
     empty: "Здесь пока нет мероприятий.",
