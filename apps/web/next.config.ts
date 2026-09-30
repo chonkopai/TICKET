@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["sulphate-shown-subtract.ngrok-free.dev"],
   reactStrictMode: true,
   transpilePackages: ["@event-platform/config", "@event-platform/shared-types"],
+  async headers() {
+    return [{ source: "/delivery", headers: [{ key: "Cache-Control", value: "no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] }];
+  },
   async rewrites() {
     return [
       { source: "/api/quick/:path*", destination: "http://localhost:3001/quick/:path*" },

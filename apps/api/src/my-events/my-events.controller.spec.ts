@@ -13,6 +13,6 @@ describe("MyEventsController", () => {
     const principal: AuthenticatedPrincipal = { userId: randomUUID(), role: "guest" };
     const query = { status: "upcoming" as const, page: 1, limit: 20 };
     await expect(controller.list(principal, query)).resolves.toMatchObject({ items: [], status: "upcoming" });
-    expect(service.list).toHaveBeenCalledWith(principal.userId, "upcoming", 1, 20);
+    expect(service.list).toHaveBeenCalledWith(principal.userId, "upcoming", 1, 20, expect.any(Date), undefined);
   });
 });

@@ -30,3 +30,23 @@ packages/database/src/generated/
 .DS_Store
 .idea/
 .vscode/
+
+# Local development notes and design references
+AGENTS.md
+CLAUDE.md
+/PROJECT_BRIEFING_RU.md
+/TICKET.md
+/event_platform_dev_prompt.md
+/tz-original.md
+/docs/design-reference/
+/docs/*prompt*.md
+/docs/architecture.md
+/docs/azure-deployment-plan.md
+/docs/event-management-batch-*.md
+/docs/event-management-m5-coverage.md
+/docs/event-management-data-contract.md
+/docs/r[1-4]-*.md
+
+# Browser test output
+playwright-report/
+test-results/

@@ -23,10 +23,14 @@ import {
   type CancellationResponse,
   type CancellationTermsResponse,
   type CheckoutResponse,
+  type ManagementHoldPreview,
+  type ManagementHoldRelease,
   type CheckoutSnapshot,
   type CreateTableCheckoutRequest,
   type CreateSeatCheckoutRequest,
   type CreateTicketCheckoutRequest,
+  type CreateCartCheckoutRequest,
+  type CheckoutEmailChoice,
 } from "@event-platform/shared-types";
 import {
   BadRequestException,
@@ -47,11 +51,14 @@ import {
   type BookingConfig,
 } from "./booking.constants.js";
 import { PaymentService } from "../payments/payment.service.js";
+import { CheckoutEmailService } from "./checkout-email.service.js";
+import { normalizeContact } from "../auth/contact-identity.js";
 import type { NormalizedPaymentWebhook } from "./payment-provider.js";
 
 const TICKET_CHECKOUT = "checkout.ticket";
 const TABLE_CHECKOUT = "checkout.table";
 const SEAT_CHECKOUT = "checkout.seats";
+const CART_CHECKOUT = "checkout.cart";
 const TICKET_CANCEL = "cancel.ticket";
 const BOOKING_CANCEL = "cancel.booking";
 
@@ -59,6 +66,8 @@ const BOOKING_CANCEL = "cancel.booking";
 export interface AnonymousCheckoutContext {
   transaction: Prisma.TransactionClient;
   guestContact: Prisma.InputJsonObject;
+  sessionId: string;
+  verifiedEmail: string | null;
 }
 
 @Injectable()
@@ -71,16 +80,134 @@ export class BookingService {
     @Inject(BOOKING_CONFIG) private readonly config: BookingConfig,
     @Inject(BOOKING_CLOCK) private readonly clock: BookingClock,
     @Inject(PaymentService) private readonly paymentLinks: PaymentService,
+    @Inject(CheckoutEmailService) private readonly checkoutEmail?: CheckoutEmailService,
   ) {}
+
+  async checkoutCart(userId: string, rawKey: string | undefined, input: CreateCartCheckoutRequest, anonymous?: AnonymousCheckoutContext, sessionFamilyId?: string): Promise<CheckoutResponse> {
+    const key = idempotencyKey(rawKey);
+    const fingerprint = checkoutFingerprint(input);
+    const tickets = input.tickets ?? [];
+    const seatIds = input.seatIds ?? [];
+    if (!Array.isArray(tickets) || !Array.isArray(seatIds) || (!tickets.length && !seatIds.length && !input.tableId)
+      || tickets.length > 10 || seatIds.length > 10 || tickets.reduce((sum, item) => sum + item.quantity, seatIds.length) > 10
+      || new Set(tickets.map((item) => item.ticketTypeId)).size !== tickets.length || new Set(seatIds).size !== seatIds.length
+      || tickets.some((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 10)) {
+      throw new BadRequestException({ code: "CART_SELECTION_INVALID", message: "Choose up to 10 distinct tickets and seats, with at most one whole table" });
+    }
+    const prior = anonymous ? null : await this.replayed(userId, CART_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
+    if (prior) {
+      if (prior.paymentLink) return prior;
+      const link = await this.paymentLinks.createLink(userId, prior.orderId, `checkout-${key}`);
+      return { ...prior, paymentLink: link.paymentLink };
+    }
+    try {
+      const create = async (transaction: Prisma.TransactionClient): Promise<CheckoutResponse> => {
+        const replay = anonymous ? null : await claim(transaction, userId, CART_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
+        if (replay) return replay;
+        const event = await transaction.event.findFirst({ where: { id: input.eventId, status: EventStatus.published } });
+        if (!event) throw new NotFoundException({ code: "EVENT_NOT_FOUND", message: "Event was not found" });
+        const now = this.clock.now();
+        const configuredExpiry = new Date(now.getTime() + this.config.checkoutTtlSeconds * 1_000);
+        const types = tickets.length ? await transaction.ticketType.findMany({ where: { id: { in: tickets.map((item) => item.ticketTypeId) }, eventId: event.id, isInternal: false, seats: { none: {} }, status: TicketTypeStatus.active } }) : [];
+        if (types.length !== tickets.length || types.some((type) => (type.salesStartAt && type.salesStartAt > now) || (type.salesEndAt && type.salesEndAt <= now))) throw new ConflictException({ code: "TICKET_UNAVAILABLE", message: "A selected ticket is unavailable" });
+        const seats = seatIds.length ? await transaction.seat.findMany({ where: { id: { in: seatIds } }, include: {
+          ticketType: true, table: { select: { number: true, saleMode: true, venueLayoutId: true } }, row: { select: { number: true, venueLayoutId: true } },
+          allocations: { where: { status: { in: [SeatAllocationStatus.active, SeatAllocationStatus.consumed] } }, select: { id: true } },
+        } }) : [];
+        if (seats.length !== seatIds.length || seats.some((seat) => seat.status !== SeatStatus.available || seat.allocations.length || !seat.ticketType || seat.ticketType.eventId !== event.id || seat.ticketType.status !== TicketTypeStatus.active || (seat.table && (seat.table.saleMode !== TableSaleMode.per_seat || seat.table.venueLayoutId !== seat.venueLayoutId)) || (seat.row && seat.row.venueLayoutId !== seat.venueLayoutId))) throw new ConflictException({ code: "SEAT_UNAVAILABLE", message: "A selected seat is unavailable" });
+        for (const id of [...seatIds].sort()) await lockSeat(transaction, id);
+        if (seatIds.length) {
+          const locked = await transaction.seat.findMany({ where: { id: { in: seatIds } }, include: { allocations: { where: { status: { in: [SeatAllocationStatus.active, SeatAllocationStatus.consumed] } }, select: { id: true } } } });
+          if (locked.some((seat) => seat.status !== SeatStatus.available || seat.allocations.length)) throw new ConflictException({ code: "SEAT_UNAVAILABLE", message: "A selected seat is unavailable" });
+        }
+        if (seats.some((seat) => (seat.ticketType!.salesStartAt && seat.ticketType!.salesStartAt > now) || (seat.ticketType!.salesEndAt && seat.ticketType!.salesEndAt <= now))) throw new ConflictException({ code: "SEAT_SALES_WINDOW_CLOSED", message: "Selected seats are not currently on sale" });
+        const table = input.tableId ? await transaction.table.findFirst({ where: { id: input.tableId, venueLayout: { eventId: event.id } }, include: { seatRecords: { orderBy: { sortOrder: "asc" } } } }) : null;
+        if (input.tableId && (!table || table.saleMode !== TableSaleMode.whole_table)) throw new ConflictException({ code: "TABLE_UNAVAILABLE", message: "Selected table is unavailable" });
+        const currencies = [...types.map((type) => type.currency.trim()), ...seats.map((seat) => seat.ticketType!.currency.trim()), ...(table ? [table.currency.trim()] : [])];
+        const currency = currencies[0]!;
+        if (currencies.some((value) => value !== currency)) throw new ConflictException({ code: "CART_CURRENCY_MISMATCH", message: "All selections must use the same currency" });
+        const full = tickets.reduce((sum, item) => sum + types.find((type) => type.id === item.ticketTypeId)!.price * item.quantity, 0)
+          + seats.reduce((sum, seat) => sum + seat.ticketType!.price, 0) + (table?.price ?? 0);
+        const due = event.paymentMode === EventPaymentMode.deposit
+          ? tickets.reduce((sum, item) => sum + types.find((type) => type.id === item.ticketTypeId)!.deposit * item.quantity, 0) + seats.reduce((sum, seat) => sum + seat.ticketType!.deposit, 0) + (table?.deposit ?? 0)
+          : full;
+        if (event.paymentMode === EventPaymentMode.deposit && (due <= 0 || types.some((type) => type.deposit <= 0) || seats.some((seat) => seat.ticketType!.deposit <= 0) || (table && table.deposit <= 0))) throw new ConflictException({ code: "DEPOSIT_NOT_CONFIGURED", message: "A positive deposit is required for every selection" });
+        const orderId = randomUUID();
+        let hold: Awaited<ReturnType<TablesService["holdInTransaction"]>> | null = null;
+        let includedSeats: Awaited<ReturnType<typeof ensureWholeTableSeats>> = [];
+        if (table) {
+          const holdKey = `checkout-${createHash("sha256").update(`${userId}:${key}`).digest("hex")}`;
+          hold = await this.tables.holdInTransaction(transaction, table.id, holdKey, now);
+          includedSeats = await ensureWholeTableSeats(transaction, table.id, table.venueLayoutId, table.seats, table.seatRecords);
+        }
+        const expiresAt = hold && hold.expiresAt < configuredExpiry ? hold.expiresAt : configuredExpiry;
+        const fullAmount = event.paymentMode === EventPaymentMode.deposit && !event.showFullAmountForDeposit ? null : full;
+        const itemLabels = [
+          ...tickets.map((item) => ({ kind: "ticket" as const, id: item.ticketTypeId, name: types.find((type) => type.id === item.ticketTypeId)!.name, quantity: item.quantity, amountDue: (event.paymentMode === EventPaymentMode.deposit ? types.find((type) => type.id === item.ticketTypeId)!.deposit : types.find((type) => type.id === item.ticketTypeId)!.price) * item.quantity })),
+          ...seats.map((seat) => ({ kind: "seat" as const, id: seat.id, name: seat.label, quantity: 1, amountDue: event.paymentMode === EventPaymentMode.deposit ? seat.ticketType!.deposit : seat.ticketType!.price })),
+          ...(table ? [{ kind: "table" as const, id: table.id, name: table.name ?? `Стол №${table.number}`, quantity: 1, amountDue: event.paymentMode === EventPaymentMode.deposit ? table.deposit : table.price }] : []),
+        ];
+        const snapshot: CheckoutSnapshot = { eventId: event.id, eventTitle: event.title, eventDate: event.date.toISOString().slice(0, 10), eventTime: event.time.toISOString().slice(11, 16), eventTimezone: event.timezone, venueName: event.venueName, itemId: itemLabels[0]!.id, itemName: itemLabels.map((item) => item.name).join(", "), itemKind: "cart", quantity: itemLabels.reduce((sum, item) => sum + item.quantity, 0), paymentMode: event.paymentMode, paymentLabel: event.paymentMode, unitFullAmount: full, fullAmount, amountDue: due, currency, cancellationTerms: event.cancellationTerms, depositTerms: event.depositTerms, items: itemLabels,
+          seatIds: [...seatIds, ...includedSeats.map((seat) => seat.id)], groupPass: Boolean(table) };
+        const deliveryEmail = await this.resolveEmail(transaction, userId, input.emailDelivery, sessionFamilyId, anonymous);
+        await transaction.order.create({ data: { id: orderId, type: OrderType.ticket, buyerUserId: anonymous ? null : userId, ...(anonymous ? { guestContact: anonymous.guestContact } : {}), amount: due, currency, checkoutSnapshot: json(snapshot), termsAcceptedAt: now, expiresAt, emailDeliveryAddress: deliveryEmail, emailDeliveryRequestedAt: deliveryEmail ? now : null } });
+        const ticketIds: string[] = [];
+        for (const item of tickets) {
+          await this.ticketTypes.reserveInTransaction(transaction, item.ticketTypeId, item.quantity, expiresAt, orderId, now);
+          for (let index = 0; index < item.quantity; index++) {
+            const ticket = await transaction.ticket.create({ data: { ticketTypeId: item.ticketTypeId, orderId, ownerUserId: anonymous ? null : userId, qrToken: randomBytes(32).toString("base64url"), status: TicketStatus.pending_payment } });
+            ticketIds.push(ticket.id);
+          }
+        }
+        for (const seat of seats) {
+          const label = seat.table ? `Стол ${seat.table.number} · Место ${seat.number}` : `Ряд ${seat.row?.number ?? ""} · Место ${seat.number}`;
+          const ticket = await transaction.ticket.create({ data: { ticketTypeId: seat.ticketType!.id, orderId, ownerUserId: anonymous ? null : userId, qrToken: randomBytes(32).toString("base64url"), seatLabelSnapshot: label, status: TicketStatus.pending_payment } });
+          ticketIds.push(ticket.id);
+          await transaction.seatAllocation.create({ data: { seatId: seat.id, orderId, ticketId: ticket.id } });
+        }
+        let bookingId: string | null = null;
+        let groupPassId: string | null = null;
+        if (table && hold) {
+          const booking = await transaction.booking.create({ data: { tableId: table.id, orderId, tableHoldId: hold.id, ...(anonymous ? { guestContact: anonymous.guestContact } : {}) } });
+          bookingId = booking.id;
+          const admissionType = await ensureAdmissionTicketType(transaction, event.id, table.id, currency);
+          for (const seat of includedSeats) {
+            const ticket = await transaction.ticket.create({ data: { ticketTypeId: admissionType.id, orderId, ownerUserId: anonymous ? null : userId, qrToken: randomBytes(32).toString("base64url"), seatLabelSnapshot: `Стол ${table.number} · Место ${seat.number}`, status: TicketStatus.pending_payment } });
+            ticketIds.push(ticket.id);
+            await transaction.seatAllocation.create({ data: { seatId: seat.id, orderId, ticketId: ticket.id } });
+          }
+          const pass = await transaction.groupPass.create({ data: { orderId, tableId: table.id, token: randomBytes(32).toString("base64url"), totalSeats: includedSeats.length } });
+          groupPassId = pass.id;
+        }
+        if (event.paymentMode === EventPaymentMode.deposit) await transaction.deposit.create({ data: { eventId: event.id, orderId, amount: due, currency, terms: requiredDepositTerms(event.depositTerms) } });
+        const response: CheckoutResponse = { orderId, kind: "cart", paymentMode: event.paymentMode, paymentLabel: event.paymentMode, amountDue: due, fullAmount, currency, paymentLink: "", expiresAt: expiresAt.toISOString(), ticketIds, bookingId, emailDelivery: deliveryEmail ? { address: deliveryEmail, status: "pending_payment" } : null, ...(groupPassId ? { groupPassId, groupPassQrPath: `/me/group-passes/${groupPassId}/qr` } : {}) };
+        await this.domainEvents.append(transaction, { eventType: "checkout.cart_created", aggregateType: "order", aggregateId: orderId, payload: { userId: anonymous ? null : userId, eventId: event.id, items: itemLabels, amountDue: due } });
+        if (!anonymous) await saveResponse(transaction, userId, CART_CHECKOUT, key, orderId, response);
+        return response;
+      };
+      const response = anonymous ? await create(anonymous.transaction) : await this.database.$transaction(create, { timeout: 15_000 });
+      if (anonymous) return response;
+      const link = await this.paymentLinks.createLink(userId, response.orderId, `checkout-${key}`);
+      if (response.amountDue === 0) await this.settleSucceeded(response.orderId);
+      const finalResponse = { ...response, paymentLink: link.paymentLink };
+      await this.database.idempotencyRecord.update({ where: { userId_operation_key: { userId, operation: CART_CHECKOUT, key } }, data: { response: json(finalResponse) } });
+      return finalResponse;
+    } catch (error) {
+      if (anonymous) throw error;
+      return this.resolveRace(error, userId, CART_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
+    }
+  }
 
   async checkoutTickets(
     userId: string,
     rawKey: string | undefined,
     input: CreateTicketCheckoutRequest,
     anonymous?: AnonymousCheckoutContext,
+    sessionFamilyId?: string,
   ): Promise<CheckoutResponse> {
     const key = idempotencyKey(rawKey);
-    const prior = anonymous ? null : await this.replayed(userId, TICKET_CHECKOUT, key);
+    const fingerprint = checkoutFingerprint(input);
+    const prior = anonymous ? null : await this.replayed(userId, TICKET_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
     if (prior) {
       if (prior.paymentLink) return prior;
       const link = await this.paymentLinks.createLink(userId, prior.orderId, `checkout-${key}`);
@@ -89,7 +216,7 @@ export class BookingService {
 
     try {
       const create = async (transaction: Prisma.TransactionClient) => {
-        const replay = anonymous ? null : await claim(transaction, userId, TICKET_CHECKOUT, key);
+        const replay = anonymous ? null : await claim(transaction, userId, TICKET_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
         if (replay) return replay;
 
         const ticketType = await transaction.ticketType.findFirst({
@@ -104,6 +231,10 @@ export class BookingService {
         const snapshot: CheckoutSnapshot = {
           eventId: ticketType.eventId,
           eventTitle: ticketType.event.title,
+          eventDate: ticketType.event.date.toISOString().slice(0, 10),
+          eventTime: ticketType.event.time.toISOString().slice(11, 16),
+          eventTimezone: ticketType.event.timezone,
+          venueName: ticketType.event.venueName,
           itemId: ticketType.id,
           itemName: ticketType.name,
           itemKind: "ticket",
@@ -118,6 +249,7 @@ export class BookingService {
           depositTerms: ticketType.event.depositTerms,
         };
         const orderId = randomUUID();
+        const deliveryEmail = await this.resolveEmail(transaction, userId, input.emailDelivery, sessionFamilyId, anonymous);
         await transaction.order.create({
           data: {
             id: orderId,
@@ -127,6 +259,8 @@ export class BookingService {
             amount: amounts.amountDue,
             currency: snapshot.currency,
             checkoutSnapshot: json(snapshot),
+            emailDeliveryAddress: deliveryEmail,
+            emailDeliveryRequestedAt: deliveryEmail ? now : null,
             termsAcceptedAt: now,
             expiresAt,
           },
@@ -168,6 +302,7 @@ export class BookingService {
           expiresAt: expiresAt.toISOString(),
           ticketIds: tickets.map(({ id }) => id),
           bookingId: null,
+          emailDelivery: deliveryEmail ? { address: deliveryEmail, status: "pending_payment" } : null,
         };
         await this.domainEvents.append(transaction, {
           eventType: "checkout.ticket_created",
@@ -186,7 +321,7 @@ export class BookingService {
       await this.database.idempotencyRecord.update({ where: { userId_operation_key: { userId, operation: TICKET_CHECKOUT, key } }, data: { response: json(finalResponse) } });
       return finalResponse;
     } catch (error) {
-      return this.resolveRace(error, userId, TICKET_CHECKOUT, key);
+      return this.resolveRace(error, userId, TICKET_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
     }
   }
 
@@ -195,9 +330,11 @@ export class BookingService {
     rawKey: string | undefined,
     input: CreateTableCheckoutRequest,
     anonymous?: AnonymousCheckoutContext,
+    sessionFamilyId?: string,
   ): Promise<CheckoutResponse> {
     const key = idempotencyKey(rawKey);
-    const prior = anonymous ? null : await this.replayed(userId, TABLE_CHECKOUT, key);
+    const fingerprint = checkoutFingerprint(input);
+    const prior = anonymous ? null : await this.replayed(userId, TABLE_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
     if (prior) {
       if (prior.paymentLink) return prior;
       const link = await this.paymentLinks.createLink(userId, prior.orderId, `checkout-${key}`);
@@ -205,7 +342,7 @@ export class BookingService {
     }
     try {
       const create = async (transaction: Prisma.TransactionClient) => {
-        const replay = anonymous ? null : await claim(transaction, userId, TABLE_CHECKOUT, key);
+        const replay = anonymous ? null : await claim(transaction, userId, TABLE_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
         if (replay) return replay;
         const table = await transaction.table.findFirst({
           where: { id: input.tableId, venueLayout: { event: { status: EventStatus.published } } },
@@ -225,6 +362,10 @@ export class BookingService {
         const snapshot: CheckoutSnapshot = {
           eventId: event.id,
           eventTitle: event.title,
+          eventDate: event.date.toISOString().slice(0, 10),
+          eventTime: event.time.toISOString().slice(11, 16),
+          eventTimezone: event.timezone,
+          venueName: event.venueName,
           itemId: table.id,
           itemName: table.name ?? `Стол №${table.number}`,
           itemKind: "table",
@@ -243,6 +384,7 @@ export class BookingService {
           groupPass: true,
         };
         const orderId = randomUUID();
+        const deliveryEmail = await this.resolveEmail(transaction, userId, input.emailDelivery, sessionFamilyId, anonymous);
         await transaction.order.create({
           data: {
             id: orderId,
@@ -252,6 +394,8 @@ export class BookingService {
             amount: amounts.amountDue,
             currency: snapshot.currency,
             checkoutSnapshot: json(snapshot),
+            emailDeliveryAddress: deliveryEmail,
+            emailDeliveryRequestedAt: deliveryEmail ? now : null,
             termsAcceptedAt: now,
             expiresAt,
           },
@@ -286,6 +430,7 @@ export class BookingService {
           bookingId: booking.id,
           groupPassId: groupPass.id,
           groupPassQrPath: `/me/group-passes/${groupPass.id}/qr`,
+          emailDelivery: deliveryEmail ? { address: deliveryEmail, status: "pending_payment" } : null,
         };
         await this.domainEvents.append(transaction, {
           eventType: "checkout.table_created",
@@ -304,7 +449,7 @@ export class BookingService {
       await this.database.idempotencyRecord.update({ where: { userId_operation_key: { userId, operation: TABLE_CHECKOUT, key } }, data: { response: json(finalResponse) } });
       return finalResponse;
     } catch (error) {
-      return this.resolveRace(error, userId, TABLE_CHECKOUT, key);
+      return this.resolveRace(error, userId, TABLE_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
     }
   }
 
@@ -313,9 +458,11 @@ export class BookingService {
     rawKey: string | undefined,
     input: CreateSeatCheckoutRequest,
     anonymous?: AnonymousCheckoutContext,
+    sessionFamilyId?: string,
   ): Promise<CheckoutResponse> {
     const key = idempotencyKey(rawKey);
-    const prior = anonymous ? null : await this.replayed(userId, SEAT_CHECKOUT, key);
+    const fingerprint = checkoutFingerprint(input);
+    const prior = anonymous ? null : await this.replayed(userId, SEAT_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
     if (prior) {
       if (prior.paymentLink) return prior;
       const link = await this.paymentLinks.createLink(userId, prior.orderId, `checkout-${key}`);
@@ -327,7 +474,7 @@ export class BookingService {
     }
     try {
       const create = async (transaction: Prisma.TransactionClient) => {
-        const replay = anonymous ? null : await claim(transaction, userId, SEAT_CHECKOUT, key);
+        const replay = anonymous ? null : await claim(transaction, userId, SEAT_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
         if (replay) return replay;
         const seats = await transaction.seat.findMany({
           where: { id: { in: seatIds } },
@@ -352,6 +499,9 @@ export class BookingService {
         const locked = await transaction.seat.findMany({ where: { id: { in: seatIds } }, include: { allocations: { where: { status: { in: [SeatAllocationStatus.active, SeatAllocationStatus.consumed] } }, select: { id: true } } } });
         if (locked.some((seat) => seat.status !== SeatStatus.available || seat.allocations.length > 0)) throw new ConflictException({ code: "SEAT_UNAVAILABLE", message: "One or more selected seats are unavailable" });
         const now = this.clock.now();
+        if (seats.some((seat) => (seat.ticketType!.salesStartAt && seat.ticketType!.salesStartAt > now) || (seat.ticketType!.salesEndAt && seat.ticketType!.salesEndAt <= now))) {
+          throw new ConflictException({ code: "SEAT_SALES_WINDOW_CLOSED", message: "Selected seats are not currently on sale" });
+        }
         const expiresAt = new Date(now.getTime() + this.config.checkoutTtlSeconds * 1_000);
         const currency = seats[0]!.ticketType!.currency.trim();
         if (seats.some((seat) => seat.ticketType!.currency.trim() !== currency)) throw new ConflictException({ code: "SEAT_CURRENCY_MISMATCH", message: "Selected seats use different currencies" });
@@ -364,6 +514,10 @@ export class BookingService {
         const snapshot: CheckoutSnapshot = {
           eventId: event.id,
           eventTitle: event.title,
+          eventDate: event.date.toISOString().slice(0, 10),
+          eventTime: event.time.toISOString().slice(11, 16),
+          eventTimezone: event.timezone,
+          venueName: event.venueName,
           itemId: seatIds[0]!,
           itemName: `${seats.length} мест`,
           itemKind: "ticket",
@@ -381,7 +535,8 @@ export class BookingService {
           seatAssignments,
         };
         const orderId = randomUUID();
-        await transaction.order.create({ data: { id: orderId, type: OrderType.ticket, buyerUserId: anonymous ? null : userId, ...(anonymous ? { guestContact: anonymous.guestContact } : {}), amount: amountDue, currency, checkoutSnapshot: json(snapshot), termsAcceptedAt: now, expiresAt } });
+        const deliveryEmail = await this.resolveEmail(transaction, userId, input.emailDelivery, sessionFamilyId, anonymous);
+        await transaction.order.create({ data: { id: orderId, type: OrderType.ticket, buyerUserId: anonymous ? null : userId, ...(anonymous ? { guestContact: anonymous.guestContact } : {}), amount: amountDue, currency, checkoutSnapshot: json(snapshot), termsAcceptedAt: now, expiresAt, emailDeliveryAddress: deliveryEmail, emailDeliveryRequestedAt: deliveryEmail ? now : null } });
         const ticketIds: string[] = [];
         for (const seat of seats) {
           const displayLabel = seatAssignments.find(({ seatId }) => seatId === seat.id)!.displayLabel;
@@ -390,7 +545,7 @@ export class BookingService {
           await transaction.seatAllocation.create({ data: { seatId: seat.id, orderId, ticketId: ticket.id } });
         }
         if (event.paymentMode === EventPaymentMode.deposit) await transaction.deposit.create({ data: { eventId: event.id, orderId, amount: amountDue, currency, terms: requiredDepositTerms(event.depositTerms) } });
-        const result: CheckoutResponse = { orderId, kind: "ticket", paymentMode: snapshot.paymentMode, paymentLabel: snapshot.paymentLabel, amountDue, fullAmount: snapshot.fullAmount, currency, paymentLink: "", expiresAt: expiresAt.toISOString(), ticketIds, bookingId: null };
+        const result: CheckoutResponse = { orderId, kind: "ticket", paymentMode: snapshot.paymentMode, paymentLabel: snapshot.paymentLabel, amountDue, fullAmount: snapshot.fullAmount, currency, paymentLink: "", expiresAt: expiresAt.toISOString(), ticketIds, bookingId: null, emailDelivery: deliveryEmail ? { address: deliveryEmail, status: "pending_payment" } : null };
         await this.domainEvents.append(transaction, { eventType: "checkout.seats_created", aggregateType: "order", aggregateId: orderId, payload: { userId: anonymous ? null : userId, ...(anonymous ? { anonymousSessionId: userId } : {}), eventId: event.id, seatIds, amountDue } });
         if (!anonymous) await saveResponse(transaction, userId, SEAT_CHECKOUT, key, orderId, result);
         return result;
@@ -404,7 +559,7 @@ export class BookingService {
       return finalResponse;
     } catch (error) {
       if (anonymous) throw error;
-      return this.resolveRace(error, userId, SEAT_CHECKOUT, key);
+      return this.resolveRace(error, userId, SEAT_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
     }
   }
 
@@ -434,6 +589,25 @@ export class BookingService {
     await this.database.$transaction((transaction) => this.failOrderInTransaction(transaction, orderId, reason), { timeout: 15_000 });
   }
 
+  async organizerHoldPreview(organizerId: string, eventId: string, orderId: string): Promise<ManagementHoldPreview> {
+    const order = await ownedHoldOrder(this.database, organizerId, eventId, orderId);
+    return presentHoldPreview(order, this.clock.now());
+  }
+
+  async organizerReleaseHold(organizerId: string, eventId: string, orderId: string): Promise<ManagementHoldRelease> {
+    return this.database.$transaction(async (transaction) => {
+      await lockOrder(transaction, orderId);
+      const order = await ownedHoldOrder(transaction, organizerId, eventId, orderId);
+      const prior = await transaction.auditLog.findFirst({ where: { entityType: "order", entityId: orderId, action: "checkout.hold_released" }, select: { id: true } });
+      if (prior) return { orderId, released: true, alreadyReleased: true };
+      const preview = presentHoldPreview(order, this.clock.now());
+      if (!preview.eligible) throw new ConflictException({ code: "HOLD_NOT_RELEASABLE", message: `Hold cannot be released: ${preview.reason}` });
+      await this.failOrderInTransaction(transaction, orderId, "released");
+      await transaction.auditLog.create({ data: { actorId: organizerId, action: "checkout.hold_released", entityType: "order", entityId: orderId, meta: { eventId, resourceLabels: preview.resourceLabels } } });
+      return { orderId, released: true, alreadyReleased: false };
+    }, { timeout: 15_000 });
+  }
+
   async settleSucceededInTransaction(transaction: Prisma.TransactionClient, orderId: string): Promise<void> {
     await lockOrder(transaction, orderId);
     const order = await transaction.order.findUnique({ where: { id: orderId }, include: { tickets: true, reservations: true, booking: { include: { tableHold: true } }, deposit: true } });
@@ -451,7 +625,8 @@ export class BookingService {
       await transaction.ticket.updateMany({ where: { orderId, status: TicketStatus.pending_payment }, data: { status: TicketStatus.active, paidAt: this.clock.now(), activatedAt: this.clock.now() } });
       await transaction.ticketReservation.updateMany({ where: { orderId, status: TicketReservationStatus.active }, data: { status: TicketReservationStatus.consumed } });
       await transaction.seatAllocation.updateMany({ where: { orderId, status: SeatAllocationStatus.active }, data: { status: SeatAllocationStatus.consumed, consumedAt: this.clock.now() } });
-    } else if (order.booking?.tableHold) {
+    }
+    if (order.booking?.tableHold) {
       await this.tables.confirmInTransaction(transaction, order.booking.tableId, order.booking.tableHold.token, orderId, order.buyerUserId);
       await transaction.ticket.updateMany({ where: { orderId, status: TicketStatus.pending_payment }, data: { status: TicketStatus.active, paidAt: this.clock.now(), activatedAt: this.clock.now() } });
       await transaction.seatAllocation.updateMany({ where: { orderId, status: SeatAllocationStatus.active }, data: { status: SeatAllocationStatus.consumed, consumedAt: this.clock.now() } });
@@ -459,6 +634,7 @@ export class BookingService {
     await transaction.order.update({ where: { id: orderId }, data: { paymentStatus: PaymentStatus.paid } });
     await transaction.deposit.updateMany({ where: { orderId }, data: { status: PaymentStatus.paid, paidAt: this.clock.now() } });
     await this.domainEvents.append(transaction, { eventType: "checkout.paid", aggregateType: "order", aggregateId: orderId, payload: { paymentMode: snapshot(order.checkoutSnapshot).paymentMode } });
+    if (order.emailDeliveryAddress) await this.domainEvents.append(transaction, { eventType: "ticket.email_requested", aggregateType: "order", aggregateId: orderId, payload: {} });
   }
 
   async handlePaymentWebhook(webhook: NormalizedPaymentWebhook): Promise<{ accepted: true; duplicate: boolean; reviewRequired: boolean }> {
@@ -486,7 +662,7 @@ export class BookingService {
           return { accepted: true as const, duplicate: false, reviewRequired: false };
         }
         let reviewRequired = false;
-        const eligible = order.paymentStatus === PaymentStatus.pending && (!order.expiresAt || order.expiresAt > this.clock.now()) && (order.type !== OrderType.table || (order.booking?.status === BookingStatus.pending && order.booking.tableHold?.status === TableHoldStatus.active));
+        const eligible = order.paymentStatus === PaymentStatus.pending && (!order.expiresAt || order.expiresAt > this.clock.now()) && (!order.booking || (order.booking.status === BookingStatus.pending && order.booking.tableHold?.status === TableHoldStatus.active));
         if (eligible) {
           await this.settleSucceededInTransaction(transaction, order.id);
           await transaction.payment.update({ where: { id: payment.id }, data: { status: PaymentStatus.paid, payloadHash: webhook.payloadHash, ...(webhook.metadata ? { rawWebhook: webhook.metadata as Prisma.InputJsonObject } : {}), webhookReceivedAt: this.clock.now() } });
@@ -542,6 +718,7 @@ export class BookingService {
   async ticketCancellationTerms(userId: string, id: string): Promise<CancellationTermsResponse> {
     const ticket = await this.database.ticket.findFirst({ where: { id, order: { buyerUserId: userId } }, include: { order: true } });
     if (!ticket) throw resourceNotFound("TICKET_NOT_FOUND");
+    if (snapshot(ticket.order.checkoutSnapshot).itemKind === "cart") throw new ConflictException({ code: "CART_CANCELLATION_REQUIRES_ORDER_REFUND", message: "For a combined purchase, contact the organizer to refund the whole order" });
     await this.expireIfDue(ticket.order);
     return cancellationTerms(id, ticket.status, ticket.order);
   }
@@ -549,6 +726,7 @@ export class BookingService {
   async bookingCancellationTerms(userId: string, id: string): Promise<CancellationTermsResponse> {
     const booking = await this.database.booking.findFirst({ where: { id, order: { buyerUserId: userId } }, include: { order: true } });
     if (!booking) throw resourceNotFound("BOOKING_NOT_FOUND");
+    if (snapshot(booking.order.checkoutSnapshot).itemKind === "cart") throw new ConflictException({ code: "CART_CANCELLATION_REQUIRES_ORDER_REFUND", message: "For a combined purchase, contact the organizer to refund the whole order" });
     await this.expireIfDue(booking.order);
     return cancellationTerms(id, booking.status, booking.order);
   }
@@ -563,6 +741,7 @@ export class BookingService {
         if (replay) return replay;
         const current = await transaction.ticket.findFirst({ where: { id, order: { buyerUserId: userId } }, include: { order: true, seatAllocation: true } });
         if (!current) throw resourceNotFound("TICKET_NOT_FOUND");
+        if (snapshot(current.order.checkoutSnapshot).itemKind === "cart") throw new ConflictException({ code: "CART_CANCELLATION_REQUIRES_ORDER_REFUND", message: "For a combined purchase, contact the organizer to refund the whole order" });
         if (current.seatAllocation) throw new ConflictException({ code: "TABLE_CHILD_TICKET_CANCEL", message: "Cancel the whole table booking instead of an individual table seat" });
         await lockOrder(transaction, current.orderId);
         if (current.status === TicketStatus.used || current.status === TicketStatus.refunded) {
@@ -606,6 +785,7 @@ export class BookingService {
         if (replay) return replay;
         const booking = await transaction.booking.findFirst({ where: { id, order: { buyerUserId: userId } }, include: { order: { include: { tickets: true } }, tableHold: true } });
         if (!booking) throw resourceNotFound("BOOKING_NOT_FOUND");
+        if (snapshot(booking.order.checkoutSnapshot).itemKind === "cart") throw new ConflictException({ code: "CART_CANCELLATION_REQUIRES_ORDER_REFUND", message: "For a combined purchase, contact the organizer to refund the whole order" });
         await lockOrder(transaction, booking.orderId);
         await lockTable(transaction, booking.tableId);
         if (booking.status === BookingStatus.expired) throw cancellationNotAllowed("BOOKING_CANCELLATION_NOT_ALLOWED");
@@ -637,7 +817,7 @@ export class BookingService {
     }
   }
 
-  async failOrderInTransaction(transaction: Prisma.TransactionClient, orderId: string, reason: "failed" | "expired"): Promise<void> {
+  async failOrderInTransaction(transaction: Prisma.TransactionClient, orderId: string, reason: "failed" | "expired" | "released"): Promise<void> {
     await lockOrder(transaction, orderId);
     const order = await transaction.order.findUnique({ where: { id: orderId }, include: { booking: { include: { tableHold: true } } } });
     if (!order || order.paymentStatus !== PaymentStatus.pending) return;
@@ -647,8 +827,8 @@ export class BookingService {
     await transaction.groupPass.updateMany({ where: { orderId, status: "active" }, data: { status: "cancelled" } });
     if (order.booking?.tableHold?.status === TableHoldStatus.active) {
       await lockTable(transaction, order.booking.tableId);
-      await transaction.booking.update({ where: { id: order.booking.id }, data: { status: BookingStatus.expired } });
-      await transaction.tableHold.update({ where: { id: order.booking.tableHold.id }, data: { status: TableHoldStatus.expired } });
+      await transaction.booking.update({ where: { id: order.booking.id }, data: { status: reason === "released" ? BookingStatus.cancelled : BookingStatus.expired } });
+      await transaction.tableHold.update({ where: { id: order.booking.tableHold.id }, data: { status: reason === "released" ? TableHoldStatus.released : TableHoldStatus.expired } });
       await transaction.table.updateMany({
         where: { id: order.booking.tableId, holdToken: order.booking.tableHold.token, status: TableStatus.held },
         data: { status: TableStatus.available, holdToken: null, holdRequestKey: null, holdExpiresAt: null },
@@ -691,8 +871,15 @@ export class BookingService {
     }
   }
 
-  private async replayed(userId: string, operation: string, key: string): Promise<CheckoutResponse | null> {
+  private async resolveEmail(transaction: Prisma.TransactionClient, userId: string, choice: CheckoutEmailChoice | undefined, sessionFamilyId?: string, anonymous?: AnonymousCheckoutContext): Promise<string | null> {
+    if (!choice) return null;
+    if (!this.checkoutEmail) throw new ConflictException({ code: "CHECKOUT_EMAIL_UNAVAILABLE" });
+    return this.checkoutEmail.resolve(transaction, userId, choice, sessionFamilyId, anonymous ? { id: anonymous.sessionId, verifiedEmail: anonymous.verifiedEmail } : undefined);
+  }
+
+  private async replayed(userId: string, operation: string, key: string, fingerprint: string, requestedEmail: boolean): Promise<CheckoutResponse | null> {
     const row = await this.database.idempotencyRecord.findUnique({ where: { userId_operation_key: { userId, operation, key } } });
+    if (row && (row.requestHash ? row.requestHash !== fingerprint : requestedEmail)) throw new ConflictException({ code: "IDEMPOTENCY_CONFLICT" });
     return row?.response ? checkoutResponse(row.response) : null;
   }
 
@@ -701,9 +888,9 @@ export class BookingService {
     return row?.response ? cancellationResponse(row.response) : null;
   }
 
-  private async resolveRace(error: unknown, userId: string, operation: string, key: string): Promise<CheckoutResponse> {
+  private async resolveRace(error: unknown, userId: string, operation: string, key: string, fingerprint: string, requestedEmail: boolean): Promise<CheckoutResponse> {
     if (isUniqueError(error)) {
-      const prior = await this.replayed(userId, operation, key);
+      const prior = await this.replayed(userId, operation, key, fingerprint, requestedEmail);
       if (prior) {
         if (prior.paymentLink) return prior;
         const linked = await this.paymentLinks.createLink(userId, prior.orderId, `checkout-${key}`);
@@ -724,6 +911,48 @@ export class BookingService {
   }
 }
 
+const holdOrderSelect = {
+  id: true, paymentStatus: true, expiresAt: true,
+  payments: { select: { status: true } },
+  booking: { select: { status: true, table: { select: { number: true, name: true, venueLayout: { select: { eventId: true } } } }, tableHold: { select: { status: true, expiresAt: true } } } },
+  tickets: { select: { ticketType: { select: { eventId: true } } } },
+  reservations: { select: { status: true, expiresAt: true, quantity: true, ticketType: { select: { eventId: true, name: true } } } },
+  seatAllocations: { select: { status: true, seat: { select: { label: true, venueLayout: { select: { eventId: true } } } } } },
+} satisfies Prisma.OrderSelect;
+
+type HoldOrder = Prisma.OrderGetPayload<{ select: typeof holdOrderSelect }>;
+
+async function ownedHoldOrder(database: Pick<Prisma.TransactionClient, "event" | "order">, organizerId: string, eventId: string, orderId: string): Promise<HoldOrder> {
+  const event = await database.event.findFirst({ where: { id: eventId, organizerId }, select: { id: true } });
+  if (!event) throw orderNotFound();
+  const order = await database.order.findUnique({ where: { id: orderId }, select: holdOrderSelect });
+  if (!order) throw orderNotFound();
+  const memberships = [
+    ...order.tickets.map((ticket) => ticket.ticketType.eventId),
+    ...order.reservations.map((reservation) => reservation.ticketType.eventId),
+    ...order.seatAllocations.map((allocation) => allocation.seat.venueLayout.eventId),
+    ...(order.booking ? [order.booking.table.venueLayout.eventId] : []),
+  ];
+  if (!memberships.length || memberships.some((id) => id !== eventId)) throw orderNotFound();
+  return order;
+}
+
+function presentHoldPreview(order: HoldOrder, now: Date): ManagementHoldPreview {
+  const resourceLabels = [
+    ...(order.booking ? [`Стол ${order.booking.table.number}${order.booking.table.name ? ` · ${order.booking.table.name}` : ""}`] : []),
+    ...order.reservations.filter((reservation) => reservation.status === TicketReservationStatus.active).map((reservation) => `${reservation.ticketType.name} · ${reservation.quantity} мест`),
+    ...order.seatAllocations.filter((allocation) => allocation.status === SeatAllocationStatus.active).map((allocation) => allocation.seat.label),
+  ];
+  const expiries = [order.expiresAt, order.booking?.tableHold?.expiresAt, ...order.reservations.filter((reservation) => reservation.status === TicketReservationStatus.active).map((reservation) => reservation.expiresAt)].filter((value): value is Date => value instanceof Date);
+  const expiresAt = expiries.length ? new Date(Math.min(...expiries.map((value) => value.getTime()))).toISOString() : null;
+  const hasActiveHold = Boolean(order.booking?.tableHold?.status === TableHoldStatus.active || order.reservations.some((reservation) => reservation.status === TicketReservationStatus.active) || order.seatAllocations.some((allocation) => allocation.status === SeatAllocationStatus.active));
+  const reason: ManagementHoldPreview["reason"] = order.payments.some((payment) => payment.status === PaymentStatus.paid) ? "payment_received"
+    : order.paymentStatus !== PaymentStatus.pending ? order.paymentStatus === PaymentStatus.cancelled ? "released" : "not_pending"
+    : expiresAt && new Date(expiresAt) <= now ? "expired"
+    : hasActiveHold ? "active" : "no_active_hold";
+  return { orderId: order.id, eligible: reason === "active", reason, expiresAt, resourceLabels };
+}
+
 function paymentAmounts(
   event: { paymentMode: EventPaymentMode; showFullAmountForDeposit: boolean; depositTerms: string | null },
   unitFullAmount: number,
@@ -742,12 +971,18 @@ function requiredDepositTerms(value: string | null): string {
   return value;
 }
 
-async function claim(transaction: Prisma.TransactionClient, userId: string, operation: string, key: string): Promise<CheckoutResponse | null> {
+async function claim(transaction: Prisma.TransactionClient, userId: string, operation: string, key: string, fingerprint: string, requestedEmail: boolean): Promise<CheckoutResponse | null> {
   const prior = await transaction.idempotencyRecord.findUnique({ where: { userId_operation_key: { userId, operation, key } } });
+  if (prior && (prior.requestHash ? prior.requestHash !== fingerprint : requestedEmail)) throw new ConflictException({ code: "IDEMPOTENCY_CONFLICT" });
   if (prior?.response) return checkoutResponse(prior.response);
   if (prior) throw new ConflictException({ code: "IDEMPOTENCY_IN_PROGRESS", message: "An identical request is still processing" });
-  await transaction.idempotencyRecord.create({ data: { userId, operation, key } });
+  await transaction.idempotencyRecord.create({ data: { userId, operation, key, requestHash: fingerprint } });
   return null;
+}
+
+function checkoutFingerprint(input: CreateCartCheckoutRequest | CreateSeatCheckoutRequest | CreateTableCheckoutRequest | CreateTicketCheckoutRequest): string {
+  const emailDelivery = input.emailDelivery ? { address: normalizeContact("email", input.emailDelivery.address) } : null;
+  return createHash("sha256").update(JSON.stringify({ ...input, emailDelivery })).digest("hex");
 }
 
 async function claimCancellation(transaction: Prisma.TransactionClient, userId: string, operation: string, key: string): Promise<CancellationResponse | null> {

@@ -1,4 +1,4 @@
-import type { PublicEvent, PublicEventList } from "@event-platform/shared-types";
+import type { PublicEvent, PublicEventList, PublicEventSummary } from "@event-platform/shared-types";
 import { Controller, Get, Inject, Param, ParseUUIDPipe, Query } from "@nestjs/common";
 
 import { ExplicitDtoPipe } from "../events/explicit-dto.pipe.js";
@@ -14,8 +14,18 @@ export class PublicEventsController {
     return this.events.list(query);
   }
 
+  @Get("locations")
+  locations(): Promise<Array<{ countryCode: string; cities: string[] }>> {
+    return this.events.locations();
+  }
+
   @Get(":id")
-  get(@Param("id", new ParseUUIDPipe({ version: "4" })) id: string): Promise<PublicEvent> {
-    return this.events.get(id);
+  get(@Param("id", new ParseUUIDPipe({ version: "4" })) id: string, @Query("locale") locale?: string): Promise<PublicEvent> {
+    return this.events.get(id, new Date(), locale);
+  }
+
+  @Get(":id/summary")
+  summary(@Param("id", new ParseUUIDPipe({ version: "4" })) id: string, @Query("locale") locale?: string): Promise<PublicEventSummary | null> {
+    return this.events.summary(id, new Date(), locale);
   }
 }

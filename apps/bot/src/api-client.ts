@@ -1,4 +1,4 @@
-import type { BotEvent, BotIdentityResponse, BotOrganizerTodayResponse, BotTicketsResponse, BotQuickSessionResponse, PublicEventList } from "@event-platform/shared-types";
+import type { BotEvent, BotIdentityResponse, BotOrganizerTodayResponse, BotTicketsResponse, BotQuickSessionResponse, PublicEventList, PublicVenueLayout } from "@event-platform/shared-types";
 
 export interface BotApiClientOptions {
   apiBaseUrl: string;
@@ -23,6 +23,8 @@ export class BotApiClient {
   }
 
   async event(id: string): Promise<BotEvent> { return this.json<BotEvent>(`/bot/events/${id}`); }
+
+  async venueLayout(id: string): Promise<PublicVenueLayout | null> { return this.json<PublicVenueLayout | null>(`/events/${id}/venue-layout`); }
 
   async identity(telegramId: number, chatId: number): Promise<BotIdentityResponse> {
     const response = await this.json<BotIdentityResponse>("/bot/identity", { method: "POST", body: { telegramId: String(telegramId), chatId: String(chatId) } });

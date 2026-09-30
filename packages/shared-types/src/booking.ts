@@ -4,9 +4,13 @@ import type { VenueLayoutAny } from "./venue.js";
 export interface CheckoutSnapshot {
   eventId: string;
   eventTitle: string;
+  eventDate?: string;
+  eventTime?: string;
+  eventTimezone?: string;
+  venueName?: string;
   itemId: string;
   itemName: string;
-  itemKind: "ticket" | "table";
+  itemKind: "ticket" | "table" | "cart";
   quantity: number;
   paymentMode: EventPaymentMode;
   paymentLabel: PaymentLabel;
@@ -26,11 +30,12 @@ export interface CheckoutSnapshot {
     displayLabel: string;
   }>;
   groupPass?: boolean;
+  items?: Array<{ kind: "ticket" | "table" | "seat"; id: string; name: string; quantity: number; amountDue: number }>;
 }
 
 export interface CheckoutResponse {
   orderId: string;
-  kind: "ticket" | "table";
+  kind: "ticket" | "table" | "cart";
   paymentMode: EventPaymentMode;
   paymentLabel: PaymentLabel;
   amountDue: number;
@@ -42,11 +47,21 @@ export interface CheckoutResponse {
   bookingId: string | null;
   groupPassId?: string | null;
   groupPassQrPath?: string | null;
+  emailDelivery?: { address: string; status: "pending_payment" | "queued" } | null;
 }
 
-export interface CreateTicketCheckoutRequest { ticketTypeId: string; quantity: number; termsAccepted: true }
-export interface CreateTableCheckoutRequest { tableId: string; termsAccepted: true }
-export interface CreateSeatCheckoutRequest { seatIds: string[]; termsAccepted: true }
+export interface CheckoutEmailChoice { address: string; grant?: string | undefined }
+export interface CreateTicketCheckoutRequest { ticketTypeId: string; quantity: number; termsAccepted: true; emailDelivery?: CheckoutEmailChoice | undefined }
+export interface CreateTableCheckoutRequest { tableId: string; termsAccepted: true; emailDelivery?: CheckoutEmailChoice | undefined }
+export interface CreateSeatCheckoutRequest { seatIds: string[]; termsAccepted: true; emailDelivery?: CheckoutEmailChoice | undefined }
+export interface CreateCartCheckoutRequest {
+  eventId: string;
+  tickets: Array<{ ticketTypeId: string; quantity: number }>;
+  tableId?: string | undefined;
+  seatIds: string[];
+  termsAccepted: true;
+  emailDelivery?: CheckoutEmailChoice | undefined;
+}
 
 export interface BookingOptions {
   eventId: string;

@@ -32,6 +32,7 @@ export class JwtAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const carrier = getCarrier(context);
+    if (context.getType<string>() === "http") context.switchToHttp().getResponse<{ setHeader(name: string, value: string): void }>().setHeader("Cache-Control", "private, no-store");
     const authorization = readHeader(carrier, "authorization");
     const match = /^Bearer\s+(.+)$/i.exec(authorization ?? "");
     if (!match?.[1]) throw new UnauthorizedException("A bearer access token is required");

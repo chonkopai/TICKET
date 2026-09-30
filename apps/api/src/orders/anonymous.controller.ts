@@ -1,11 +1,12 @@
-import { quickClaimSchema, quickIdSchema, quickSeatsSchema, quickStartSchema, quickTableSchema, quickTicketSchema, quickVerifySchema } from "@event-platform/shared-types";
-import { BadRequestException, Body, Controller, Get, Header, Headers, Inject, Param, Post, Query, Res, UseGuards } from "@nestjs/common";
+import { quickCartSchema, quickClaimSchema, quickEmailRequestSchema, quickEmailVerifySchema, quickIdSchema, quickSeatsSchema, quickStartSchema, quickTableSchema, quickTicketSchema, quickVerifySchema } from "@event-platform/shared-types";
+import { BadRequestException, Body, Controller, Get, Header, Headers, Inject, Param, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import type { AuthenticatedPrincipal } from "../auth/auth.constants.js";
 import { CurrentUser, Roles } from "../auth/auth.decorators.js";
 import { JwtAuthGuard, RolesGuard } from "../auth/auth.guards.js";
 import { TicketsService } from "../tickets/tickets.service.js";
 import { AnonymousService } from "./anonymous.service.js";
 import { QuickBotGuard, QuickRateGuard } from "./quick.guards.js";
+import { TicketEmailDeliveryService } from "./ticket-email-delivery.service.js";
 
 function parse<T>(schema: { safeParse(v: unknown): { success: true; data: T } | { success: false } }, value: unknown): T {
   const result = schema.safeParse(value);
@@ -25,7 +26,7 @@ function key(value?: string): string {
 @Controller("quick")
 @UseGuards(QuickRateGuard)
 export class AnonymousController {
-  constructor(@Inject(AnonymousService) private readonly quick: AnonymousService, @Inject(TicketsService) private readonly tickets: TicketsService) {}
+  constructor(@Inject(AnonymousService) private readonly quick: AnonymousService, @Inject(TicketsService) private readonly tickets: TicketsService, @Inject(TicketEmailDeliveryService) private readonly emailDelivery: TicketEmailDeliveryService) {}
 
   @Post("sessions") @Header("Cache-Control", "no-store")
   start(@Body() body: unknown) { return this.quick.start(parse(quickStartSchema, body).name); }
@@ -33,7 +34,18 @@ export class AnonymousController {
   @Get("session") @Header("Cache-Control", "no-store")
   async session(@Headers("authorization") auth?: string) {
     const row = await this.quick.session(bearer(auth));
-    return { verified: Boolean(row.telegramId), orderId: row.orderId };
+    return { verified: Boolean(row.telegramId || row.verifiedEmail), telegramVerified: Boolean(row.telegramId), verifiedEmail: row.verifiedEmail, orderId: row.orderId };
+  }
+
+  @Post("email/request-code") @Header("Cache-Control", "no-store")
+  requestEmail(@Headers("authorization") auth: string, @Body() body: unknown, @Req() req: { socket?: { remoteAddress?: string }; ip?: string }) {
+    return this.quick.requestEmail(bearer(auth), parse(quickEmailRequestSchema, body).address, req.socket?.remoteAddress ?? req.ip ?? "unknown");
+  }
+
+  @Post("email/verify-code") @Header("Cache-Control", "no-store")
+  verifyEmail(@Headers("authorization") auth: string, @Body() body: unknown, @Req() req: { socket?: { remoteAddress?: string }; ip?: string }) {
+    const value = parse(quickEmailVerifySchema, body);
+    return this.quick.verifyEmail(bearer(auth), value.address, value.challengeId, value.code, req.socket?.remoteAddress ?? req.ip ?? "unknown");
   }
 
   @Get("events/:id/options") @Header("Cache-Control", "no-store")
@@ -59,8 +71,16 @@ export class AnonymousController {
     return this.quick.checkout(bearer(auth), key(idempotency), "seats", parse(quickSeatsSchema, body));
   }
 
+  @Post("checkouts/cart") @Header("Cache-Control", "no-store")
+  cart(@Headers("authorization") auth: string, @Headers("idempotency-key") idempotency: string, @Body() body: unknown) {
+    return this.quick.checkout(bearer(auth), key(idempotency), "cart", parse(quickCartSchema, body));
+  }
+
   @Get("order") @Header("Cache-Control", "no-store")
-  status(@Headers("authorization") auth: string) { return this.quick.status(bearer(auth)); }
+  async status(@Headers("authorization") auth: string) { const order = await this.quick.status(bearer(auth)); return { ...order, emailDelivery: await this.emailDelivery.status(order.orderId), walletAvailable: this.tickets.walletAvailable() }; }
+
+  @Post("order/email-delivery/resend") @Header("Cache-Control", "no-store")
+  async resendEmail(@Headers("authorization") auth: string) { const session = await this.quick.access(bearer(auth)); return this.emailDelivery.resend(session.orderId!); }
 
   @Post("claim-token") @Header("Cache-Control", "no-store")
   issue(@Headers("authorization") auth: string) { return this.quick.issueClaim(bearer(auth)); }

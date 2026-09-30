@@ -1,4 +1,23 @@
 export type UserRole = "guest" | "organizer" | "admin";
+export type LoginContactMethod = "email" | "phone";
+
+export interface VerificationRequestResponse {
+  challengeId: string;
+  expiresAt: string;
+  retryAfterSeconds: number;
+}
+
+export interface VerificationGrantResponse {
+  grant: string;
+  expiresAt: string;
+}
+
+export interface LinkedMethodsResponse {
+  telegram: { linked: boolean; id: string | null };
+  email: { linked: boolean; address: string | null; verifiedAt: string | null };
+  phone: { linked: boolean; number: string | null; verifiedAt: string | null };
+  passwordSet: boolean;
+}
 
 export interface TelegramLoginPayload {
   id: number;
@@ -12,7 +31,7 @@ export interface TelegramLoginPayload {
 
 export interface AuthUser {
   id: string;
-  telegramId: string;
+  telegramId: string | null;
   telegramChatId: string | null;
   role: UserRole;
   name: string | null;

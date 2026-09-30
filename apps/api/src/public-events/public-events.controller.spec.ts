@@ -11,7 +11,9 @@ describe("PublicEventsController", () => {
     const service = { get: vi.fn().mockResolvedValue(event) } as unknown as PublicEventsService;
     const controller = new PublicEventsController(service);
     await expect(controller.get(event.id)).resolves.toBe(event);
-    expect(service.get).toHaveBeenCalledWith(event.id);
+    expect(service.get).toHaveBeenCalledWith(event.id, expect.any(Date), undefined);
+    await controller.get(event.id, "kk");
+    expect(service.get).toHaveBeenLastCalledWith(event.id, expect.any(Date), "kk");
   });
 
   it("delegates public event discovery queries", async () => {

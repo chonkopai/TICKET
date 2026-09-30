@@ -15,16 +15,24 @@ describe("EventsController", () => {
       create: vi.fn().mockResolvedValue(event),
       list: vi.fn().mockResolvedValue({ items: [event], page: 1, limit: 20, total: 1, hasNext: false }),
       dashboard: vi.fn().mockResolvedValue({ totalEvents: 1 }),
+      managementSummary: vi.fn().mockResolvedValue({ event: { id: event.id } }),
+      managementAnalytics: vi.fn().mockResolvedValue({ eventId: event.id, buckets: [] }),
+      managementAnalyticsExport: vi.fn().mockResolvedValue("analytics-csv"),
+      managementOrders: vi.fn().mockResolvedValue({ items: [], page: 1, limit: 20, total: 0, hasNext: false }),
+      managementOrderFilterOptions: vi.fn().mockResolvedValue({ tables: [] }),
+      managementOrdersExport: vi.fn().mockResolvedValue("orders-csv"),
+      managementOrderDetail: vi.fn().mockResolvedValue({ id: randomUUID(), eventId: event.id }),
       get: vi.fn().mockResolvedValue(event),
       update: vi.fn().mockResolvedValue(event),
       publish: vi.fn().mockResolvedValue({ ...event, status: "published" }),
+      reopen: vi.fn().mockResolvedValue({ ...event, status: "published" }),
       cancel: vi.fn().mockResolvedValue({ ...event, status: "cancelled" }),
       complete: vi.fn().mockResolvedValue({ ...event, status: "completed" }),
       replacePoster: vi.fn().mockResolvedValue({ ...event, posterUrl: "/media/posters/example.png" }),
       removePoster: vi.fn().mockResolvedValue(event),
       deleteDraft: vi.fn().mockResolvedValue({ deleted: true, id: event.id }),
     } as unknown as EventsService;
-    const controller = new EventsController(events, publicEvents as never);
+    const controller = new EventsController(events, publicEvents as never, {} as never);
     const principal: AuthenticatedPrincipal = { userId: event.organizerId, role: "organizer" };
     const create = {
       title: event.title,
@@ -41,14 +49,27 @@ describe("EventsController", () => {
       originalname: "poster.png",
       size: 4,
     };
+    const analyticsQuery = { from: "2027-01-01T00:00:00Z", to: "2027-01-02T00:00:00Z", bucket: "day" as const };
+    const ordersQuery = { page: 1, limit: 20, payment: "all" as const, booking: "all" as const, attendance: "all" as const };
+    const orderId = randomUUID();
+    const analyticsResponse = { setHeader: vi.fn(), type: vi.fn(), send: vi.fn() };
+    const ordersResponse = { setHeader: vi.fn(), type: vi.fn(), send: vi.fn() };
 
     await controller.create(principal, create);
     await controller.list(principal, { page: 1, limit: 20 });
     await controller.dashboard(principal);
+    await controller.managementSummary(principal, event.id);
+    await controller.managementAnalytics(principal, event.id, analyticsQuery);
+    await controller.managementAnalyticsExport(principal, event.id, analyticsQuery, analyticsResponse);
+    await controller.managementOrders(principal, event.id, ordersQuery);
+    await controller.managementOrderFilterOptions(principal, event.id);
+    await controller.managementOrdersExport(principal, event.id, ordersQuery, ordersResponse);
+    await controller.managementOrderDetail(principal, event.id, orderId);
     await controller.get(principal, event.id);
     await controller.preview(principal, event.id);
     await controller.update(principal, event.id, { title: "Обновлено" });
     await controller.publish(principal, event.id);
+    await controller.reopen(principal, event.id);
     await controller.cancel(principal, event.id);
     await controller.complete(principal, event.id);
     await controller.replacePoster(principal, event.id, file);
@@ -58,10 +79,20 @@ describe("EventsController", () => {
     expect(events.create).toHaveBeenCalledWith(principal.userId, create);
     expect(events.list).toHaveBeenCalledWith(principal.userId, { page: 1, limit: 20 });
     expect(events.dashboard).toHaveBeenCalledWith(principal.userId);
+    expect(events.managementSummary).toHaveBeenCalledWith(principal.userId, event.id);
+    expect(events.managementAnalytics).toHaveBeenCalledWith(principal.userId, event.id, analyticsQuery);
+    expect(events.managementAnalyticsExport).toHaveBeenCalledWith(principal.userId, event.id, analyticsQuery);
+    expect(events.managementOrders).toHaveBeenCalledWith(principal.userId, event.id, ordersQuery);
+    expect(events.managementOrderFilterOptions).toHaveBeenCalledWith(principal.userId, event.id);
+    expect(events.managementOrdersExport).toHaveBeenCalledWith(principal.userId, event.id, ordersQuery);
+    expect(events.managementOrderDetail).toHaveBeenCalledWith(principal.userId, event.id, orderId);
+    expect(analyticsResponse.send).toHaveBeenCalledWith("analytics-csv");
+    expect(ordersResponse.send).toHaveBeenCalledWith("orders-csv");
     expect(events.get).toHaveBeenCalledWith(principal.userId, event.id);
-    expect(publicEvents.preview).toHaveBeenCalledWith(principal.userId, event.id, expect.any(Date), false);
+    expect(publicEvents.preview).toHaveBeenCalledWith(principal.userId, event.id, expect.any(Date), false, undefined);
     expect(events.update).toHaveBeenCalledWith(principal.userId, event.id, { title: "Обновлено" });
     expect(events.publish).toHaveBeenCalledWith(principal.userId, event.id);
+    expect(events.reopen).toHaveBeenCalledWith(principal.userId, event.id);
     expect(events.cancel).toHaveBeenCalledWith(principal.userId, event.id);
     expect(events.complete).toHaveBeenCalledWith(principal.userId, event.id);
     expect(events.replacePoster).toHaveBeenCalledWith(principal.userId, event.id, file);
@@ -77,6 +108,7 @@ function sampleEvent(): OrganizerEvent {
     organizerId: randomUUID(),
     title: "Событие",
     category: "other",
+    countryCode: "KZ",
     city: "Алматы",
     posterUrl: null,
     announcement: null,
@@ -92,6 +124,7 @@ function sampleEvent(): OrganizerEvent {
     date: "2027-03-21",
     time: "19:00",
     timezone: "Asia/Almaty",
+    ageRestriction: 0,
     venueName: "Зал",
     address: "Адрес",
     status: "draft",

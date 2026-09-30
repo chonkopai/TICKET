@@ -1,12 +1,15 @@
-import { EventForm } from "../_components/event-form";
-import Link from "next/link";
-import { quickRu } from "@event-platform/shared-types";
+import { redirect } from "next/navigation";
+import { EventManagement } from "../_components/event-management";
 
-export default async function EditOrganizerEventPage({
+export default async function LegacyEditOrganizerEventPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ step?: string | string[] }>;
 }) {
   const { id } = await params;
-  return <><div className="mx-auto max-w-5xl px-6 pt-6"><Link className="underline" href={`/organizer/events/${id}/purchases`}>{quickRu.purchases}</Link></div><EventForm eventId={id} /></>;
+  const { step } = await searchParams;
+  if (typeof step === "string") redirect(`/organizer/events/${id}/edit?step=${encodeURIComponent(step)}`);
+  return <EventManagement eventId={id} />;
 }

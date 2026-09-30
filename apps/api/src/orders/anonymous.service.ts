@@ -1,12 +1,14 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Prisma, type PrismaClient } from "@event-platform/database";
-import type { CheckoutResponse, CreateSeatCheckoutRequest, CreateTableCheckoutRequest, CreateTicketCheckoutRequest } from "@event-platform/shared-types";
+import type { CheckoutResponse, CreateCartCheckoutRequest, CreateSeatCheckoutRequest, CreateTableCheckoutRequest, CreateTicketCheckoutRequest } from "@event-platform/shared-types";
 import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { DATABASE_CLIENT } from "../auth/auth.constants.js";
 import { BOOKING_CLOCK, type BookingClock } from "../booking/booking.constants.js";
 import { BookingService } from "../booking/booking.service.js";
 import { PaymentService } from "../payments/payment.service.js";
 import { DomainEventsService } from "../domain-events/domain-events.service.js";
+import { VerificationService } from "../auth/verification.service.js";
+import { normalizeContact } from "../auth/contact-identity.js";
 
 export const QUICK_CONFIG = Symbol("QUICK_CONFIG");
 export interface QuickConfig { botUsername: string; sessionSeconds: number; accessSeconds: number; claimSeconds: number }
@@ -24,6 +26,7 @@ export class AnonymousService {
     @Inject(DomainEventsService) private readonly events: DomainEventsService,
     @Inject(BOOKING_CLOCK) private readonly clock: BookingClock,
     @Inject(QUICK_CONFIG) private readonly config: QuickConfig,
+    @Inject(VerificationService) private readonly verification?: VerificationService,
   ) {}
 
   async start(name: string) {
@@ -75,19 +78,46 @@ export class AnonymousService {
     return row;
   }
 
-  async checkout(raw: string, key: string, kind: "ticket" | "table" | "seats", input: CreateTicketCheckoutRequest | CreateTableCheckoutRequest | CreateSeatCheckoutRequest): Promise<CheckoutResponse> {
+  async requestEmail(raw: string, address: string, clientKey: string) {
+    const session = await this.session(raw);
+    if (session.orderId || !this.verification) throw conflict("CHECKOUT_EMAIL_UNAVAILABLE");
+    return this.verification.issue({ purpose: "checkout_email", method: "email", target: address, sessionFamilyId: session.id, clientKey });
+  }
+
+  async verifyEmail(raw: string, address: string, challengeId: string, code: string, clientKey: string) {
+    const session = await this.session(raw);
+    if (session.orderId || !this.verification) throw conflict("CHECKOUT_EMAIL_UNAVAILABLE");
+    const proof = await this.verification.verify({ purpose: "checkout_email", method: "email", target: address, challengeId, code, sessionFamilyId: session.id, clientKey });
+    const email = normalizeContact("email", address);
+    await this.db.$transaction(async tx => {
+      await lock(tx, `quick:${session.id}`);
+      const current = await tx.anonymousCheckoutSession.findUniqueOrThrow({ where: { id: session.id } });
+      if (current.orderId || current.expiresAt <= this.clock.now()) throw conflict("QUICK_ACCESS_INVALID");
+      await this.verification!.claimGrant(tx, { purpose: "checkout_email", method: "email", target: email, sessionFamilyId: session.id, grant: proof.grant });
+      await tx.anonymousCheckoutSession.update({ where: { id: session.id }, data: { verifiedEmail: email } });
+    });
+    return { verified: true, email };
+  }
+
+  async checkout(raw: string, key: string, kind: "ticket" | "table" | "seats" | "cart", input: CreateTicketCheckoutRequest | CreateTableCheckoutRequest | CreateSeatCheckoutRequest | CreateCartCheckoutRequest): Promise<CheckoutResponse> {
     const session = await this.session(raw);
     const fingerprint = secretHash(JSON.stringify({ kind, ...input }));
     const response = await this.db.$transaction(async tx => {
       await lock(tx, `quick:${session.id}`);
       const current = await tx.anonymousCheckoutSession.findUniqueOrThrow({ where: { id: session.id } });
-      if (current.expiresAt <= this.clock.now() || !current.telegramId || !current.chatId) throw conflict("RECIPIENT_NOT_VERIFIED");
+      if (current.expiresAt <= this.clock.now() || ((!current.telegramId || !current.chatId) && !current.verifiedEmail)) throw conflict("RECIPIENT_NOT_VERIFIED");
+      if (!current.telegramId && (!input.emailDelivery || normalizeContact("email", input.emailDelivery.address) !== current.verifiedEmail)) throw conflict("CHECKOUT_EMAIL_REQUIRED");
       if (current.requestKey) {
         if (current.requestKey !== key || current.requestHash !== fingerprint) throw conflict("IDEMPOTENCY_CONFLICT");
         return current.response as unknown as CheckoutResponse;
       }
-      const context = { transaction: tx, guestContact: { name: current.name, channel: "telegram", telegramId: current.telegramId.toString(), chatId: current.chatId.toString() } };
-      const created = kind === "ticket"
+      const context = { transaction: tx, sessionId: current.id, verifiedEmail: current.verifiedEmail,
+        guestContact: current.telegramId && current.chatId
+          ? { name: current.name, channel: "telegram", telegramId: current.telegramId.toString(), chatId: current.chatId.toString() }
+          : { name: current.name, channel: "email", email: current.verifiedEmail! } };
+      const created = kind === "cart"
+        ? await this.booking.checkoutCart(current.id, key, input as CreateCartCheckoutRequest, context)
+        : kind === "ticket"
         ? await this.booking.checkoutTickets(current.id, key, input as CreateTicketCheckoutRequest, context)
         : kind === "table"
           ? await this.booking.checkoutTable(current.id, key, input as CreateTableCheckoutRequest, context)
@@ -117,19 +147,22 @@ export class AnonymousService {
 
   async status(raw: string) {
     const session = await this.access(raw);
-    let order = await this.db.order.findUniqueOrThrow({ where: { id: session.orderId! }, include: { tickets: { include: { ticketType: { select: { name: true } } } }, booking: { include: { table: { select: { number: true, name: true } } } }, deposit: true } });
+    let order = await this.db.order.findUniqueOrThrow({ where: { id: session.orderId! }, include: { tickets: { include: { ticketType: { select: { name: true, isInternal: true } } } }, booking: { include: { table: { select: { number: true, name: true } } } }, deposit: true } });
     if (order.paymentStatus === "pending" && order.expiresAt && order.expiresAt <= this.clock.now()) {
       await this.booking.settleFailed(order.id, "expired");
-      order = await this.db.order.findUniqueOrThrow({ where: { id: order.id }, include: { tickets: { include: { ticketType: { select: { name: true } } } }, booking: { include: { table: { select: { number: true, name: true } } } }, deposit: true } });
+      order = await this.db.order.findUniqueOrThrow({ where: { id: order.id }, include: { tickets: { include: { ticketType: { select: { name: true, isInternal: true } } } }, booking: { include: { table: { select: { number: true, name: true } } } }, deposit: true } });
     }
     const snapshot = order.checkoutSnapshot as Record<string, Prisma.JsonValue>;
+    const event = typeof snapshot.eventId === "string" ? await this.db.event.findUnique({ where: { id: snapshot.eventId }, select: { date: true, time: true, timezone: true, venueName: true, address: true, sourceLocale: true } }) : null;
     const review = await this.db.outboxEvent.findFirst({ where: { aggregateId: order.id, eventType: "payment.review_required" } });
     const expired = await this.db.outboxEvent.findFirst({ where: { aggregateId: order.id, eventType: "checkout.expired" } });
-    return { orderId: order.id, status: review ? "review_required" : expired ? "expired" : order.paymentStatus,
-      title: snapshot.eventTitle, paymentMode: snapshot.paymentMode, amountDue: order.amount, currency: order.currency.trim(),
+    return { orderId: order.id, eventId: typeof snapshot.eventId === "string" ? snapshot.eventId : null, status: review ? "review_required" : expired ? "expired" : order.paymentStatus,
+      title: snapshot.eventTitle, sourceLocale: event?.sourceLocale ?? "ru", paymentMode: snapshot.paymentMode, amountDue: order.amount, currency: order.currency.trim(),
       fullAmount: snapshot.fullAmount, cancellationTerms: snapshot.cancellationTerms, depositTerms: snapshot.depositTerms,
       expiresAt: order.expiresAt?.toISOString() ?? null, linked: Boolean(order.buyerUserId),
-      tickets: order.tickets.map(t => ({ id: t.id, name: t.ticketType.name, status: t.status })),
+      deliveryStatus: session.deliveredAt ? "confirmed" : session.chatId && session.deliveryMessageId ? "pending" : "unavailable",
+      event: event ? { date: event.date.toISOString().slice(0, 10), time: event.time.toISOString().slice(11, 16), timezone: event.timezone, venueName: event.venueName, address: event.address } : null,
+      tickets: order.tickets.map(t => ({ id: t.id, name: t.ticketType.isInternal ? t.seatLabelSnapshot ?? "Место за столом" : t.ticketType.name, seatLabel: t.seatLabelSnapshot, status: t.status })),
       booking: order.booking ? { id: order.booking.id, status: order.booking.status, table: order.booking.table } : null,
       deposit: order.deposit ? { amount: order.deposit.amount, status: order.deposit.status } : null };
   }
@@ -154,7 +187,9 @@ export class AnonymousService {
       const session = await tx.anonymousCheckoutSession.findUniqueOrThrow({ where: { id: initial.id } });
       const user = await tx.user.findUnique({ where: { id: userId } });
       const order = await tx.order.findUniqueOrThrow({ where: { id: initial.orderId! } });
-      if (session.claimHash !== secretHash(raw) || session.claimedAt || !session.claimExpiresAt || session.claimExpiresAt <= this.clock.now() || user?.telegramId !== session.telegramId || order.buyerUserId || order.paymentStatus !== "paid") throw conflict("CLAIM_INVALID");
+      const telegramMatches = session.telegramId !== null && user?.telegramId === session.telegramId;
+      const emailMatches = session.telegramId === null && Boolean(session.verifiedEmail && await tx.contactIdentity.findUnique({ where: { method_normalizedIdentifier: { method: "email", normalizedIdentifier: session.verifiedEmail } }, select: { userId: true } }).then(identity => identity?.userId === userId));
+      if (session.claimHash !== secretHash(raw) || session.claimedAt || !session.claimExpiresAt || session.claimExpiresAt <= this.clock.now() || !(telegramMatches || emailMatches) || order.buyerUserId || order.paymentStatus !== "paid") throw conflict("CLAIM_INVALID");
       await tx.order.update({ where: { id: order.id }, data: { buyerUserId: userId } });
       await tx.ticket.updateMany({ where: { orderId: order.id, ownerUserId: null }, data: { ownerUserId: userId } });
       await tx.anonymousCheckoutSession.update({ where: { id: session.id }, data: { claimedAt: this.clock.now(), claimHash: null } });
@@ -175,7 +210,8 @@ export class AnonymousService {
       guestContact: o.buyerUserId || !o.guestContact ? null : {
         name: (o.guestContact as { name?: string }).name ?? null,
         telegramId: (o.guestContact as { telegramId?: string }).telegramId ?? null,
-        channel: "telegram",
+        email: (o.guestContact as { email?: string }).email ?? null,
+        channel: (o.guestContact as { channel?: string }).channel === "email" ? "email" : "telegram",
       }, status: o.paymentStatus, amount: o.amount, currency: o.currency.trim(), tickets: o.tickets, booking: o.booking })) };
   }
 }

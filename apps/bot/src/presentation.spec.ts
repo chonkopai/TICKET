@@ -5,6 +5,7 @@ import {
   formatCommandList,
   formatEventDetails,
   formatEventList,
+  formatTicketStatus,
   formatWelcome,
 } from "./presentation.js";
 
@@ -50,24 +51,37 @@ describe("Telegram presentation", () => {
     expect(message).toContain("Депозит: 7 500 KZT");
     expect(message).not.toContain("30 000 KZT");
   });
+
+  it("sends assigned seats to the scheme without offering a per-seat table as a whole table", () => {
+    const event = eventFixture({ tables: [{ id: crypto.randomUUID(), number: 4, name: "VIP", seats: 2, price: 20_000, deposit: 0, currency: "KZT", description: null, typeLabel: null, shortDescription: null, saleMode: "per_seat", seatsDetail: [], availability: "available", payment: { mode: "full_payment", label: "full_payment", amountDue: 20_000, fullAmount: 20_000, currency: "KZT", depositTerms: null, cancellationTerms: null } }] });
+    const message = formatEventDetails(event, true);
+    expect(message).toContain("выберите конкретное место");
+    expect(message).not.toContain("Стол VIP");
+  });
+
+  it("labels cancelled and refunded tickets clearly in Telegram", () => {
+    expect(formatTicketStatus("cancelled")).toBe("Отменён");
+    expect(formatTicketStatus("refunded")).toBe("Возвращён");
+    expect(formatTicketStatus("used")).toBe("Использован");
+  });
 });
 
 function summary(title: string): PublicEventSummary {
   return {
-    id: crypto.randomUUID(), title, category: "music", city: "Алматы", posterUrl: null, announcement: null, date: "2026-12-20", time: "19:00",
+    id: crypto.randomUUID(), title, category: "music", countryCode: "KZ", city: "Алматы", posterUrl: null, announcement: null, ageRestriction: 0, date: "2026-12-20", time: "19:00",
     timezone: "Asia/Almaty", startsAt: "2026-12-20T13:00:00.000Z", venueName: "Площадка", address: "Алматы",
-    paymentMode: "full_payment", paymentLabel: "full_payment", startingAmount: 500_000, startingFullAmount: 500_000, startingCurrency: "KZT", remainingTickets: 10, remainingTables: 0, saleStatus: "available",
+    paymentMode: "full_payment", paymentLabel: "full_payment", startingAmount: 500_000, startingFullAmount: 500_000, startingCurrency: "KZT", startingUnit: "ticket", startingPrices: [{ amount: 500_000, fullAmount: 500_000, currency: "KZT", unit: "ticket" }], remainingTickets: 10, remainingTables: 0, remainingSeats: 0, saleStatus: "available",
     organizer: { name: "Организатор", photoUrl: null },
   };
 }
 
 function eventFixture(overrides: Partial<PublicEvent> = {}): PublicEvent {
   const base: PublicEvent = {
-    id: crypto.randomUUID(), title: "Тестовое мероприятие", category: "music", city: "Алматы", posterUrl: null, announcement: "Анонс", description: null,
+    id: crypto.randomUUID(), title: "Тестовое мероприятие", category: "music", countryCode: "KZ", city: "Алматы", posterUrl: null, announcement: "Анонс", ageRestriction: 0, description: null,
     program: null, rules: null, visitTerms: null, cancellationTerms: null, paymentMode: "full_payment",
     showFullAmountForDeposit: false, depositTerms: null, extraConditions: null, date: "2026-12-20", time: "19:00",
     timezone: "Asia/Almaty", startsAt: "2026-12-20T13:00:00.000Z", venueName: "Площадка", address: "Алматы",
-    ticketTypes: [], tables: [], organizer: { name: "Организатор", photoUrl: null, contact: null },
+    ticketTypes: [], tables: [], organizer: { name: "Организатор", personName: null, photoUrl: null, contact: null },
   };
   return { ...base, ...overrides };
 }
@@ -75,7 +89,7 @@ function eventFixture(overrides: Partial<PublicEvent> = {}): PublicEvent {
 function ticket(name: string, mode: "deposit" | "full_payment", price: number, amountDue: number, fullAmount: number | null = price) {
   return {
     id: crypto.randomUUID(), name, price: mode === "deposit" && fullAmount === null ? null : price, deposit: mode === "deposit" ? amountDue : 0,
-    currency: "KZT", description: null, restrictions: null, salesStartAt: null, salesEndAt: null, remaining: 10, status: "active" as const,
+    currency: "KZT", description: null, restrictions: null, salesStartAt: null, salesEndAt: null, venueObjectId: null, remaining: 10, status: "active" as const,
     payment: { mode, label: mode, amountDue, fullAmount, currency: "KZT", depositTerms: null, cancellationTerms: null },
   };
 }

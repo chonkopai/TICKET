@@ -11,8 +11,33 @@ export interface NotificationPreferences {
   marketingAnnouncements: boolean;
 }
 
+export interface AccountNotification {
+  id: string;
+  eventId: string | null;
+  eventTitle: string | null;
+  type: string;
+  text: string;
+  createdAt: string;
+  readAt: string | null;
+}
+
+export interface AccountNotificationList {
+  items: AccountNotification[];
+  page: number;
+  limit: number;
+  total: number;
+  unreadCount: number;
+  hasNext: boolean;
+}
+
 export interface OrganizerProfile {
   organizationName: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  photoUrl: string | null;
+  address: string | null;
+  showContactInfo: boolean;
 }
 
 export type AccountOrderStatus = "pending" | "paid" | "failed" | "cancelled" | "refunded";

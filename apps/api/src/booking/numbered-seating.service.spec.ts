@@ -142,6 +142,20 @@ describe("numbered seating", () => {
     expect(await prisma.seatAllocation.count({ where: { seatId, status: "active" } })).toBe(1);
   });
 
+  it("keeps the public map and checkout closed outside a seat tariff's sales window", async () => {
+    const seat = await prisma.seat.findFirstOrThrow({ where: { venueLayoutId: layoutId, number: 3 }, select: { id: true, ticketTypeId: true } });
+    const ticketTypeId = seat.ticketTypeId!;
+    try {
+      await prisma.ticketType.update({ where: { id: ticketTypeId }, data: { salesStartAt: new Date("2031-01-02T00:00:00.000Z") } });
+      expect((await seats.publicForEvent(eventId))?.seats?.find((item) => item.id === seat.id)?.availability).toBe("unavailable");
+      await expect(booking.checkoutSeats(guestId, `future-seat-${randomUUID()}`, { seatIds: [seat.id], termsAccepted: true })).rejects.toMatchObject({ response: { code: "SEAT_SALES_WINDOW_CLOSED" } });
+      await prisma.ticketType.update({ where: { id: ticketTypeId }, data: { salesStartAt: null, salesEndAt: new Date("2030-12-31T00:00:00.000Z") } });
+      await expect(booking.checkoutSeats(guestId, `ended-seat-${randomUUID()}`, { seatIds: [seat.id], termsAccepted: true })).rejects.toMatchObject({ response: { code: "SEAT_SALES_WINDOW_CLOSED" } });
+    } finally {
+      await prisma.ticketType.update({ where: { id: ticketTypeId }, data: { salesStartAt: null, salesEndAt: null } });
+    }
+  });
+
   it("allows independent seats, rejects mixed unavailable selections, and creates a whole-table group pass", async () => {
     const perSeatTable = await prisma.table.findFirstOrThrow({ where: { venueLayoutId: layoutId, saleMode: "per_seat" } });
     const perSeat = await prisma.seat.findMany({ where: { tableId: perSeatTable.id }, orderBy: { sortOrder: "asc" } });

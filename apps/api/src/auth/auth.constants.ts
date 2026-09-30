@@ -16,6 +16,8 @@ export interface AuthConfig {
 export interface AuthenticatedPrincipal {
   userId: string;
   role: UserRole;
+  sessionFamilyId?: string;
+  authenticatedAt?: number;
 }
 
 export interface BotPrincipal extends AuthenticatedPrincipal {

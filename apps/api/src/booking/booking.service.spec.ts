@@ -1,14 +1,16 @@
 import { randomUUID } from "node:crypto";
 
 import { prisma } from "@event-platform/database";
-import { ConflictException } from "@nestjs/common";
+import { ConflictException, NotFoundException } from "@nestjs/common";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { DomainEventsService } from "../domain-events/domain-events.service.js";
 import { TablesService } from "../tables/tables.service.js";
 import { TicketTypesService } from "../ticket-types/ticket-types.service.js";
+import { TicketsService } from "../tickets/tickets.service.js";
 import type { BookingClock } from "./booking.constants.js";
 import { BookingService } from "./booking.service.js";
+import { CheckoutEmailService } from "./checkout-email.service.js";
 import { DevelopmentPaymentProvider } from "./payment-provider.js";
 import { PaymentService } from "../payments/payment.service.js";
 
@@ -38,6 +40,7 @@ const service = new BookingService(
   { checkoutTtlSeconds: 900, cleanupIntervalSeconds: 60 },
   clock,
   paymentLinks,
+  new CheckoutEmailService({} as never),
 );
 
 beforeAll(async () => {
@@ -67,6 +70,70 @@ afterAll(async () => {
 });
 
 describe("BookingService", () => {
+  it("freezes a linked email in a paid order and rejects idempotent destination changes", async () => {
+    const address = `buyer-${randomUUID()}@example.test`;
+    await prisma.contactIdentity.create({ data: { userId: guestId, method: "email", normalizedIdentifier: address, verifiedAt: new Date() } });
+    const type = await ticketTypes.create(organizerId, fullEventId, { name: `Email ${randomUUID()}`, price: 1200, quantityTotal: 2, status: "active" });
+    const key = `email-${randomUUID()}`;
+    const input = { ticketTypeId: type.id, quantity: 1, termsAccepted: true as const, emailDelivery: { address } };
+    const checkout = await service.checkoutTickets(guestId, key, input);
+    expect(checkout.emailDelivery).toMatchObject({ address });
+    await expect(service.checkoutTickets(guestId, key, input)).resolves.toEqual(checkout);
+    await expect(service.checkoutTickets(guestId, key, { ...input, emailDelivery: { address: "another@example.test" } })).rejects.toThrow();
+    expect((await prisma.order.findUniqueOrThrow({ where: { id: checkout.orderId } })).emailDeliveryAddress).toBe(address);
+    expect(await prisma.outboxEvent.count({ where: { aggregateId: checkout.orderId, eventType: "ticket.email_requested" } })).toBe(0);
+    await service.settleSucceeded(checkout.orderId);
+    await service.settleSucceeded(checkout.orderId);
+    expect(await prisma.outboxEvent.count({ where: { aggregateId: checkout.orderId, eventType: "ticket.email_requested" } })).toBe(1);
+  });
+  it("checks out two zones, a whole table and an assigned seat as one deposit order", async () => {
+    const first = await ticketTypes.create(organizerId, depositEventId, { name: `Fan A ${randomUUID()}`, price: 10_000, deposit: 2_000, quantityTotal: 10, status: "active" });
+    const second = await ticketTypes.create(organizerId, depositEventId, { name: `Fan B ${randomUUID()}`, price: 15_000, deposit: 3_000, quantityTotal: 10, status: "active" });
+    const table = await tables.create(organizerId, layoutId, { number: 990, seats: 4, price: 40_000, deposit: 8_000, currency: "KZT", geometry: { x: 100, y: 100, width: 100, height: 80 } });
+    const seatType = await ticketTypes.create(organizerId, depositEventId, { name: `Seat ${randomUUID()}`, price: 20_000, deposit: 5_000, quantityTotal: 1, status: "active" });
+    const row = await prisma.venueRow.create({ data: { venueLayoutId: layoutId, number: 990, price: 20_000, deposit: 5_000, currency: "KZT" } });
+    const seat = await prisma.seat.create({ data: { venueLayoutId: layoutId, rowId: row.id, number: 1, label: "Ряд 990 · место 1", sortOrder: 1, ticketTypeId: seatType.id } });
+    const key = `cart-${randomUUID()}`;
+    const input = { eventId: depositEventId, tickets: [{ ticketTypeId: first.id, quantity: 2 }, { ticketTypeId: second.id, quantity: 1 }], tableId: table.id, seatIds: [seat.id], termsAccepted: true as const };
+    const checkout = await service.checkoutCart(guestId, key, input);
+    expect(checkout).toMatchObject({ kind: "cart", amountDue: 20_000, fullAmount: null });
+    expect(checkout.bookingId).toBeTruthy();
+    expect(checkout.ticketIds).toHaveLength(8);
+    await expect(service.checkoutCart(guestId, key, input)).resolves.toEqual(checkout);
+    expect(await prisma.order.count({ where: { id: checkout.orderId } })).toBe(1);
+    await service.settleSucceeded(checkout.orderId);
+    const order = await prisma.order.findUniqueOrThrow({ where: { id: checkout.orderId }, include: { tickets: true, booking: true, reservations: true, deposit: true } });
+    expect(order.paymentStatus).toBe("paid");
+    expect(order.booking?.status).toBe("confirmed");
+    expect(order.tickets.every((ticket) => ticket.status === "active")).toBe(true);
+    expect(order.reservations).toHaveLength(2);
+    expect(order.reservations.every((reservation) => reservation.status === "consumed")).toBe(true);
+    expect(order.deposit?.amount).toBe(20_000);
+    const pass = await prisma.groupPass.findUniqueOrThrow({ where: { orderId: checkout.orderId } });
+    const scanner = new TicketsService(prisma, events, { isConfigured: () => false, generate: async () => Buffer.alloc(0) });
+    const scan = await scanner.useGroupPass(organizerId, pass.token, true, depositEventId);
+    expect(scan.admitted).toBe(4);
+    expect((await prisma.ticket.findMany({ where: { orderId: checkout.orderId, ticketTypeId: { in: [first.id, second.id] } } })).every((ticket) => ticket.status === "active")).toBe(true);
+    expect((await prisma.ticket.findFirstOrThrow({ where: { orderId: checkout.orderId, ticketTypeId: seatType.id } })).status).toBe("active");
+    await service.settleSucceeded(checkout.orderId);
+    expect((await prisma.ticketType.findUniqueOrThrow({ where: { id: first.id } })).quantitySold).toBe(2);
+    expect((await prisma.ticketType.findUniqueOrThrow({ where: { id: second.id } })).quantitySold).toBe(1);
+  });
+
+  it("releases every cart hold when payment fails and rejects cross-event items atomically", async () => {
+    const first = await ticketTypes.create(organizerId, depositEventId, { name: `Cart release ${randomUUID()}`, price: 10_000, deposit: 2_000, quantityTotal: 1, status: "active" });
+    const other = await ticketTypes.create(organizerId, fullEventId, { name: `Other ${randomUUID()}`, price: 10_000, quantityTotal: 1, status: "active" });
+    const table = await tables.create(organizerId, layoutId, { number: 991, seats: 2, price: 20_000, deposit: 4_000, currency: "KZT", geometry: { x: 250, y: 100, width: 100, height: 80 } });
+    await expect(service.checkoutCart(guestId, `cart-wrong-${randomUUID()}`, { eventId: depositEventId, tickets: [{ ticketTypeId: other.id, quantity: 1 }], tableId: table.id, seatIds: [], termsAccepted: true })).rejects.toThrow();
+    expect((await prisma.table.findUniqueOrThrow({ where: { id: table.id } })).status).toBe("available");
+    const checkout = await service.checkoutCart(guestId, `cart-release-${randomUUID()}`, { eventId: depositEventId, tickets: [{ ticketTypeId: first.id, quantity: 1 }], tableId: table.id, seatIds: [], termsAccepted: true });
+    await service.settleFailed(checkout.orderId);
+    expect((await prisma.table.findUniqueOrThrow({ where: { id: table.id } })).status).toBe("available");
+    expect(await prisma.ticketReservation.count({ where: { orderId: checkout.orderId, status: "active" } })).toBe(0);
+    expect(await prisma.seatAllocation.count({ where: { orderId: checkout.orderId, status: "active" } })).toBe(0);
+    expect((await prisma.order.findUniqueOrThrow({ where: { id: checkout.orderId } })).paymentStatus).toBe("failed");
+  });
+
   it("charges only the deposit, hides optional full amount, snapshots terms and replays safely", async () => {
     const type = await ticketTypes.create(organizerId, depositEventId, {
       name: `Deposit ${randomUUID()}`,
@@ -150,6 +217,29 @@ describe("BookingService", () => {
     expect(await prisma.auditLog.count({ where: { entityId: winner.value.bookingId!, action: "booking.cancelled" } })).toBe(1);
   });
 
+  it("releases only the event's active unpaid hold once and rejects settlement afterward", async () => {
+    const type = await ticketTypes.create(organizerId, fullEventId, { name: `Release ${randomUUID()}`, price: 20_000, quantityTotal: 2, status: "active" });
+    const checkout = await service.checkoutTickets(guestId, `release-${randomUUID()}`, { ticketTypeId: type.id, quantity: 2, termsAccepted: true });
+    await expect(service.organizerHoldPreview(guestId, fullEventId, checkout.orderId)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.organizerHoldPreview(organizerId, depositEventId, checkout.orderId)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.organizerHoldPreview(organizerId, fullEventId, checkout.orderId)).resolves.toMatchObject({ eligible: true, reason: "active" });
+    const results = await Promise.all([service.organizerReleaseHold(organizerId, fullEventId, checkout.orderId), service.organizerReleaseHold(organizerId, fullEventId, checkout.orderId)]);
+    expect(results.map((result) => result.alreadyReleased).sort()).toEqual([false, true]);
+    await expect(service.settleSucceeded(checkout.orderId)).rejects.toBeInstanceOf(ConflictException);
+    expect(await prisma.ticketReservation.count({ where: { orderId: checkout.orderId, status: "active" } })).toBe(0);
+    expect(await prisma.ticket.count({ where: { orderId: checkout.orderId, status: "cancelled" } })).toBe(2);
+    expect(await prisma.auditLog.count({ where: { entityId: checkout.orderId, action: "checkout.hold_released" } })).toBe(1);
+  });
+
+  it("keeps a paid whole table and its seats when stale hold release arrives", async () => {
+    const table = await tables.create(organizerId, layoutId, { number: 1902, name: "Paid table", seats: 4, price: 400_000, deposit: 100_000, geometry: { x: 120, y: 20, width: 80, height: 60 } });
+    const checkout = await service.checkoutTable(guestId, `paid-hold-${randomUUID()}`, { tableId: table.id, termsAccepted: true });
+    await service.settleSucceeded(checkout.orderId);
+    await expect(service.organizerReleaseHold(organizerId, depositEventId, checkout.orderId)).rejects.toBeInstanceOf(ConflictException);
+    await expect(prisma.table.findUniqueOrThrow({ where: { id: table.id } })).resolves.toMatchObject({ status: "booked" });
+    await expect(prisma.order.findUniqueOrThrow({ where: { id: checkout.orderId } })).resolves.toMatchObject({ paymentStatus: "paid" });
+  });
+
   it("releases expired checkout inventory through bounded cleanup", async () => {
     const type = await ticketTypes.create(organizerId, fullEventId, {
       name: `Expiry ${randomUUID()}`,
@@ -216,6 +306,20 @@ describe("BookingService", () => {
     const checkout = await service.checkoutTickets(guestId, `failure-${randomUUID()}`, { ticketTypeId: type.id, quantity: 1, termsAccepted: true });
     await service.settleFailed(checkout.orderId);
     await expect(service.settleSucceeded(checkout.orderId)).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it("keeps an expired order unissued when a signed success callback arrives late", async () => {
+    const type = await ticketTypes.create(organizerId, fullEventId, { name: `Late ${randomUUID()}`, price: 10_000, quantityTotal: 1, status: "active" });
+    const checkout = await service.checkoutTickets(guestId, `late-${randomUUID()}`, { ticketTypeId: type.id, quantity: 1, termsAccepted: true });
+    const payment = await prisma.payment.findFirstOrThrow({ where: { orderId: checkout.orderId } });
+    clock.advance(901_000);
+    const signed = DevelopmentPaymentProvider.signWebhook({ eventId: randomUUID(), eventType: "payment.succeeded", providerPaymentId: payment.providerPaymentId, orderId: checkout.orderId, amount: payment.amount, currency: payment.currency }, "development-webhook-secret", Math.floor(clock.now().getTime() / 1000));
+    const webhook = provider.verifyWebhook({ rawBody: signed.rawBody, headers: signed.headers });
+    await service.handlePaymentWebhook(webhook);
+    await service.handlePaymentWebhook(webhook);
+    expect(await prisma.order.findUniqueOrThrow({ where: { id: checkout.orderId } })).not.toMatchObject({ paymentStatus: "paid" });
+    expect(await prisma.ticket.count({ where: { orderId: checkout.orderId, status: "active" } })).toBe(0);
+    expect(await prisma.outboxEvent.count({ where: { aggregateId: checkout.orderId, eventType: "payment.review_required" } })).toBe(1);
   });
 });
 

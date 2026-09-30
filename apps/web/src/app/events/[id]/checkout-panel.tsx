@@ -1,105 +1,129 @@
 "use client";
 
-import { ru, quickRu, type CheckoutResponse, type PublicEvent, type PublicPaymentOption, type PublicVenueLayout } from "@event-platform/shared-types";
+import { INTL_LOCALES, localeUrl } from "../../../lib/locale";
+
+import { type CheckoutEmailChoice, type CheckoutResponse, type PublicEvent, type PublicPaymentOption, type PublicVenueLayout, type PublicVenueSeat } from "@event-platform/shared-types";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-
 import { apiRequest } from "../../(auth)/_lib/api";
 import { getSession } from "../../(auth)/_lib/session";
+import { CheckoutEmailOption } from "../../../components/checkout-email-option";
+import { useDisplayCurrency } from "../../../components/currency-provider";
+import { useLocale } from "../../../components/locale-provider";
+import { CHECKOUT_COPY } from "../../../lib/checkout-copy";
 
 interface CheckoutPanelProps {
   event: PublicEvent;
   layout: PublicVenueLayout | null;
   selectedSeatIds: string[];
+  selectedTableId: string | null;
+  onTableChange: (id: string | null) => void;
+  ticketQuantities: Record<string, number>;
+  onTicketChange: (id: string, quantity: number) => void;
   onClearSeats: () => void;
+  onRefreshAvailability: () => Promise<void>;
 }
 
-export function CheckoutPanel({ event, layout, selectedSeatIds, onClearSeats }: CheckoutPanelProps) {
-  const firstTicket = event.ticketTypes.find((ticket) => ticket.status === "active" && ticket.remaining > 0)?.id ?? null;
-  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(firstTicket);
-  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId, onTableChange, ticketQuantities, onTicketChange, onClearSeats, onRefreshAvailability }: CheckoutPanelProps) {
+  const locale = useLocale();
+  const copy = CHECKOUT_COPY[locale];
+  const formatMoney = (value: number, currency: string): string => new Intl.NumberFormat(INTL_LOCALES[locale], { style: "currency", currency }).format(value / 100);
+  const { currency: displayCurrency, formatMoney: formatDisplayMoney } = useDisplayCurrency();
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<CheckoutResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
-
+  const [emailRequested, setEmailRequested] = useState(false);
+  const [emailChoice, setEmailChoice] = useState<CheckoutEmailChoice | null>(null);
   useEffect(() => setLoggedIn(Boolean(getSession())), []);
-  useEffect(() => { if (selectedSeatIds.length) { setSelectedTicketId(null); setSelectedTableId(null); } }, [selectedSeatIds]);
+  useEffect(() => { setResult(null); setError(null); }, [selectedSeatIds, selectedTableId, ticketQuantities]);
 
+  const selectedTickets = event.ticketTypes.filter((ticket) => (ticketQuantities[ticket.id] ?? 0) > 0);
   const selection = useMemo(() => {
-    if (selectedSeatIds.length && layout) {
-      let total = 0;
-      let currency = "KZT";
-      for (const id of selectedSeatIds) {
-        const canonical = layout.seats?.find((seat) => seat.id === id);
-        if (canonical) { total += event.paymentMode === "deposit" ? canonical.deposit : canonical.price ?? 0; currency = canonical.currency; continue; }
-        for (const row of layout.rows) {
-          const seat = row.seats.find((item) => item.id === id);
-          if (seat) { total += event.paymentMode === "deposit" ? seat.deposit : seat.price ?? 0; currency = seat.currency; }
-        }
-        for (const table of layout.tables) {
-          const seat = table.seatRecords.find((item) => item.id === id);
-          if (seat) { total += event.paymentMode === "deposit" ? table.deposit : table.price ?? 0; currency = table.currency; }
-        }
-      }
-      return { label: `${selectedSeatIds.length} ${pluralizePlaces(selectedSeatIds.length)}`, amount: total, currency, kind: "seats" as const };
+    const items: Array<{ label: string; amount: number; currency: string }> = [];
+    let invalid = false;
+    for (const ticket of event.ticketTypes) {
+      const quantity = ticketQuantities[ticket.id] ?? 0;
+      if (!quantity) continue;
+      if (ticket.status !== "active" || quantity > ticket.remaining) invalid = true;
+      items.push({ label: `${ticket.name} × ${quantity}`, amount: ticket.payment.amountDue * quantity, currency: ticket.currency });
     }
     const table = event.tables.find((item) => item.id === selectedTableId);
-    if (table) return { label: table.name ?? `Стол ${table.number}`, amount: table.payment.amountDue, currency: table.payment.currency, kind: "table" as const };
-    const ticket = event.ticketTypes.find((item) => item.id === selectedTicketId);
-    if (ticket) return { label: ticket.name, amount: ticket.payment.amountDue, currency: ticket.payment.currency, kind: "ticket" as const };
-    return null;
-  }, [event, layout, selectedSeatIds, selectedTableId, selectedTicketId]);
+    if (selectedTableId && (!table || table.availability !== "available")) invalid = true;
+    if (table) items.push({ label: `${table.name ?? `${copy.table} ${table.number}`} · ${copy.wholeTable}`, amount: table.payment.amountDue, currency: table.currency });
+    for (const id of selectedSeatIds) {
+      const seat = layout?.seats?.find((item) => item.id === id);
+      if (!seat || seat.availability !== "available") { invalid = true; continue; }
+      items.push({ label: seatLabel(layout!, seat, copy), amount: event.paymentMode === "deposit" ? seat.deposit : seat.price ?? 0, currency: seat.currency });
+    }
+    const currency = items[0]?.currency ?? "";
+    const count = selectedSeatIds.length + selectedTickets.reduce((sum, ticket) => sum + (ticketQuantities[ticket.id] ?? 0), 0);
+    if (count > 10 || items.some((item) => item.currency !== currency)) invalid = true;
+    return { items, amount: items.reduce((sum, item) => sum + item.amount, 0), currency, valid: items.length > 0 && !invalid, reason: invalid ? copy.invalidSelection : null };
+  }, [event, layout, selectedSeatIds, selectedTableId, ticketQuantities, selectedTickets, copy]);
 
   async function checkout(): Promise<void> {
-    if (!accepted || busy || !selection) return;
+    if (!accepted || busy || !selection.valid || (emailRequested && !emailChoice)) return;
     setBusy(true); setError(null); setResult(null);
     try {
-      const request = selection.kind === "seats"
-        ? { path: "/me/checkouts/seats", body: { seatIds: selectedSeatIds, termsAccepted: true } }
-        : selection.kind === "table"
-          ? { path: "/me/checkouts/tables", body: { tableId: selectedTableId, termsAccepted: true } }
-          : { path: "/me/checkouts/tickets", body: { ticketTypeId: selectedTicketId, quantity: 1, termsAccepted: true } };
-      setResult(await apiRequest<CheckoutResponse>(request.path, { method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify(request.body) }));
-    } catch (reason) { setError(reason instanceof Error ? reason.message : ru.checkout.failed); }
+      const emailDelivery = emailChoice ? { emailDelivery: emailChoice } : {};
+      const cartBody = { eventId: event.id, tickets: selectedTickets.map((ticket) => ({ ticketTypeId: ticket.id, quantity: (ticketQuantities[ticket.id] ?? 0) })), ...(selectedTableId ? { tableId: selectedTableId } : {}), seatIds: selectedSeatIds, termsAccepted: true, ...emailDelivery };
+      const request = selectedTickets.length === 1 && !selectedTableId && !selectedSeatIds.length
+        ? { path: "/me/checkouts/tickets", body: { ticketTypeId: selectedTickets[0]!.id, quantity: (ticketQuantities[selectedTickets[0]!.id] ?? 0), termsAccepted: true, ...emailDelivery } }
+        : selectedTableId && !selectedTickets.length && !selectedSeatIds.length
+          ? { path: "/me/checkouts/tables", body: { tableId: selectedTableId, termsAccepted: true, ...emailDelivery } }
+          : selectedSeatIds.length && !selectedTickets.length && !selectedTableId
+            ? { path: "/me/checkouts/seats", body: { seatIds: selectedSeatIds, termsAccepted: true, ...emailDelivery } }
+            : { path: "/me/checkouts/cart", body: cartBody };
+      const fingerprint = `${request.path}:${JSON.stringify(request.body)}`;
+      const keyStorage = `ticket-checkout-key:${event.id}`;
+      const prior = sessionStorage.getItem(keyStorage);
+      let requestKey = crypto.randomUUID();
+      if (prior) { try { const saved = JSON.parse(prior) as { fingerprint: string; key: string }; if (saved.fingerprint === fingerprint && /^[0-9a-f-]{36}$/i.test(saved.key)) requestKey = saved.key; } catch { /* Ignore stale browser state. */ } }
+      sessionStorage.setItem(keyStorage, JSON.stringify({ fingerprint, key: requestKey }));
+      const response = await apiRequest<CheckoutResponse>(request.path, { method: "POST", headers: { "Idempotency-Key": requestKey }, body: JSON.stringify(request.body) });
+      setResult(response);
+      sessionStorage.removeItem(keyStorage);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : copy.failed); }
     finally { setBusy(false); }
   }
 
-  function chooseTicket(id: string): void { setSelectedTicketId(id); setSelectedTableId(null); onClearSeats(); setResult(null); setError(null); }
-  function chooseTable(id: string): void { setSelectedTableId(id); setSelectedTicketId(null); onClearSeats(); setResult(null); setError(null); }
-
-  const availableTables = event.tables.filter((table) => table.saleMode === "whole_table" && table.availability !== "booked");
-  const seatLoginRequired = selectedSeatIds.length > 0 && !loggedIn;
-
-  return <aside className="sticky top-24 rounded-2xl border border-[#dce2f3] bg-white p-5 shadow-[0_8px_28px_rgba(37,0,89,0.08)] sm:p-6" id="tickets">
-    <div className="flex items-start justify-between gap-3"><div><p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#581db3]">{event.paymentMode === "deposit" ? "Бронирование по депозиту" : "Билеты на событие"}</p><h2 className="mt-1 text-2xl font-bold tracking-[-0.02em]">Выберите вариант</h2></div><span className="rounded-md bg-[#e7eefe] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-[#4a4453]">KZT</span></div>
-
+  const availableTables = event.tables.filter((table) => table.saleMode === "whole_table");
+  const hasSelectableSeats = Boolean(layout?.seats?.some((seat) => seat.availability === "available"));
+  const quickParams = new URLSearchParams({ event: event.id });
+  if (selectedTickets.length === 1 && !selectedTableId && !selectedSeatIds.length) { quickParams.set("choice", `ticket:${selectedTickets[0]!.id}`); quickParams.set("quantity", String(ticketQuantities[selectedTickets[0]!.id])); }
+  else if (selectedTableId && !selectedTickets.length && !selectedSeatIds.length) quickParams.set("choice", `table:${selectedTableId}`);
+  else if (selectedSeatIds.length && !selectedTickets.length && !selectedTableId) quickParams.set("seats", selectedSeatIds.join(","));
+  else quickParams.set("cart", JSON.stringify({ tickets: selectedTickets.map((ticket) => ({ ticketTypeId: ticket.id, quantity: (ticketQuantities[ticket.id] ?? 0) })), tableId: selectedTableId, seatIds: selectedSeatIds }));
+  return <aside className="rounded-2xl border border-[#dce2f3] bg-white p-5 shadow-[0_8px_28px_rgba(37,0,89,0.08)] sm:p-6 lg:sticky lg:top-24" id="tickets">
+    <div className="flex items-start justify-between gap-3"><div><p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#581db3]">{event.paymentMode === "deposit" ? copy.deposit : copy.tickets}</p><h2 className="mt-1 text-2xl font-bold">{copy.choose}</h2></div>{selection.currency ? <span className="rounded-md bg-[#e7eefe] px-2 py-1 text-xs font-bold">{selection.currency}</span> : null}</div>
+    {hasSelectableSeats ? <a className="mt-5 flex min-h-11 items-center justify-center rounded-lg border border-[#713dcc] bg-[#f7f2ff] px-4 text-sm font-semibold text-[#581db3]" href="#venue-plan">{copy.plan}</a> : null}
     <div className="mt-5 space-y-2">
-      {event.ticketTypes.map((ticket) => <OptionButton active={selectedTicketId === ticket.id && selectedSeatIds.length === 0} disabled={ticket.status !== "active" || ticket.remaining < 1} key={ticket.id} onClick={() => chooseTicket(ticket.id)} title={ticket.name} meta={`${ticket.remaining} осталось`} price={paymentSummary(ticket.payment)} />)}
-      {availableTables.map((table) => <OptionButton active={selectedTableId === table.id && selectedSeatIds.length === 0} disabled={table.availability !== "available"} key={table.id} onClick={() => chooseTable(table.id)} title={table.name ?? `Стол ${table.number}`} meta={`${table.seats} ${pluralizePlaces(table.seats)} · ${table.saleMode === "whole_table" ? "стол целиком" : "по местам"}`} price={paymentSummary(table.payment)} />)}
-      {selectedSeatIds.length ? <div className="rounded-xl border-2 border-[#713dcc] bg-[#f7f2ff] p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-bold">Места на схеме</p><p className="mt-1 text-xs text-[#4a4453]">{selectedSeatIds.length} {pluralizePlaces(selectedSeatIds.length)}</p></div><button className="text-xs font-semibold text-[#581db3] hover:underline" onClick={onClearSeats} type="button">Очистить</button></div></div> : null}
-      {!event.ticketTypes.length && !availableTables.length && !selectedSeatIds.length ? <p className="rounded-xl bg-[#f0f3ff] p-4 text-sm text-[#4a4453]">Доступные варианты скоро появятся.</p> : null}
+      {event.ticketTypes.map((ticket) => <div key={ticket.id}><OptionButton active={Boolean((ticketQuantities[ticket.id] ?? 0))} disabled={ticket.status !== "active" || ticket.remaining < 1} onClick={() => onTicketChange(ticket.id, (ticketQuantities[ticket.id] ?? 0) ? 0 : 1)} title={ticket.name} meta={`${ticket.remaining} ${copy.left}`} price={paymentSummary(ticket.payment, formatDisplayMoney)} unavailable={copy.unavailable} />{(ticketQuantities[ticket.id] ?? 0) ? <div className="flex items-center justify-between rounded-xl bg-[#f7f2ff] p-3"><span className="text-sm">{copy.quantity}</span><div className="flex items-center gap-3"><button aria-label={`${copy.decrease} ${ticket.name}`} className="rounded border bg-white px-3 py-1" onClick={() => onTicketChange(ticket.id, (ticketQuantities[ticket.id] ?? 0) - 1)} type="button">−</button><span aria-live="polite">{(ticketQuantities[ticket.id] ?? 0)}</span><button aria-label={`${copy.increase} ${ticket.name}`} className="rounded border bg-white px-3 py-1 disabled:opacity-40" disabled={(ticketQuantities[ticket.id] ?? 0) >= Math.min(10, ticket.remaining)} onClick={() => onTicketChange(ticket.id, (ticketQuantities[ticket.id] ?? 0) + 1)} type="button">+</button></div></div> : null}</div>)}
+      {availableTables.map((table) => <OptionButton active={selectedTableId === table.id} disabled={table.availability !== "available"} key={table.id} onClick={() => onTableChange(selectedTableId === table.id ? null : table.id)} title={table.name ?? `${copy.table} ${table.number}`} meta={`${table.seats} ${copy.places} · ${copy.wholeTable}`} price={paymentSummary(table.payment, formatDisplayMoney)} unavailable={copy.unavailable} />)}
+      {selectedSeatIds.length ? <div className="rounded-xl border-2 border-[#713dcc] bg-[#f7f2ff] p-4"><strong>{copy.selectedSeats} · {selectedSeatIds.length}</strong><button className="ml-3 text-sm text-[#581db3] underline" onClick={onClearSeats} type="button">{copy.clear}</button></div> : null}
+      {!event.ticketTypes.length && !availableTables.length && !selectedSeatIds.length ? <p className="rounded-xl bg-[#f0f3ff] p-4 text-sm">{copy.noOptions}</p> : null}
     </div>
-
-    <div className="mt-5 rounded-xl bg-[#f0f3ff] p-4"><div className="flex items-end justify-between gap-4"><div><p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#4a4453]">Ваш выбор</p><p className="mt-1 font-semibold">{selection?.label ?? "Ничего не выбрано"}</p></div>{selection ? <p className="shrink-0 text-xl font-bold text-[#581db3]">{formatMoney(selection.amount, selection.currency)}</p> : null}</div><p className="mt-2 text-xs leading-5 text-[#4a4453]">{event.paymentMode === "deposit" ? ru.checkout.depositExplanation : ru.checkout.fullPaymentExplanation}</p></div>
-
-    <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[#dce2f3] p-3 text-sm leading-5"><input checked={accepted} className="mt-1 h-4 w-4 accent-[#5b21b6]" onChange={(input) => setAccepted(input.target.checked)} type="checkbox" /><span>{ru.checkout.acceptTerms}</span></label>
-
-    {error ? <p className="mt-4 rounded-xl bg-[#ffdad6] p-3 text-sm text-[#93000a]">Не удалось оформить заказ. Проверьте доступность и попробуйте снова.</p> : null}
-    {result ? <div className="mt-4 rounded-xl bg-[#e2f7ed] p-4 text-sm text-[#005137]"><p className="font-semibold">{ru.checkout.created}</p><a className="mt-3 inline-flex font-bold underline" href={result.paymentLink}>{ru.checkout.continuePayment}</a></div> : null}
-
-    {loggedIn ? <button className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#5b21b6] px-5 font-semibold text-white transition hover:bg-[#420093] disabled:cursor-not-allowed disabled:bg-[#dce2f3] disabled:text-[#77717f]" disabled={!accepted || !selection || busy} onClick={() => void checkout()} type="button">{busy ? ru.common.loading : selection?.amount === 0 ? "Получить билет" : `Перейти к оплате${selection ? ` · ${formatMoney(selection.amount, selection.currency)}` : ""}`}<span aria-hidden="true">→</span></button> : seatLoginRequired ? <Link className="mt-4 flex min-h-12 w-full items-center justify-center rounded-lg bg-[#5b21b6] px-5 text-center font-semibold text-white" href="/login">Войти для покупки выбранных мест</Link> : <Link aria-disabled={!accepted || !selection} className={`mt-4 flex min-h-12 w-full items-center justify-center rounded-lg px-5 text-center font-semibold ${accepted && selection ? "bg-[#5b21b6] text-white hover:bg-[#420093]" : "pointer-events-none bg-[#dce2f3] text-[#77717f]"}`} href={`/quick?event=${event.id}`}>{quickRu.quick}</Link>}
-    {!loggedIn ? <p className="mt-3 text-center text-xs leading-5 text-[#4a4453]">Личный кабинет не обязателен. Билет придёт в Telegram.</p> : null}
-    {layout && (layout.tables.length || layout.rows.length || layout.seats?.length) ? <a className="mt-4 flex items-center justify-center gap-2 text-sm font-semibold text-[#581db3] hover:underline" href="#venue-plan">Открыть схему зала <span aria-hidden="true">↓</span></a> : null}
+    <div className="mt-5 rounded-xl bg-[#f0f3ff] p-4"><p className="text-xs font-semibold uppercase text-[#4a4453]">{copy.yourChoice}</p>{selection.items.length ? <ul className="mt-2 space-y-1 text-sm">{selection.items.map((item, index) => <li className="flex justify-between gap-3" key={`${item.label}-${index}`}><span>{item.label}</span><span>{formatMoney(item.amount, item.currency)}</span></li>)}</ul> : <p className="mt-2">{copy.nothing}</p>}{selection.items.length ? <><p className="mt-3 border-t pt-2 text-right text-xl font-bold text-[#581db3]">{copy.total}: {formatMoney(selection.amount, selection.currency)}</p>{displayCurrency !== "KZT" ? <p className="mt-1 text-right text-xs text-[#4a4453]">{copy.approximately} {formatDisplayMoney(selection.amount, selection.currency)} · {copy.paymentIn} {selection.currency}</p> : null}</> : null}<p className="mt-2 text-xs text-[#4a4453]">{event.paymentMode === "deposit" ? copy.depositExplanation : copy.fullPaymentExplanation}</p></div>
+    {selection.reason ? <p className="mt-3 text-sm text-red-700" role="alert">{selection.reason}</p> : null}
+    {selectedTickets.length + Number(Boolean(selectedTableId)) + Number(selectedSeatIds.length > 0) > 1 ? <p className="mt-3 text-xs leading-5 text-[#4a4453]">{copy.combinedRefund}</p> : null}
+    <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[#dce2f3] p-3 text-sm"><input checked={accepted} className="mt-1 h-4 w-4 accent-[#5b21b6]" onChange={(input) => setAccepted(input.target.checked)} type="checkbox" /><span>{copy.acceptTerms}</span></label>
+    {loggedIn ? <CheckoutEmailOption choice={emailChoice} onChoice={setEmailChoice} onEnabledChange={setEmailRequested} /> : null}
+    {error ? <div className="mt-4 rounded-xl bg-[#ffdad6] p-3 text-sm text-[#93000a]"><p role="alert">{error}</p><button className="mt-2 font-semibold underline" onClick={() => void onRefreshAvailability().then(() => setError(null)).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : copy.failed))} type="button">{copy.refresh}</button></div> : null}
+    {result ? <div className="mt-4 rounded-xl bg-[#e2f7ed] p-4 text-sm text-[#005137]"><p className="font-semibold">{copy.created}</p><a className="mt-3 inline-flex font-bold underline" href={result.paymentLink || localeUrl(`/payment/status?order=${result.orderId}`, locale)}>{copy.continuePayment}</a></div> : null}
+    {loggedIn ? <button className="mt-4 min-h-12 w-full rounded-lg bg-[#5b21b6] px-5 font-semibold text-white disabled:bg-[#dce2f3] disabled:text-[#77717f]" disabled={!accepted || !selection.valid || busy || Boolean(result) || (emailRequested && !emailChoice)} onClick={() => void checkout()} type="button">{busy ? copy.loading : `${copy.pay} · ${formatMoney(selection.amount, selection.currency)}`}</button> : <Link aria-disabled={!accepted || !selection.valid} className={`mt-4 flex min-h-12 w-full items-center justify-center rounded-lg font-semibold ${accepted && selection.valid ? "bg-[#5b21b6] text-white" : "pointer-events-none bg-[#dce2f3] text-[#77717f]"}`} href={localeUrl(`/quick?${quickParams.toString()}`, locale)}>{copy.quick}</Link>}
+    {!loggedIn ? <p className="mt-3 text-center text-xs text-[#4a4453]">{copy.guestHint}</p> : null}
+    {layout ? <a className="mt-4 flex justify-center text-sm font-semibold text-[#581db3] underline" href="#venue-plan">{copy.openPlan}</a> : null}
   </aside>;
 }
 
-function OptionButton({ active, disabled, onClick, title, meta, price }: { active: boolean; disabled: boolean; onClick: () => void; title: string; meta: string; price: string }) {
-  return <button aria-pressed={active} className={`w-full rounded-xl border p-3 text-left transition ${active ? "border-[#713dcc] bg-[#f7f2ff] shadow-sm" : "border-[#dce2f3] hover:border-[#a98ae4]"} disabled:cursor-not-allowed disabled:bg-[#f0f3ff] disabled:opacity-60`} disabled={disabled} onClick={onClick} type="button"><div className="flex items-start gap-3"><span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${active ? "border-[#5b21b6]" : "border-[#a8adbb]"}`}>{active ? <span className="h-2.5 w-2.5 rounded-full bg-[#5b21b6]" /> : null}</span><span className="min-w-0 flex-1"><span className="flex justify-between gap-3"><strong className="truncate">{title}</strong><strong className="shrink-0 text-[#581db3]">{price}</strong></span><span className="mt-1 block text-xs text-[#4a4453]">{disabled ? ru.publicEvent.unavailable : meta}</span></span></div></button>;
+function OptionButton({ active, disabled, onClick, title, meta, price, unavailable }: { active: boolean; disabled: boolean; onClick: () => void; title: string; meta: string; price: string; unavailable: string }) {
+  return <button aria-pressed={active} className={`w-full rounded-xl border p-3 text-left ${active ? "border-[#713dcc] bg-[#f7f2ff]" : "border-[#dce2f3] hover:border-[#a98ae4]"} disabled:opacity-60`} disabled={disabled} onClick={onClick} type="button"><span className="flex items-start gap-3"><span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${active ? "border-[#5b21b6] bg-[#5b21b6] text-white" : "border-[#a8adbb]"}`}>{active ? "✓" : null}</span><span className="min-w-0 flex-1"><span className="flex flex-wrap justify-between gap-2"><strong>{title}</strong><strong className="text-[#581db3]">{price}</strong></span><small className="block text-[#4a4453]">{disabled ? unavailable : meta}</small></span></span></button>;
 }
-
-function paymentName(mode: "deposit" | "full_payment"): string { return mode === "deposit" ? ru.checkout.deposit : ru.checkout.fullPayment; }
-function paymentSummary(payment: PublicPaymentOption): string { return `${paymentName(payment.mode)} ${formatMoney(payment.amountDue, payment.currency)}`; }
-function formatMoney(value: number, currency: string): string { const symbol = currency === "KZT" ? "₸" : currency; return `${(value / 100).toLocaleString("ru-RU")} ${symbol}`; }
-function pluralizePlaces(value: number): string { const tens = value % 100; const units = value % 10; if (tens >= 11 && tens <= 14) return "мест"; if (units === 1) return "место"; if (units >= 2 && units <= 4) return "места"; return "мест"; }
+function paymentSummary(payment: PublicPaymentOption, format: (amount: number, currency: string) => string): string { return format(payment.amountDue, payment.currency); }
+function seatLabel(layout: PublicVenueLayout, seat: PublicVenueSeat, copy: typeof CHECKOUT_COPY.ru): string {
+  if (seat.tableId) { const table = layout.tables.find((item) => item.id === seat.tableId); return `${copy.table} ${table?.number ?? ""} · ${copy.seat} ${seat.number}`; }
+  if (seat.rowId) { const row = layout.rows.find((item) => item.id === seat.rowId); return `${row?.name || `${copy.row} ${row?.number ?? ""}`} · ${copy.seat} ${seat.number}`; }
+  return seat.label;
+}

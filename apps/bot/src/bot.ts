@@ -7,6 +7,7 @@ import {
   formatEventDetails,
   formatEventList,
   formatHelp,
+  formatTicketStatus,
   formatWelcome,
   type BotRole,
 } from "./presentation.js";
@@ -61,7 +62,10 @@ export function createBot(token: string, username: string, options: BotOptions):
       const status = await api().quickStatus(item.accessToken);
       if (status.status === "paid") {
         await ctx.reply(ru.bot.paymentPaid);
-        for (const ticket of status.tickets ?? []) { try { await sendQr(ctx, await api().qr(ticket.id, ctx.from!.id, ctx.chat!.id, true)); } catch { await ctx.reply(ru.bot.unavailable); } }
+        for (const ticket of status.tickets ?? []) {
+          if (ticket.status === "cancelled" || ticket.status === "refunded") continue;
+          try { await sendQr(ctx, await api().qr(ticket.id, ctx.from!.id, ctx.chat!.id, true)); } catch { await ctx.reply(ru.bot.unavailable); }
+        }
         pending.delete(ctx.from!.id);
       } else if (status.status === "pending") await ctx.reply(ru.bot.paymentPending);
       else await ctx.reply(ru.bot.paymentFailed);
@@ -77,7 +81,7 @@ export function createBot(token: string, username: string, options: BotOptions):
     if (data === "events:prev") { await showEvents(ctx, api(), eventListState, Math.max(1, (state?.page ?? 1) - 1), state?.search); return; }
     if (data === "events:back") { await showEvents(ctx, api(), eventListState, state?.page ?? 1, state?.search); return; }
     const eventMatch = /^event:([0-9a-f-]{36})$/.exec(data);
-    if (eventMatch) { await showEvent(ctx, api(), eventMatch[1]!); return; }
+    if (eventMatch) { await showEvent(ctx, api(), eventMatch[1]!, options.webOrigin); return; }
     const buyMatch = /^buy:(ticket|table):([0-9a-f-]{36})$/.exec(data);
     if (buyMatch) { await preparePurchase(ctx, api(), pending, buyMatch[1] as "ticket" | "table", buyMatch[2]!); return; }
     const confirmMatch = /^confirm:(ticket|table):([0-9a-f-]{36})$/.exec(data);
@@ -107,14 +111,16 @@ async function showEvents(
   } catch { await ctx.reply(ru.bot.unavailable); }
 }
 
-async function showEvent(ctx: Context, api: BotApiClient, id: string): Promise<void> {
+async function showEvent(ctx: Context, api: BotApiClient, id: string, webOrigin?: string): Promise<void> {
   try {
     const event = await api.event(id);
+    const layout = await api.venueLayout(id).catch(() => null);
     const keyboard = new InlineKeyboard();
     for (const ticket of event.ticketTypes.filter((item) => item.status === "active" && item.remaining > 0)) keyboard.text(`${ru.bot.ticketOption}: ${ticket.name}`, `buy:ticket:${ticket.id}`).row();
-    for (const table of event.tables.filter((item) => item.availability === "available")) keyboard.text(`${ru.bot.tableOption}: ${table.name ?? table.number}`, `buy:table:${table.id}`).row();
+    for (const table of event.tables.filter((item) => item.saleMode === "whole_table" && item.availability === "available")) keyboard.text(`${ru.bot.tableOption}: ${table.name ?? table.number}`, `buy:table:${table.id}`).row();
+    if (webOrigin && layout?.seats?.length) keyboard.url("Выбрать место на схеме", new URL(`/events/${id}#venue-plan`, webOrigin).toString()).row();
     keyboard.text(ru.bot.back, "events:back");
-    await ctx.reply(formatEventDetails(event), { reply_markup: keyboard });
+    await ctx.reply(formatEventDetails(event, Boolean(layout?.seats?.length)), { reply_markup: keyboard });
   } catch { await ctx.reply(ru.bot.eventNotFound); }
 }
 
@@ -145,7 +151,8 @@ async function showTickets(ctx: Context, api: BotApiClient): Promise<void> {
     const result = await api.tickets(ctx.from.id, ctx.chat.id);
     if (!result.items.length) { await ctx.reply(ru.bot.noTickets); return; }
     for (const ticket of result.items) {
-      await ctx.reply([ticket.eventTitle, ticket.ticketTypeName, ticket.seatLabel, ticket.status].filter(Boolean).join("\n"));
+      await ctx.reply([ticket.eventTitle, ticket.ticketTypeName, ticket.seatLabel, formatTicketStatus(ticket.status)].filter(Boolean).join("\n"));
+      if (ticket.status === "cancelled" || ticket.status === "refunded") continue;
       try { await sendQr(ctx, await api.qr(ticket.id, ctx.from.id, ctx.chat.id, ticket.anonymous)); } catch { await ctx.reply(ru.bot.unavailable); }
     }
   } catch (error) { await ctx.reply(error instanceof Error && error.message.includes("BOT_API_404") ? ru.bot.identityNotLinked : ru.bot.unavailable); }

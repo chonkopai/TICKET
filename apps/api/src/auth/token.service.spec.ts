@@ -38,9 +38,14 @@ describe("TokenService refresh rotation", () => {
         where,
         data,
       }: {
-        where: { id: string; revokedAt: null; expiresAt: { gt: Date } };
+        where: { id: string; revokedAt: null; expiresAt: { gt: Date } } | { familyId: string; userId: string; revokedAt: null };
         data: { revokedAt: Date };
       }) => {
+        if ("familyId" in where) {
+          let count = 0;
+          for (const record of records) if (record.familyId === where.familyId && record.userId === where.userId && !record.revokedAt) { record.revokedAt = data.revokedAt; count++; }
+          return { count };
+        }
         const record = records.find(
           (item) =>
             item.id === where.id && !item.revokedAt && item.expiresAt > where.expiresAt.gt,
@@ -64,8 +69,8 @@ describe("TokenService refresh rotation", () => {
     };
     const database = {
       refreshToken,
-      $transaction: async (callback: (transaction: { refreshToken: typeof refreshToken }) => unknown) =>
-        callback({ refreshToken }),
+      $transaction: async (callback: (transaction: { refreshToken: typeof refreshToken; $queryRaw: () => Promise<unknown> }) => unknown) =>
+        callback({ refreshToken, $queryRaw: async () => [{ ok: 1 }] }),
     } as unknown as PrismaClient;
     const config = {
       accessTokenSecret: "a".repeat(32),
@@ -79,10 +84,13 @@ describe("TokenService refresh rotation", () => {
     await expect(service.rotate(original.refreshToken)).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
-    await expect(service.rotate(rotated.refreshToken)).resolves.toMatchObject({
+    const latest = await service.rotate(rotated.refreshToken);
+    expect(latest).toMatchObject({
       accessExpiresInSeconds: 900,
       refreshExpiresInSeconds: 2_592_000,
     });
+    await service.revokeFamily(original.refreshToken);
+    await expect(service.rotate(latest.refreshToken)).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });
 
@@ -94,6 +102,10 @@ function fixtureUser(): User {
     telegramChatId: null,
     role: "guest",
     name: "Тестовый гость",
+    firstName: null,
+    lastName: null,
+    passwordHash: null,
+    credentialVersion: 0,
     photoUrl: null,
     phone: null,
     email: null,

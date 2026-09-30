@@ -27,6 +27,8 @@ describe("TicketsController", () => {
       renderQr: vi.fn().mockResolvedValue(Buffer.from("png")),
       walletPass: vi.fn().mockResolvedValue(Buffer.from("pkpass")),
       useByQrToken: vi.fn().mockResolvedValue({ ticket: { ...ticket, status: "used" } }),
+      inspectEventScan: vi.fn().mockResolvedValue({ kind: "ticket", ticket }),
+      useGroupPass: vi.fn().mockResolvedValue({ groupPassId: randomUUID() }),
     } as unknown as TicketsService;
     const controller = new TicketsController(service);
     const qrToken = "a".repeat(43);
@@ -35,11 +37,17 @@ describe("TicketsController", () => {
     await controller.qr(principal, ticketId);
     await controller.wallet(principal, ticketId);
     await controller.use(principal, { qrToken });
+    await controller.inspectEventScan(principal, ticket.eventId, { token: qrToken });
+    await controller.useForEvent(principal, ticket.eventId, { qrToken });
+    await controller.useGroupPassForEvent(principal, ticket.eventId, { token: qrToken, confirm: true });
 
     expect(service.get).toHaveBeenCalledWith(userId, ticketId);
     expect(service.renderQr).toHaveBeenCalledWith(userId, ticketId);
     expect(service.walletPass).toHaveBeenCalledWith(userId, ticketId);
     expect(service.useByQrToken).toHaveBeenCalledWith(userId, qrToken);
+    expect(service.inspectEventScan).toHaveBeenCalledWith(userId, ticket.eventId, qrToken);
+    expect(service.useByQrToken).toHaveBeenCalledWith(userId, qrToken, ticket.eventId);
+    expect(service.useGroupPass).toHaveBeenCalledWith(userId, qrToken, true, ticket.eventId);
   });
 
   it("delegates guest ticket, QR and Wallet reads through the authenticated owner", async () => {
@@ -55,7 +63,9 @@ describe("TicketsController", () => {
     await controller.get(principal, ticketId);
     await controller.qr(principal, ticketId);
     await controller.wallet(principal, ticketId);
-    expect(service.getForUser).toHaveBeenCalledWith(userId, ticketId);
+    expect(service.getForUser).toHaveBeenCalledWith(userId, ticketId, "ru");
+    await controller.get(principal, ticketId, "kk");
+    expect(service.getForUser).toHaveBeenCalledWith(userId, ticketId, "kk");
     expect(service.renderQrForUser).toHaveBeenCalledWith(userId, ticketId);
     expect(service.walletPassForUser).toHaveBeenCalledWith(userId, ticketId);
   });

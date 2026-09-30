@@ -10,6 +10,8 @@ export const hallObjectSchema = z.object({
   rotation: z.number().finite().min(-180).max(180), color, colorOverride: z.boolean().default(false), locked: z.boolean(), zIndex: z.number().int().min(-1000).max(1000),
   tariffId: z.string().uuid().nullable(), price: money.nullable(), deposit: money,
   parentId: z.string().uuid().nullable(), side: z.enum(["top", "right", "bottom", "left"]).nullable(),
+  // Relative to the round table; absent on older layouts and automatically arranged seats.
+  orbitAngle: z.number().finite().min(-180).max(180).optional(),
   number: z.number().int().min(1).max(1_000_000), attachedOrder: z.number().int().min(0),
   saleMode: z.enum(["whole_table", "per_seat"]), seatOffset: z.number().finite().min(0.225).max(3),
   description: z.string().max(200), capacity: z.number().int().min(0).max(100_000),
@@ -53,7 +55,7 @@ export type HallObject = z.infer<typeof hallObjectSchema>;
 export type HallEditor = z.infer<typeof hallEditorSchema>;
 export const metres = (n: number) => Math.round(n * 100) / 100;
 export function newHallObject(id: string, type: HallObject["type"], x: number, y: number): HallObject {
-  return { id, type, name: "", x: metres(x), y: metres(y), width: type === "seat" ? 0.45 : type === "row" ? 1.8 : 1.6, height: type === "seat" || type === "row" ? 0.45 : 1, rotation: 0, color: type === "seat" ? "#065F46" : "#5B21B6", colorOverride: false, locked: false, zIndex: type === "zone" ? -10 : 0, tariffId: null, price: null, deposit: 0, parentId: null, side: null, number: 1, attachedOrder: 0, saleMode: "whole_table", seatOffset: 0.35, description: "", capacity: 0, opacity: 0.15, points: [], curvature: 0, reverse: false, startNumber: 1, entranceType: "both" };
+  return { id, type, name: "", x: metres(x), y: metres(y), width: type === "seat" ? 0.45 : type === "row" ? 1.8 : 1.6, height: type === "seat" || type === "row" ? 0.45 : 1, rotation: 0, color: type === "seat" ? "#D1D5DB" : "#5B21B6", colorOverride: false, locked: false, zIndex: type === "zone" ? -10 : 0, tariffId: null, price: null, deposit: 0, parentId: null, side: null, number: 1, attachedOrder: 0, saleMode: "whole_table", seatOffset: 0.35, description: "", capacity: 0, opacity: 0.15, points: [], curvature: 0, reverse: false, startNumber: 1, entranceType: "both" };
 }
 export function effectivePrice(o: HallObject, editor: HallEditor): number | null {
   return o.price ?? editor.tariffs.find((t) => t.id === o.tariffId)?.price ?? null;
@@ -76,11 +78,30 @@ export function arrangeSeats(editor: HallEditor, parentId: string): HallEditor {
     const p = rotatePoint(x, y, parent.rotation);
     positions.set(seat.id, { ...seat, x: metres(parent.x + p.x), y: metres(parent.y + p.y), rotation: ((rotation + parent.rotation + 540) % 360) - 180 });
   };
-  if (parent.type === "table_round") seats.forEach((seat, i) => {
-    const a = i / seats.length * Math.PI * 2 - Math.PI / 2;
+  if (parent.type === "table_round") {
     const r = parent.width / 2 + parent.seatOffset;
-    place(seat, Math.cos(a) * r, Math.sin(a) * r, a * 180 / Math.PI + 90);
-  });
+    const angles = new Map<string, number>();
+    if (seats.some((seat) => seat.orbitAngle !== undefined)) {
+      for (const seat of seats) if (seat.orbitAngle !== undefined) angles.set(seat.id, seat.orbitAngle * Math.PI / 180);
+      for (const seat of seats) if (!angles.has(seat.id)) {
+        const existing = [...angles.values()].sort((a, b) => a - b);
+        let angle = -Math.PI / 2;
+        if (existing.length) {
+          let largest = -1;
+          for (let i = 0; i < existing.length; i++) {
+            const start = existing[i]!;
+            const end = i === existing.length - 1 ? existing[0]! + Math.PI * 2 : existing[i + 1]!;
+            if (end - start > largest) { largest = end - start; angle = start + largest / 2; }
+          }
+        }
+        angles.set(seat.id, angle);
+      }
+    } else seats.forEach((seat, i) => angles.set(seat.id, i / seats.length * Math.PI * 2 - Math.PI / 2));
+    for (const seat of seats) {
+      const a = angles.get(seat.id)!;
+      place({ ...seat, ...(seat.orbitAngle === undefined && angles.size > 0 && seats.some((s) => s.orbitAngle !== undefined) ? { orbitAngle: metres(((a * 180 / Math.PI + 540) % 360) - 180) } : {}) }, Math.cos(a) * r, Math.sin(a) * r, a * 180 / Math.PI + 90);
+    }
+  }
   else if (parent.type === "row") {
     const length = rowLength(parent);
     const gap = (length - seats.length * 0.45) / (seats.length + 1);

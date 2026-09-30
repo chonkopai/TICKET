@@ -7,7 +7,9 @@ import { DATABASE_CLIENT } from "../auth/auth.constants.js";
 import { DomainEventsService } from "../domain-events/domain-events.service.js";
 import { TablesModule } from "../tables/tables.module.js";
 import { TicketTypesModule } from "../ticket-types/ticket-types.module.js";
-import { BookingController } from "./booking.controller.js";
+import { BookingController, OrganizerHoldController } from "./booking.controller.js";
+import { OrganizerRefundController } from "./refund.controller.js";
+import { RefundService } from "./refund.service.js";
 import { BOOKING_CLOCK, BOOKING_CONFIG, PAYMENT_PROVIDER, SystemBookingClock } from "./booking.constants.js";
 import { BookingService } from "./booking.service.js";
 import { CheckoutCleanupService } from "./checkout-cleanup.service.js";
@@ -19,10 +21,14 @@ import { AnonymousController, OrganizerPurchasesController } from "../orders/ano
 import { QuickBotGuard, QuickRateGuard } from "../orders/quick.guards.js";
 import { TicketsModule } from "../tickets/tickets.module.js";
 import { QuickDeliveryService } from "../orders/quick-delivery.service.js";
+import { CheckoutEmailService } from "./checkout-email.service.js";
+import { TicketEmailAccessController, MyTicketEmailController } from "../orders/ticket-email.controller.js";
+import { TicketEmailDeliveryService, TICKET_EMAIL_CONFIG, TICKET_EMAIL_SENDER, type TicketEmailConfig } from "../orders/ticket-email-delivery.service.js";
+import { ResendTicketEmailSender } from "../orders/ticket-email-sender.js";
 
 @Module({
   imports: [AuthModule, TicketTypesModule, TablesModule, TicketsModule],
-  controllers: [BookingController, OrdersPaymentController, PaymentWebhookController, AnonymousController, OrganizerPurchasesController],
+  controllers: [BookingController, OrganizerHoldController, OrganizerRefundController, OrdersPaymentController, PaymentWebhookController, AnonymousController, OrganizerPurchasesController, TicketEmailAccessController, MyTicketEmailController],
   providers: [
     { provide: DATABASE_CLIENT, useValue: prisma },
     {
@@ -55,7 +61,12 @@ import { QuickDeliveryService } from "../orders/quick-delivery.service.js";
       return { botUsername: env.TELEGRAM_BOT_USERNAME, sessionSeconds: env.QUICK_SESSION_TTL_SECONDS, accessSeconds: env.QUICK_ACCESS_TTL_SECONDS, claimSeconds: env.QUICK_CLAIM_TTL_SECONDS };
     } },
     PaymentService,
+    CheckoutEmailService,
+    { provide: TICKET_EMAIL_CONFIG, useFactory: (): TicketEmailConfig => ({ secret: loadApiEnv().OTP_HMAC_SECRET ?? "", webOrigin: loadApiEnv().WEB_ORIGIN }) },
+    { provide: TICKET_EMAIL_SENDER, useFactory: () => { const env = loadApiEnv(); return new ResendTicketEmailSender(env.RESEND_API_KEY, env.RESEND_FROM_EMAIL); } },
+    TicketEmailDeliveryService,
     BookingService,
+    RefundService,
     CheckoutCleanupService,
   ],
   exports: [BookingService, AnonymousService],

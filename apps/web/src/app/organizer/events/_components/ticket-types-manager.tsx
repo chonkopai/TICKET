@@ -1,8 +1,14 @@
 "use client";
 
+import { INTL_LOCALES } from "../../../../lib/locale";
+import { useLocale } from "../../../../components/locale-provider";
+import { TICKET_TYPES_COPY } from "../../../../lib/ticket-types-copy";
+
+import { SelectPicker } from "../../../../components/option-picker";
+
 import {
   isoToZonedInput,
-  ru,
+  type EventLocale,
   zonedInputToIso,
   type CreateTicketTypeRequest,
   type OrganizerEvent,
@@ -27,6 +33,12 @@ interface TicketTypeFormValues {
   status: TicketTypeStatus;
 }
 
+const COMMON: Record<EventLocale, { loading: string; delete: string; saving: string; save: string; cancel: string }> = {
+  ru: { loading: "Загрузка…", delete: "Удалить", saving: "Сохранение…", save: "Сохранить", cancel: "Отмена" },
+  kk: { loading: "Жүктелуде…", delete: "Жою", saving: "Сақталуда…", save: "Сақтау", cancel: "Бас тарту" },
+  en: { loading: "Loading…", delete: "Delete", saving: "Saving…", save: "Save", cancel: "Cancel" },
+};
+
 const EMPTY_FORM: TicketTypeFormValues = {
   name: "",
   price: "0",
@@ -41,6 +53,9 @@ const EMPTY_FORM: TicketTypeFormValues = {
 };
 
 export function TicketTypesManager({ event }: { event: OrganizerEvent }) {
+  const locale = useLocale();
+  const copy = TICKET_TYPES_COPY[locale];
+  const common = COMMON[locale];
   const [items, setItems] = useState<OrganizerTicketType[]>([]);
   const [editing, setEditing] = useState<OrganizerTicketType | "new" | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +71,7 @@ export function TicketTypesManager({ event }: { event: OrganizerEvent }) {
       );
       setItems(result.items);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : ru.ticketTypes.loadFailed);
+      setError(reason instanceof Error ? reason.message : copy.loadFailed);
     } finally {
       setLoading(false);
     }
@@ -65,15 +80,15 @@ export function TicketTypesManager({ event }: { event: OrganizerEvent }) {
   useEffect(() => { void load(); }, [load]);
 
   async function remove(item: OrganizerTicketType): Promise<void> {
-    if (!window.confirm(ru.ticketTypes.deleteConfirm)) return;
+    if (!window.confirm(copy.deleteConfirm)) return;
     setError(null);
     setMessage(null);
     try {
       await apiRequest(`/api/organizer/ticket-types/${item.id}`, { method: "DELETE" });
-      setMessage(ru.ticketTypes.deleted);
+      setMessage(copy.deleted);
       await load();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : ru.ticketTypes.actionFailed);
+      setError(reason instanceof Error ? reason.message : copy.actionFailed);
     }
   }
 
@@ -81,10 +96,10 @@ export function TicketTypesManager({ event }: { event: OrganizerEvent }) {
     <section className="mt-10 rounded-3xl border border-black/10 bg-white p-7 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold">{ru.ticketTypes.title}</h2>
-          <p className="mt-2 text-sm text-zinc-600">{ru.ticketTypes.description}</p>
+          <h2 className="text-2xl font-semibold">{copy.title}</h2>
+          <p className="mt-2 text-sm text-zinc-600">{copy.description}</p>
           <p className="mt-1 text-xs text-zinc-500">
-            {ru.ticketTypes.timezoneHint} {event.timezone}
+            {copy.timezoneHint} {event.timezone}
           </p>
         </div>
         <button
@@ -92,7 +107,7 @@ export function TicketTypesManager({ event }: { event: OrganizerEvent }) {
           onClick={() => setEditing(editing === "new" ? null : "new")}
           type="button"
         >
-          {editing === "new" ? ru.ticketTypes.close : ru.ticketTypes.create}
+          {editing === "new" ? copy.close : copy.create}
         </button>
       </div>
 
@@ -103,7 +118,7 @@ export function TicketTypesManager({ event }: { event: OrganizerEvent }) {
           onCancel={() => setEditing(null)}
           onSaved={async () => {
             setEditing(null);
-            setMessage(ru.ticketTypes.saved);
+            setMessage(copy.saved);
             await load();
           }}
         />
@@ -111,8 +126,8 @@ export function TicketTypesManager({ event }: { event: OrganizerEvent }) {
 
       {error ? <p className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}</p> : null}
       {message ? <p className="mt-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{message}</p> : null}
-      {loading ? <p className="mt-6 text-zinc-600">{ru.common.loading}</p> : null}
-      {!loading && items.length === 0 ? <p className="mt-6 text-zinc-600">{ru.ticketTypes.empty}</p> : null}
+      {loading ? <p className="mt-6 text-zinc-600">{common.loading}</p> : null}
+      {!loading && items.length === 0 ? <p className="mt-6 text-zinc-600">{copy.empty}</p> : null}
 
       <div className="mt-6 grid gap-4">
         {items.map((item) => (
@@ -120,29 +135,29 @@ export function TicketTypesManager({ event }: { event: OrganizerEvent }) {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold">
-                  {ru.ticketTypes.statuses[item.status]}
+                  {copy.statuses[item.status]}
                 </span>
                 <h3 className="mt-3 text-lg font-semibold">{item.name}</h3>
-                <p className="mt-1 text-sm text-zinc-600">{formatMoney(item.price, item.currency)}</p>
+                <p className="mt-1 text-sm text-zinc-600">{formatMoney(item.price, item.currency, locale)}</p>
                 {item.salesStartAt || item.salesEndAt ? (
                   <p className="mt-1 text-xs text-zinc-500">
-                    {formatWindow(item, event.timezone)}
+                    {formatWindow(item, event.timezone, locale)}
                   </p>
                 ) : null}
               </div>
               <div className="flex gap-3">
                 <button className="text-sm underline" onClick={() => setEditing(item)} type="button">
-                  {ru.ticketTypes.edit}
+                  {copy.edit}
                 </button>
                 <button className="text-sm text-red-700 underline" onClick={() => void remove(item)} type="button">
-                  {ru.common.delete}
+                  {common.delete}
                 </button>
               </div>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {(Object.keys(ru.ticketTypes.counters) as Array<keyof typeof ru.ticketTypes.counters>).map((key) => (
+              {(Object.keys(copy.counters) as Array<keyof typeof copy.counters>).map((key) => (
                 <div className="rounded-xl bg-zinc-50 px-3 py-2" key={key}>
-                  <div className="text-xs text-zinc-500">{ru.ticketTypes.counters[key]}</div>
+                  <div className="text-xs text-zinc-500">{copy.counters[key]}</div>
                   <div className="font-semibold">{item.counters[key]}</div>
                 </div>
               ))}
@@ -165,6 +180,9 @@ function TicketTypeForm({
   onCancel: () => void;
   onSaved: () => Promise<void>;
 }) {
+  const locale = useLocale();
+  const copy = TICKET_TYPES_COPY[locale];
+  const common = COMMON[locale];
   const [values, setValues] = useState<TicketTypeFormValues>(() => item ? toForm(item, event.timezone) : EMPTY_FORM);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -185,7 +203,7 @@ function TicketTypeForm({
       );
       await onSaved();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : ru.ticketTypes.saveFailed);
+      setError(reason instanceof Error ? reason.message : copy.saveFailed);
     } finally {
       setBusy(false);
     }
@@ -194,27 +212,27 @@ function TicketTypeForm({
   return (
     <form className="mt-6 grid gap-5 rounded-2xl bg-zinc-50 p-5" onSubmit={(formEvent) => void save(formEvent)}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={ru.ticketTypes.fields.name} required value={values.name} onChange={(value) => update("name", value)} />
-        <SelectField label={ru.ticketTypes.fields.status} value={values.status} onChange={(value) => update("status", value as TicketTypeStatus)} />
-        <Field label={ru.ticketTypes.fields.price} min="0" required type="number" value={values.price} onChange={(value) => update("price", value)} />
-        {event.paymentMode === "deposit" ? <Field label={ru.ticketTypes.fields.deposit} min="1" required type="number" value={values.deposit} onChange={(value) => update("deposit", value)} /> : null}
-        <Field label={ru.ticketTypes.fields.currency} required value={values.currency} onChange={(value) => update("currency", value.toUpperCase())} />
-        <Field label={ru.ticketTypes.fields.quantityTotal} min="0" required type="number" value={values.quantityTotal} onChange={(value) => update("quantityTotal", value)} />
+        <Field label={copy.fields.name} required value={values.name} onChange={(value) => update("name", value)} />
+        <SelectField label={copy.fields.status} value={values.status} onChange={(value) => update("status", value as TicketTypeStatus)} />
+        <Field label={copy.fields.price} min="0" required type="number" value={values.price} onChange={(value) => update("price", value)} />
+        {event.paymentMode === "deposit" ? <Field label={copy.fields.deposit} min="1" required type="number" value={values.deposit} onChange={(value) => update("deposit", value)} /> : null}
+        <Field label={copy.fields.currency} required value={values.currency} onChange={(value) => update("currency", value.toUpperCase())} />
+        <Field label={copy.fields.quantityTotal} min="0" required type="number" value={values.quantityTotal} onChange={(value) => update("quantityTotal", value)} />
       </div>
-      <p className="text-xs text-zinc-500">{ru.ticketTypes.moneyHint}</p>
+      <p className="text-xs text-zinc-500">{copy.moneyHint}</p>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={ru.ticketTypes.fields.salesStartAt} type="datetime-local" value={values.salesStartAt} onChange={(value) => update("salesStartAt", value)} />
-        <Field label={ru.ticketTypes.fields.salesEndAt} type="datetime-local" value={values.salesEndAt} onChange={(value) => update("salesEndAt", value)} />
+        <Field label={copy.fields.salesStartAt} type="datetime-local" value={values.salesStartAt} onChange={(value) => update("salesStartAt", value)} />
+        <Field label={copy.fields.salesEndAt} type="datetime-local" value={values.salesEndAt} onChange={(value) => update("salesEndAt", value)} />
       </div>
-      <Area label={ru.ticketTypes.fields.description} value={values.description} onChange={(value) => update("description", value)} />
-      <Area label={ru.ticketTypes.fields.restrictions} value={values.restrictions} onChange={(value) => update("restrictions", value)} />
+      <Area label={copy.fields.description} value={values.description} onChange={(value) => update("description", value)} />
+      <Area label={copy.fields.restrictions} value={values.restrictions} onChange={(value) => update("restrictions", value)} />
       {error ? <p className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}</p> : null}
       <div className="flex gap-3">
         <button className="rounded-xl bg-black px-4 py-2 font-semibold text-white disabled:opacity-40" disabled={busy} type="submit">
-          {busy ? ru.common.saving : ru.common.save}
+          {busy ? common.saving : common.save}
         </button>
         <button className="rounded-xl border border-zinc-300 px-4 py-2" disabled={busy} onClick={onCancel} type="button">
-          {ru.common.cancel}
+          {common.cancel}
         </button>
       </div>
     </form>
@@ -226,7 +244,8 @@ function Field({ label, min, onChange, required = false, type = "text", value }:
 }
 
 function SelectField({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: TicketTypeStatus }) {
-  return <label className="grid gap-2 text-sm font-semibold">{label}<select className="rounded-xl border border-zinc-300 bg-white px-4 py-3 font-normal" onChange={(input) => onChange(input.currentTarget.value)} value={value}>{(Object.keys(ru.ticketTypes.statuses) as TicketTypeStatus[]).map((status) => <option key={status} value={status}>{ru.ticketTypes.statuses[status]}</option>)}</select></label>;
+  const copy = TICKET_TYPES_COPY[useLocale()];
+  return <label className="grid gap-2 text-sm font-semibold">{label}<SelectPicker className="rounded-xl border border-zinc-300 bg-white px-4 py-3 font-normal" onChange={(input) => onChange(input.currentTarget.value)} value={value}>{(Object.keys(copy.statuses) as TicketTypeStatus[]).map((status) => <option key={status} value={status}>{copy.statuses[status]}</option>)}</SelectPicker></label>;
 }
 
 function Area({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
@@ -269,16 +288,16 @@ function eventPaymentDeposit(values: TicketTypeFormValues): number {
 
 function optional(value: string): string | null { return value.trim() || null; }
 
-function formatMoney(value: number, currency: string): string {
-  return new Intl.NumberFormat("ru-RU", { style: "currency", currency }).format(value / 100);
+function formatMoney(value: number, currency: string, locale: EventLocale): string {
+  return new Intl.NumberFormat(INTL_LOCALES[locale], { style: "currency", currency }).format(value / 100);
 }
 
-function formatWindow(item: OrganizerTicketType, timezone: string): string {
-  const start = item.salesStartAt ? formatInZone(item.salesStartAt, timezone) : "—";
-  const end = item.salesEndAt ? formatInZone(item.salesEndAt, timezone) : "—";
+function formatWindow(item: OrganizerTicketType, timezone: string, locale: EventLocale): string {
+  const start = item.salesStartAt ? formatInZone(item.salesStartAt, timezone, locale) : "—";
+  const end = item.salesEndAt ? formatInZone(item.salesEndAt, timezone, locale) : "—";
   return `${start} — ${end}`;
 }
 
-function formatInZone(iso: string, timezone: string): string {
-  return new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short", timeZone: timezone }).format(new Date(iso));
+function formatInZone(iso: string, timezone: string, locale: EventLocale): string {
+  return new Intl.DateTimeFormat(INTL_LOCALES[locale], { dateStyle: "medium", timeStyle: "short", timeZone: timezone }).format(new Date(iso));
 }

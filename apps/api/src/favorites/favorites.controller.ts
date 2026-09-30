@@ -15,7 +15,7 @@ export class FavoritesController {
 
   @Get()
   list(@CurrentUser() principal: AuthenticatedPrincipal, @Query(new ExplicitDtoPipe(FavoritesQueryDto)) query: FavoritesQueryDto): Promise<FavoriteList> {
-    return this.favorites.list(principal.userId, query.page, query.limit);
+    return this.favorites.list(principal.userId, query.page, query.limit, query.locale);
   }
 
   @Post(":eventId")

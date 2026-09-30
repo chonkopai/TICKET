@@ -4,6 +4,8 @@ import { prisma } from "@event-platform/database";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AccountService } from "./account.service.js";
+import { OrganizerPhotoService } from "./organizer-photo.service.js";
+import type { ObjectStorage, PutPosterInput } from "../events/object-storage.js";
 
 const guestId = randomUUID();
 const otherId = randomUUID();
@@ -63,8 +65,26 @@ describe("AccountService", () => {
   });
 
   it("persists an organizer display identity with audit and outbox records", async () => {
-    await expect(service.updateOrganizerProfile(organizerId, { organizationName: "  TICKET Studio  " })).resolves.toEqual({ organizationName: "TICKET Studio" });
-    await expect(service.organizerProfile(organizerId, null)).resolves.toEqual({ organizationName: "TICKET Studio" });
+    await expect(service.updateOrganizerProfile(organizerId, { organizationName: "  TICKET Studio  ", email: "studio@example.com", phone: "+77001234567", address: "Алматы", showContactInfo: true })).resolves.toMatchObject({ organizationName: "TICKET Studio", email: "studio@example.com", phone: "+77001234567", address: "Алматы", showContactInfo: true });
+    await expect(service.organizerProfile(organizerId, null)).resolves.toMatchObject({ organizationName: "TICKET Studio", email: "studio@example.com", address: "Алматы", showContactInfo: true });
     await expect(prisma.auditLog.count({ where: { actorId: organizerId, action: "organizer_profile.updated" } })).resolves.toBe(1);
+  });
+
+  it("validates and stores organizer photos without retaining the previous managed image", async () => {
+    const deleted: string[] = [];
+    let sequence = 0;
+    const storage: ObjectStorage = {
+      async putPoster(_image: PutPosterInput) { const key = `${randomUUID()}.png`; sequence += 1; return { key, url: `/media/posters/${key}` }; },
+      async readPoster() { return { body: Buffer.alloc(0), contentType: "image/png" }; },
+      async deletePoster(key) { deleted.push(key); },
+    };
+    const photos = new OrganizerPhotoService(prisma, storage);
+    const image = { buffer: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0]), mimetype: "image/png", originalname: "profile.png", size: 9 };
+    await expect(photos.upload(organizerId, { ...image, mimetype: "image/jpeg" })).rejects.toThrow();
+    const first = await photos.upload(organizerId, image);
+    const second = await photos.upload(organizerId, image);
+    expect(sequence).toBe(2);
+    expect(deleted).toContain(first.photoUrl.split("/").at(-1));
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: organizerId } })).photoUrl).toBe(second.photoUrl);
   });
 });

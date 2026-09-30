@@ -9,7 +9,7 @@ import { verifyTelegramWebhookSecret } from "./webhook.js";
 
 const env = loadBotEnv();
 if (!env.TELEGRAM_WEBHOOK_SECRET) throw new Error("TELEGRAM_WEBHOOK_SECRET must be configured separately from BOT_API_SECRET");
-const bot = createBot(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_BOT_USERNAME, { apiBaseUrl: env.API_BASE_URL, botApiSecret: env.BOT_API_SECRET });
+const bot = createBot(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_BOT_USERNAME, { apiBaseUrl: env.API_BASE_URL, botApiSecret: env.BOT_API_SECRET, ...(env.WEB_ORIGIN ? { webOrigin: env.WEB_ORIGIN } : {}) });
 const botId = env.TELEGRAM_BOT_TOKEN.split(":")[0] ?? env.TELEGRAM_BOT_USERNAME;
 const telegramHandler = webhookCallback(bot, "express");
 const app = express();

@@ -33,4 +33,15 @@ describe("Hall geometry", () => {
     expect(hallEditorSchema.safeParse(e).success).toBe(true);
     expect(hallEditorSchema.safeParse({...e,script:"untrusted"}).success).toBe(false);
   });
+  it("retains manually positioned round seats and places new seats in an available arc", () => {
+    const table = { ...newHallObject(id(10), "table_round", 5, 5), height: 1.6 };
+    const seats = [-90, 0, 90].map((angle, index) => ({ ...newHallObject(id(11 + index), "seat", 5, 5), parentId: table.id, attachedOrder: index, orbitAngle: angle }));
+    const placed = arrangeSeats({ version: 1, tariffs: [], objects: [table, ...seats] }, table.id);
+    const expanded = arrangeSeats({ ...placed, objects: [...placed.objects, { ...newHallObject(id(14), "seat", 5, 5), parentId: table.id, attachedOrder: 3 }] }, table.id);
+    expect(expanded.objects.find((o) => o.id === id(11))?.orbitAngle).toBe(-90);
+    expect(expanded.objects.find((o) => o.id === id(12))?.orbitAngle).toBe(0);
+    expect(expanded.objects.find((o) => o.id === id(13))?.orbitAngle).toBe(90);
+    expect(expanded.objects.find((o) => o.id === id(14))?.orbitAngle).toBe(-180);
+    expect(hallEditorSchema.safeParse(expanded).success).toBe(true);
+  });
 });

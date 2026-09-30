@@ -94,6 +94,7 @@ describe("TicketsService", () => {
     await service.transition(organizerA, ticket.id, "paid");
     const active = await service.transition(organizerA, ticket.id, "active");
     expect(active.status).toBe("active");
+    await expect(service.getForUser(organizerA, ticket.id)).rejects.toBeInstanceOf(NotFoundException);
     await expect(service.transition(organizerA, ticket.id, "active")).rejects.toBeInstanceOf(ConflictException);
     await expect(service.get(organizerB, ticket.id)).rejects.toBeInstanceOf(NotFoundException);
 
@@ -123,6 +124,10 @@ describe("TicketsService", () => {
     await service.transition(organizerA, created.id, "paid");
     await service.transition(organizerA, created.id, "active");
     const stored = await prisma.ticket.findUniqueOrThrow({ where: { id: created.id } });
+    await expect(service.inspectEventScan(organizerB, eventId, stored.qrToken)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.inspectEventScan(organizerA, randomUUID(), stored.qrToken)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.useByQrToken(organizerA, stored.qrToken, randomUUID())).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.inspectEventScan(organizerA, eventId, stored.qrToken)).resolves.toMatchObject({ kind: "ticket", ticket: { id: created.id, status: "active" } });
 
     const attempts = await Promise.allSettled([
       service.useByQrToken(organizerA, stored.qrToken),
@@ -137,6 +142,7 @@ describe("TicketsService", () => {
     const response = (failure.reason as ConflictException).getResponse() as { code: string; details: { usedAt: string } };
     expect(response.code).toBe("ALREADY_USED");
     expect(response.details.usedAt).toBe(success.value.ticket.usedAt);
+    await expect(service.inspectEventScan(organizerA, eventId, stored.qrToken)).resolves.toMatchObject({ kind: "ticket", ticket: { id: created.id, status: "used", usedAt: success.value.ticket.usedAt } });
     await expect(service.transition(organizerA, created.id, "refunded")).rejects.toBeInstanceOf(ConflictException);
 
     const [outbox, audit] = await Promise.all([
@@ -154,6 +160,7 @@ describe("TicketsService", () => {
     await service.transition(organizerA, created.id, "pending_payment");
     await service.transition(organizerA, created.id, "paid");
     await expect(service.transition(organizerA, created.id, "active")).resolves.toMatchObject({ status: "active" });
+    expect(service.walletAvailable()).toBe(false);
     await expect(service.walletPass(organizerA, created.id)).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
@@ -163,7 +170,7 @@ describe("TicketsService", () => {
     await prisma.order.create({ data: { id: orderId, type: "ticket", buyerUserId: organizerA, amount: 100_000, currency: "KZT" } });
     const created = await prisma.ticket.create({ data: { ticketTypeId, orderId, qrToken: `buyer-${randomUUID()}` } });
     const service = new TicketsService(prisma, new DomainEventsService(), new FakeWallet(false));
-    await expect(service.getForUser(organizerA, created.id)).resolves.toMatchObject({ id: created.id, eventId });
+    await expect(service.getForUser(organizerA, created.id)).resolves.toMatchObject({ id: created.id, eventId, walletPath: null });
     await expect(service.getForUser(organizerB, created.id)).rejects.toBeInstanceOf(NotFoundException);
   });
 });

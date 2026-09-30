@@ -5,8 +5,10 @@ export function presentEvent(event: Event): OrganizerEvent {
   return {
     id: event.id,
     organizerId: event.organizerId,
+    sourceLocale: event.sourceLocale as OrganizerEvent["sourceLocale"],
     title: event.title,
     category: event.category,
+    countryCode: event.countryCode,
     city: event.city,
     posterUrl: event.posterUrl,
     announcement: event.announcement,
@@ -22,6 +24,7 @@ export function presentEvent(event: Event): OrganizerEvent {
     date: formatDate(event.date),
     time: formatTime(event.time),
     timezone: event.timezone,
+    ageRestriction: event.ageRestriction as OrganizerEvent["ageRestriction"],
     venueName: event.venueName,
     address: event.address,
     status: event.status,

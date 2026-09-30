@@ -1,4 +1,5 @@
 import type { GuestTicket } from "./tickets.js";
+import type { EventLocale } from "./events.js";
 
 export type GuestParticipationStatus = "registered" | "attended" | "no_show" | "cancelled";
 
@@ -12,6 +13,8 @@ export interface GuestBooking {
 
 export interface GuestEvent {
   id: string;
+  contentLocale?: EventLocale;
+  sourceLocale?: EventLocale;
   title: string;
   posterUrl: string | null;
   announcement: string | null;

@@ -1,29 +1,41 @@
 "use client";
 
+import { SelectPicker } from "../../../../components/option-picker";
+
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { arrangeSeats, ru, effectivePrice, hallEditorSchema, metres, newHallObject, rotatePoint, type HallObject, type OrganizerEvent, type VenueLayout } from "@event-platform/shared-types";
+import { FittedSvgText } from "../../../../components/fitted-svg-text";
 import { apiRequest } from "../../../(auth)/_lib/api";
 import { ProtectedRoute } from "../../../(auth)/_components/protected-route";
-import { attachSeat, availableFitArea, capacity, changeCommand, fitView, importLayout, removeObjects, snapDimension, titles, updateObject, warnings, wallSnap, zoomView, type Command, type FitArea, type HallState, type View } from "./hall-state";
+import { attachSeat, availableFitArea, capacity, changeCommand, fitView, importLayout, moveRoundSeatOnOrbit, pointWithinRow, removeObjects, ROUND_SEAT_ARC_METRES, snapDimension, titles, updateObject, warnings, wallSnap, zoomView, type Command, type FitArea, type HallState, type View } from "./hall-state";
 
 type Tool = HallObject["type"] | "cursor" | "ruler";
-const tools: { id: Tool; icon: string; label: string; key: string }[] = [
-  { id: "cursor", icon: "↖", label: "Курсор", key: "V" }, { id: "table_round", icon: "○", label: "Круглый стол", key: "C" },
-  { id: "table_rect", icon: "▭", label: "Прямоугольный", key: "R" }, { id: "seat", icon: "▣", label: "Кресло", key: "S" },
-  { id: "row", icon: "▤", label: "Ряд кресел", key: "W" }, { id: "prop", icon: "▰", label: "Сцена", key: "E" },
-  { id: "entrance", icon: "⇥", label: "Вход / выход", key: "D" }, { id: "zone", icon: "⬡", label: "Полигон зоны", key: "Z" },
-  { id: "ruler", icon: "∠", label: "Линейка", key: "M" },
+type IconName = "ticket" | "cloud" | "minus" | "plus" | "eye" | "save" | "person" | "back" | "undo" | "redo" | "check" | "cursor" | "roundTable" | "rectTable" | "chair" | "row" | "stage" | "door" | "zone" | "ruler" | "templates" | "tune" | "close" | "edit" | "copy" | "lock" | "unlock" | "trash" | "alignTop" | "alignCenter" | "distribute" | "flip";
+const tools: { id: Tool; icon: IconName; label: string; key: string }[] = [
+  { id: "cursor", icon: "cursor", label: "Курсор", key: "V" }, { id: "table_round", icon: "roundTable", label: "Круглый стол", key: "C" },
+  { id: "table_rect", icon: "rectTable", label: "Прямоугольный стол", key: "R" }, { id: "seat", icon: "chair", label: "Кресло", key: "S" },
+  { id: "row", icon: "row", label: "Ряд кресел", key: "W" }, { id: "prop", icon: "stage", label: "Сцена", key: "E" },
+  { id: "entrance", icon: "door", label: "Вход / выход", key: "D" }, { id: "zone", icon: "zone", label: "Полигон зоны", key: "Z" },
+  { id: "ruler", icon: "ruler", label: "Линейка", key: "M" },
 ];
 const button = "rounded-xl px-3 py-2 text-sm font-medium transition hover:bg-violet-100 focus-visible:outline-2 focus-visible:outline-violet-600 disabled:opacity-40";
 const input = "mt-1 w-full rounded-lg border border-violet-100 bg-[#f3f2fc] px-3 py-2 text-sm outline-violet-500";
 const money = (n: number) => new Intl.NumberFormat("ru-KZ", { maximumFractionDigits: 2 }).format(n / 100) + " ₸";
+const tableRotation = (angle: number, type: HallObject["type"]) => {
+  const normalized = ((angle + 540) % 360) - 180;
+  if (type !== "table_rect" && type !== "table_round") return metres(normalized);
+  const nearestTen = Math.round(normalized / 10) * 10;
+  return metres(Math.abs(normalized - nearestTen) <= 2 ? nearestTen : normalized);
+};
 type Gesture = { kind: "pan" | "move" | "resize" | "rotate" | "marquee" | "row" | "vertex"; start: { x: number; y: number }; state: HallState; view: View; ids: string[]; handle?: number; vertex?: number };
 
 export function HallStudio({ eventId }: { eventId: string }) {
   return <ProtectedRoute><Studio eventId={eventId} /></ProtectedRoute>;
 }
 export function Studio({ eventId, initial, request = apiRequest }: { eventId: string; initial?: { layout: VenueLayout; event: OrganizerEvent }; request?: typeof apiRequest }) {
+  const router = useRouter();
   const [layout, setLayout] = useState<VenueLayout | null>(initial?.layout ?? null);
   const [event, setEvent] = useState<OrganizerEvent | null>(initial?.event ?? null);
   const [state, setState] = useState<HallState>(() => initial ? importLayout(initial.layout) : { room: { widthM: 24, heightM: 16 }, editor: { version: 1, objects: [], tariffs: [] } });
@@ -52,13 +64,10 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
   const [showTemplates, setShowTemplates] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [inspectorPosition, setInspectorPosition] = useState<{ x: number; y: number } | null>(null);
-  const [dockPosition, setDockPosition] = useState<{ x: number; y: number } | null>(null);
   const [templateName, setTemplateName] = useState("");
   const [, historyTick] = useState(0);
   const svg = useRef<SVGSVGElement>(null);
   const inspectorDrag = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
-  const dock = useRef<HTMLDivElement>(null);
-  const dockDrag = useRef<{ x: number; y: number; left: number; top: number; width: number; height: number } | null>(null);
   const gesture = useRef<Gesture | null>(null);
   const touches=useRef(new Map<number,{x:number;y:number}>());
   const pinch=useRef<{distance:number;view:View;centre:{x:number;y:number}}|null>(null);
@@ -69,6 +78,7 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
   const saving = useRef(false);
   const editable = event?.status === "draft" && !stale;
   const selected = state.editor.objects.find((o) => o.id === selection[0]);
+  const activeRoundTable = selected?.type === "table_round" ? selected : selected?.type === "seat" ? state.editor.objects.find((o) => o.id === selected.parentId && o.type === "table_round") : undefined;
   const issues = useMemo(() => warnings(state), [state]);
   const warningIds = useMemo(() => new Set(issues.filter((i) => i.text.includes("границами") || i.text.includes("пересечение")).map((i) => i.id)), [issues]);
 
@@ -97,13 +107,13 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
   }, [loading]);
   const desktop = size.w >= 1024;
   const inspectorWidth = 356;
-  const inspectorHeight = Math.max(280, size.h - 148);
+  const inspectorHeight = Math.max(280, size.h - 24);
   const panelX = Math.max(12, Math.min(size.w - inspectorWidth - 12, inspectorPosition?.x ?? size.w - inspectorWidth - 12));
-  const panelY = Math.max(12, Math.min(size.h - inspectorHeight - 12, inspectorPosition?.y ?? 72));
+  const panelY = Math.max(12, Math.min(size.h - inspectorHeight - 12, inspectorPosition?.y ?? 12));
   // Floating controls occupy the top of the workspace; fitting uses the largest uncovered rectangle.
   const fitBase: FitArea = desktop
-    ? { x: 16, y: 136, width: Math.max(1, size.w - 32), height: Math.max(1, size.h - 220) }
-    : { x: 16, y: size.w < 640 ? 244 : 160, width: Math.max(1, size.w - 32), height: size.w < 640 ? 420 : 500 };
+    ? { x: 76, y: 72, width: Math.max(1, size.w - 92), height: Math.max(1, size.h - 88) }
+    : { x: 62, y: 72, width: Math.max(1, size.w - 74), height: size.w < 640 ? 520 : 580 };
   const fitArea = desktop ? availableFitArea(fitBase, inspectorOpen ? { x: panelX, y: panelY, width: inspectorWidth, height: inspectorHeight } : null, state.room) : fitBase;
   useEffect(() => { if (!manualView.current) setView(fitView(size.w, size.h, state.room, fitArea)); }, [size, state.room, fitArea.x, fitArea.y, fitArea.width, fitArea.height]);
   function fit() { manualView.current = false; setView(fitView(size.w, size.h, state.room, fitArea)); }
@@ -117,30 +127,12 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
     if (!drag) return;
     setInspectorPosition({ x: Math.max(12, Math.min(size.w - inspectorWidth - 12, drag.left + e.clientX - drag.x)), y: Math.max(12, Math.min(size.h - inspectorHeight - 12, drag.top + e.clientY - drag.y)) });
   }
-  function clampDock(x: number, y: number, width: number, height: number) {
-    return { x: Math.max(12, Math.min(window.innerWidth - width - 12, x)), y: Math.max(12, Math.min(window.innerHeight - height - 12, y)) };
-  }
-  function startDockDrag(e: ReactPointerEvent<HTMLButtonElement>) {
-    const rect = dock.current?.getBoundingClientRect();
-    if (!rect) return;
-    dockDrag.current = { x: e.clientX, y: e.clientY, left: rect.left, top: rect.top, width: rect.width, height: rect.height };
-    e.currentTarget.setPointerCapture(e.pointerId);
-  }
-  function moveDock(e: ReactPointerEvent<HTMLButtonElement>) {
-    const drag = dockDrag.current;
-    if (!drag) return;
-    setDockPosition(clampDock(drag.left + e.clientX - drag.x, drag.top + e.clientY - drag.y, drag.width, drag.height));
-  }
-  useEffect(() => {
-    const keepDockVisible = () => {
-      const rect = dock.current?.getBoundingClientRect();
-      if (rect) setDockPosition((position) => position ? clampDock(position.x, position.y, rect.width, rect.height) : null);
-    };
-    window.addEventListener("resize", keepDockVisible);
-    return () => window.removeEventListener("resize", keepDockVisible);
-  }, []);
   function commit(next: HallState, previous = stateRef.current) {
-    if (!editable || JSON.stringify(previous) === JSON.stringify(next)) return;
+    if (!editable) return;
+    if (JSON.stringify(previous) === JSON.stringify(next)) {
+      if (JSON.stringify(stateRef.current) !== JSON.stringify(next)) setState(next);
+      return;
+    }
     const command = changeCommand(previous, next);
     history.current.undo.push(command); if (history.current.undo.length > 150) history.current.undo.shift(); history.current.redo = [];
     setState(command.apply(previous)); setDirty(true); setError(""); historyTick((n) => n + 1);
@@ -151,21 +143,31 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
     const command = from.pop(); if (!command) return;
     setState((s) => (redo ? command : command.invert()).apply(s)); to.push(command); setDirty(true); historyTick((n) => n + 1);
   }
-  const save = useCallback(async () => {
-    if (!layout || !editable || saving.current || gesture.current) return;
-    const snapshot = stateRef.current;
-    const parsed = hallEditorSchema.safeParse(snapshot.editor);
-    if (!parsed.success) { setError(`Схема не сохранена: ${parsed.error.issues[0]?.message}`); return; }
+  const save = useCallback(async (saveLatest = false): Promise<boolean> => {
+    if (!layout || !editable || saving.current || gesture.current) return false;
     saving.current = true; setBusy(true); setError("");
     try {
-      const updated = await request<VenueLayout>(`/api/organizer/venue-layouts/${layout.id}`, { method: "PATCH", body: JSON.stringify({ revision: layout.revision, layoutJson: { version: 2, room: snapshot.room, editor: snapshot.editor, tables: [], rows: [] } }) });
-      setLayout(updated); setSavedAt(Date.now());
-      if (JSON.stringify(snapshot) === JSON.stringify(stateRef.current)) setDirty(false);
+      let revision = layout.revision;
+      for (let attempt = 0; attempt < (saveLatest ? 3 : 1); attempt += 1) {
+        const snapshot = stateRef.current;
+        const parsed = hallEditorSchema.safeParse(snapshot.editor);
+        if (!parsed.success) { setError(`Схема не сохранена: ${parsed.error.issues[0]?.message}`); return false; }
+        const updated = await request<VenueLayout>(`/api/organizer/venue-layouts/${layout.id}`, { method: "PATCH", body: JSON.stringify({ revision, layoutJson: { version: 2, room: snapshot.room, editor: snapshot.editor, tables: [], rows: [] } }) });
+        revision = updated.revision;
+        setLayout(updated); setSavedAt(Date.now());
+        if (JSON.stringify(snapshot) === JSON.stringify(stateRef.current)) { setDirty(false); return true; }
+      }
+      setError("Схема изменилась во время сохранения. Повторите действие.");
+      return false;
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "Не удалось сохранить схему";
       setError(message); if (message === ru.venue.errors.staleRevision || /revision|перезагруз|обнов.*схем|измен|reload/i.test(message)) setStale(true);
+      return false;
     } finally { saving.current = false; setBusy(false); }
   }, [layout, editable, request]);
+  async function finish() {
+    if (await save(true)) router.push(`/organizer/events/${eventId}/edit?step=5`);
+  }
   useEffect(() => { if (!dirty || busy || error || !editable) return; const timer = setTimeout(() => void save(), 1500); return () => clearTimeout(timer); }, [state, dirty, busy, error, editable, save]);
   useEffect(() => { const warn = (e: BeforeUnloadEvent) => { if (dirty) e.preventDefault(); }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [dirty]);
 
@@ -191,9 +193,9 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
     const sequence = isTable
       ? state.editor.objects.filter((o) => o.type === "table_round" || o.type === "table_rect").length + 1
       : state.editor.objects.filter((o) => o.type === type).length + 1;
-    object.name = isTable ? `Стол ${sequence}` : `${titles[type]} ${sequence}`;
+    object.name = isTable ? `Стол ${sequence}` : type === "entrance" ? "Вход" : type === "row" ? `Ряд ${sequence}` : `${titles[type]} ${sequence}`;
     if (type === "table_round") object.height = object.width;
-    if (type === "prop") { object.width = 6; object.height = 2; object.description = ""; }
+    if (type === "prop") { object.width = 6; object.height = 2; object.description = "Зона артистов / Президиум"; }
     if (type === "entrance") object=wallSnap({...object,width:1,height:.2},state.room);
     let next = { ...state, editor: { ...state.editor, objects: [...state.editor.objects, object] } };
     if (type === "seat") next = attachSeat(next, object.id).state;
@@ -277,6 +279,13 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
     const roots = g.state.editor.objects.filter((o) => g.ids.includes(o.id) && !o.locked && !(o.parentId && g.ids.includes(o.parentId)));
     for (const o of roots) {
       if (g.kind === "move") {
+        const parent = g.state.editor.objects.find((item) => item.id === o.parentId);
+        if (o.type === "seat" && parent?.type === "table_round" && !g.ids.includes(parent.id)) {
+          next = moveRoundSeatOnOrbit(stateRef.current, o.id, p);
+          stateRef.current = next;
+          setGuide(null);
+          continue;
+        }
         const position = snapped({ x: metres(o.x + dx), y: metres(o.y + dy) }, e.altKey);
         const aligned: { x?: number; y?: number } = {};
         if (!e.altKey) for (const other of g.state.editor.objects.filter((a) => a.id !== o.id && !g.ids.includes(a.id) && a.type !== "seat")) {
@@ -292,7 +301,7 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
         if (o.type === "seat") { const attached = attachSeat(next, o.id); setGuide({ target: attached.target ?? undefined, rejected: attached.rejected }); /* Attach only at pointer-up; keep the drag under the pointer. */ }
       } else if (g.kind === "rotate") {
         const angle = Math.atan2(p.y - o.y, p.x - o.x) * 180 / Math.PI + 90;
-        next = updateObject(next, o.id, { rotation: metres(((angle + 540) % 360) - 180) });
+        next = updateObject(next, o.id, { rotation: tableRotation(angle, o.type) });
       } else if (g.kind === "vertex" && o.type === "zone") {
         const local = rotatePoint(p.x - o.x, p.y - o.y, -o.rotation);
         next = updateObject(next, o.id, { points: o.points.map((point, i) => i === g.vertex ? { x: metres(local.x), y: metres(local.y) } : point) });
@@ -315,12 +324,32 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
       const p = world(e); setSelection([...new Set([...g.ids, ...state.editor.objects.filter((o) => o.x >= Math.min(g.start.x, p.x) && o.x <= Math.max(g.start.x, p.x) && o.y >= Math.min(g.start.y, p.y) && o.y <= Math.max(g.start.y, p.y)).map((o) => o.id)])]);
     } else if (g.kind === "row") {
       const p = world(e), length = Math.max(1.35, Math.hypot(p.x - g.start.x, p.y - g.start.y));
-      const o = { ...newHallObject(crypto.randomUUID(), "row", (p.x + g.start.x) / 2, (p.y + g.start.y) / 2), width: metres(length), rotation: metres(Math.atan2(p.y - g.start.y, p.x - g.start.x) * 180 / Math.PI), name: "Ряд" };
+      const rowNumber = state.editor.objects.filter((o) => o.type === "row").length + 1;
+      const o = { ...newHallObject(crypto.randomUUID(), "row", (p.x + g.start.x) / 2, (p.y + g.start.y) / 2), width: metres(length), rotation: metres(Math.atan2(p.y - g.start.y, p.x - g.start.x) * 180 / Math.PI), name: `Ряд ${rowNumber}` };
       const seats = Array.from({ length: 3 }, (_, i) => ({ ...newHallObject(crypto.randomUUID(), "seat", o.x, o.y), parentId: o.id, attachedOrder: i, number: i + 1 }));
       commit({ ...state, editor: arrangeSeats({ ...state.editor, objects: [...state.editor.objects, o, ...seats] }, o.id) }); setSelection([o.id]); setTool("cursor");
     } else if (g.kind !== "pan") {
       let next = stateRef.current;
-      if (g.kind === "move") for (const id of g.ids) if (next.editor.objects.find((o) => o.id === id)?.type === "seat" && !g.ids.includes(next.editor.objects.find((o) => o.id === id)?.parentId ?? "")) next = attachSeat(next, id).state;
+      if (g.kind === "move") {
+        const end = world(e);
+        const movedPixels = Math.hypot(end.x - g.start.x, end.y - g.start.y) * g.view.pxPerMetre;
+        if (movedPixels < 3) { setState(g.state); return; }
+        const movedObjects = new Map(next.editor.objects.map((o) => [o.id, o]));
+        const detachedFromRows: string[] = [], tableSeats: string[] = [];
+        const rowsToArrange = new Set<string>();
+        for (const id of g.ids) {
+          const current = movedObjects.get(id), original = g.state.editor.objects.find((o) => o.id === id);
+          if (current?.type !== "seat" || !original || g.ids.includes(original.parentId ?? "")) continue;
+          const originalParent = g.state.editor.objects.find((o) => o.id === original.parentId);
+          if (originalParent?.type === "row") {
+            rowsToArrange.add(originalParent.id);
+            if (!pointWithinRow(originalParent, current)) detachedFromRows.push(id);
+          } else if (originalParent?.type !== "table_round") tableSeats.push(id);
+        }
+        if (detachedFromRows.length) next = { ...next, editor: { ...next.editor, objects: next.editor.objects.map((o) => detachedFromRows.includes(o.id) ? { ...o, parentId: null, side: null } : o) } };
+        for (const rowId of rowsToArrange) next = { ...next, editor: arrangeSeats(next.editor, rowId) };
+        for (const id of [...detachedFromRows, ...tableSeats]) next = attachSeat(next, id).state;
+      }
       commit(next, g.state);
     }
   }
@@ -342,13 +371,13 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
   }
   const sortedObjects = useMemo(() => [...state.editor.objects].sort((a, b) => a.zIndex - b.zIndex || (a.type === "seat" ? 1 : 0) - (b.type === "seat" ? 1 : 0)), [state.editor.objects]);
   const stats = useMemo(() => {
-    const tables = state.editor.objects.filter((o) => o.type.startsWith("table_"));
+    const tables = state.editor.objects.filter((o) => o.type === "table_rect" || o.type === "table_round");
     const seats = state.editor.objects.filter((o) => o.type === "seat");
-    const total = state.editor.objects.reduce((sum, o) => {
-      const parent = state.editor.objects.find((p) => p.id === o.parentId);
-      if (o.type.startsWith("table_") && o.saleMode === "whole_table") return sum + (effectivePrice(o, state.editor) ?? 0);
-      if (o.type === "seat" && (!parent || parent.type === "row" || parent.saleMode === "per_seat")) return sum + (effectivePrice(o, state.editor) ?? (parent ? effectivePrice(parent, state.editor) : null) ?? 0);
-      if (o.type === "zone") return sum + o.capacity * (effectivePrice(o, state.editor) ?? 0);
+    const total = state.editor.objects.reduce((sum, object) => {
+      const parent = state.editor.objects.find((candidate) => candidate.id === object.parentId);
+      if ((object.type === "table_rect" || object.type === "table_round") && object.saleMode === "whole_table") return sum + (effectivePrice(object, state.editor) ?? 0);
+      if (object.type === "seat" && (!parent || parent.type === "row" || parent.saleMode === "per_seat")) return sum + (effectivePrice(object, state.editor) ?? (parent ? effectivePrice(parent, state.editor) : null) ?? 0);
+      if (object.type === "zone") return sum + object.capacity * (effectivePrice(object, state.editor) ?? 0);
       return sum;
     }, 0);
     return { tables: tables.length, seats: seats.length, total };
@@ -356,19 +385,29 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
   if (loading) return <main className="p-8" role="status">Загружаем конструктор…</main>;
   if (!layout) return <main className="p-8"><p role="alert">{error}</p><button className={button} onClick={() => void load()}>Повторить</button></main>;
   const worldLeft = -view.panX / view.pxPerMetre, worldTop = -view.panY / view.pxPerMetre;
-  return <main className="bg-[#faf9ff] text-[#202632]">
-    <header className="flex min-h-12 flex-wrap items-center justify-between gap-2 border-b border-violet-100 bg-white px-5 py-1.5">
-      <div><p className="text-[10px] font-bold tracking-widest text-slate-500">ПАНЕЛЬ ОРГАНИЗАТОРА / КОНСТРУКТОР ЗАЛА</p><h1 className="text-lg font-bold">{event?.title || "Схема зала"}</h1></div>
-      <Link href="/organizer/events" className={button}>Мои мероприятия ↗</Link>
+  const hallName = layout.templateName?.trim() || event?.venueName?.trim() || "Основной зал";
+  const saveStatus = busy ? "Сохранение…" : dirty ? "Есть изменения" : savedAt ? `Автосохранение ${Math.max(0, Math.floor((now - savedAt) / 1000))} сек назад` : "Схема загружена";
+  return <main className="bg-[#f8f9ff] text-[#0b1c30]">
+    <header className="flex h-14 items-center justify-between gap-2 border-b border-[#e5eefe] bg-white/95 px-3 shadow-[0_1px_8px_rgba(11,28,48,0.06)] backdrop-blur-xl md:px-4">
+      <div className="flex min-w-0 items-center gap-2 md:gap-3">
+        <Link href="/organizer/events" className="hidden shrink-0 items-center gap-2 font-bold uppercase tracking-wide text-[#4a00c1] sm:flex" aria-label="TICKET — панель организатора"><StudioIcon name="ticket" className="h-6 w-6" /><span className="hidden lg:inline">TICKET</span></Link>
+        <span className="hidden h-5 w-px shrink-0 bg-[#d3e4fe] sm:block" />
+        <Link href={`/organizer/events/${eventId}/edit?step=5`} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#eff4ff] hover:bg-[#e5eeff]" title="К шагу 5" aria-label="К шагу 5"><StudioIcon name="back" className="h-4 w-4" /></Link>
+        <div className="min-w-0"><p className="hidden truncate text-[11px] text-[#565e74] xl:block">Панель организатора / Конструктор зала</p><h1 className="truncate text-sm font-bold sm:text-base">{hallName}</h1></div>
+        <span className="hidden shrink-0 rounded-full bg-[#e5eeff] px-2 py-1 font-mono text-[11px] text-[#565e74] md:inline">{state.room.widthM.toFixed(1)} × {state.room.heightM.toFixed(1)} м</span>
+        <span className="hidden shrink-0 items-center gap-1.5 rounded-full bg-[#eff4ff] px-2 py-1 text-[11px] font-semibold text-[#494456] 2xl:flex" role="status"><StudioIcon name="cloud" className="h-3.5 w-3.5 text-[#00645b]" />{saveStatus}</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <div className="hidden items-center rounded-lg bg-[#eff4ff] p-0.5 lg:flex"><button className="grid h-7 w-7 place-items-center rounded hover:bg-[#dce9ff] disabled:opacity-30" disabled={!editable || !history.current.undo.length} onClick={() => undo()} title="Отменить (Ctrl+Z)" aria-label="Отменить"><StudioIcon name="undo" className="h-[18px] w-[18px]" /></button><button className="grid h-7 w-7 place-items-center rounded hover:bg-[#dce9ff] disabled:opacity-30" disabled={!editable || !history.current.redo.length} onClick={() => undo(true)} title="Повторить (Ctrl+Y)" aria-label="Повторить"><StudioIcon name="redo" className="h-[18px] w-[18px]" /></button></div>
+        <div className="hidden items-center rounded-lg bg-[#eff4ff] p-0.5 sm:flex"><button className="grid h-7 w-7 place-items-center rounded hover:bg-[#dce9ff]" aria-label="Уменьшить" onClick={() => { manualView.current = true; setView(zoomView(view, -1, size.w / 2, size.h / 2)); }}><StudioIcon name="minus" className="h-[18px] w-[18px]" /></button><button className="min-w-12 px-1 text-xs font-semibold" onClick={fit} title="Вписать зал (Ctrl+0)">{Math.round(view.pxPerMetre / Math.max(5, fitView(size.w, size.h, state.room, fitArea).pxPerMetre) * 100)}%</button><button className="grid h-7 w-7 place-items-center rounded hover:bg-[#dce9ff]" aria-label="Увеличить" onClick={() => { manualView.current = true; setView(zoomView(view, 1, size.w / 2, size.h / 2)); }}><StudioIcon name="plus" className="h-[18px] w-[18px]" /></button></div>
+        <button type="button" className={`hidden h-8 w-8 place-items-center rounded-lg sm:grid ${snap ? "bg-[#e8deff] text-[#4a00c1]" : "bg-[#eff4ff] text-[#565e74]"}`} onClick={() => setSnap(!snap)} aria-pressed={snap} title="Привязка к сетке 0,5 м" aria-label="Привязка к сетке"><StudioIcon name="tune" className="h-[18px] w-[18px]" /></button>
+        <Link href={`/organizer/events/${eventId}/preview`} className="hidden min-h-9 items-center gap-1.5 rounded-lg bg-[#eff4ff] px-3 text-sm font-semibold transition hover:bg-[#e5eeff] xl:inline-flex"><StudioIcon name="eye" className="h-[18px] w-[18px]" />Предпросмотр</Link>
+        <button disabled={!editable || busy} onClick={() => void save()} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[#6320ee] px-2.5 text-sm font-semibold text-white transition hover:bg-[#4a00c1] disabled:opacity-50"><StudioIcon name="save" className="h-[18px] w-[18px]" /><span className="hidden xl:inline">Сохранить схему</span></button>
+        <button type="button" className="hidden min-h-9 items-center gap-1.5 rounded-lg bg-[#6320ee] px-3 text-xs font-semibold text-white hover:bg-[#4a00c1] md:inline-flex" onClick={() => void finish()} disabled={!editable || busy}><StudioIcon name="check" className="h-[18px] w-[18px]" />Готово</button>
+        <button type="button" className="grid h-9 w-9 place-items-center rounded-full bg-[#4a00c1] text-white" aria-label="Профиль организатора"><StudioIcon name="person" className="h-[18px] w-[18px]" /></button>
+      </div>
     </header>
-    <section className="relative min-h-[1140px] overflow-hidden bg-[#faf9ff] lg:h-[calc(100dvh-100px)] lg:min-h-[650px]" aria-label="Конструктор схемы зала">
-      <div className="pointer-events-none absolute inset-x-3 top-3 z-20 flex flex-wrap justify-between gap-2">
-        <div className="pointer-events-auto flex max-w-full items-center gap-2 rounded-full border border-violet-100 bg-white/95 p-1.5 shadow-sm"><Link href={`/organizer/events/${eventId}?step=5`} className={button}>← К шагу 5</Link><span className="hidden max-w-64 truncate text-sm md:block">{layout.templateName}</span><span className="pr-3 text-xs text-slate-500" role="status">{busy ? "Сохранение…" : dirty ? "Есть изменения" : savedAt ? `Автосохранение ${Math.max(0, Math.floor((now - savedAt) / 1000))} сек назад` : "Схема загружена"}</span></div>
-        <div className="pointer-events-auto flex items-center rounded-full border border-violet-100 bg-white p-1.5 shadow-sm"><Link href={`/organizer/events/${eventId}/preview`} className={button}>Предпросмотр</Link><button disabled={!editable || busy} onClick={() => void save()} className={`${button} bg-violet-800 text-white hover:bg-violet-900`}>Сохранить схему</button><button className={button} onClick={() => setInspectorOpen((open) => !open)} aria-label={inspectorOpen ? "Скрыть инспектор" : "Показать инспектор"} aria-expanded={inspectorOpen} aria-controls="hall-inspector">☷</button></div>
-      </div>
-      <div className="absolute left-4 top-[122px] md:top-[70px] z-10 flex max-w-[calc(100%-32px)] flex-wrap gap-x-5 gap-y-1 rounded-full bg-white/95 px-4 py-2 text-xs shadow-sm lg:max-w-[calc(100%-410px)]">
-        <span>Габариты: <b className="font-mono">{state.room.widthM.toFixed(1)} × {state.room.heightM.toFixed(1)} м</b></span><span>Столиков: <b>{stats.tables}</b></span><span>Мест: <b>{stats.seats}</b></span><span>Тарифов: <b>{state.editor.tariffs.length}</b></span><span className="font-mono text-violet-800">При аншлаге: {money(stats.total)}</span>
-      </div>
+    <section className="relative min-h-[900px] overflow-hidden bg-[#f8f9ff] lg:h-[calc(100dvh-56px)] lg:min-h-[650px]" aria-label="Конструктор схемы зала">
       <div className="absolute inset-0">
         <svg ref={svg} className="h-full w-full touch-none select-none outline-none" tabIndex={0} role="application" aria-label="План зала. V — курсор, пробел — перемещение, Ctrl+0 — вписать зал" onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={() => { if (gesture.current) setState(gesture.current.state); gesture.current = null; setMarquee(null); }} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const type = e.dataTransfer.getData("application/ticket-tool") as Tool; if (tools.some((t) => t.id === type)) place(type, snapped(world(e))); }} onDoubleClick={(e) => {
           const target = e.target as Element, id = target.closest("[data-object]")?.getAttribute("data-object");
@@ -382,16 +421,21 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
           <g transform={`translate(${view.panX} ${view.panY}) scale(${view.pxPerMetre})`}>
             <rect x={worldLeft} y={worldTop} width={size.w / view.pxPerMetre} height={size.h / view.pxPerMetre} fill="url(#hall-major)" />
             <rect x={0} y={0} width={state.room.widthM} height={state.room.heightM} fill="#f3f4f6" stroke="#8c72bd" strokeWidth={2 / view.pxPerMetre} rx="0.15" filter="url(#hall-floor-shadow)" />
+            {activeRoundTable && state.editor.objects.some((o) => o.parentId === activeRoundTable.id && o.type === "seat") && <circle cx={activeRoundTable.x} cy={activeRoundTable.y} r={activeRoundTable.width / 2 + activeRoundTable.seatOffset} fill="none" stroke="#7c3aed" strokeWidth={2 / view.pxPerMetre} strokeDasharray={`${2 / view.pxPerMetre} ${5 / view.pxPerMetre}`} strokeLinecap="round" pointerEvents="none" aria-label="Траектория перемещения кресел вокруг круглого стола" />}
+            <g pointerEvents="none">
+              <rect x={state.room.widthM / 2 - 1.65} y={-0.34} width={3.3} height={0.54} rx={0.12} fill="white" opacity={0.96} />
+              <text x={state.room.widthM / 2} y={0} textAnchor="middle" fontSize={11 / view.pxPerMetre} fontWeight="600" fill="#565e74">Ширина зала: {state.room.widthM.toFixed(1)} м</text>
+            </g>
             {Array.from({ length: Math.ceil(state.room.widthM / 5) + 1 }, (_, i) => <text key={`x${i}`} x={i * 5} y={-0.25} fontSize={11 / view.pxPerMetre} fill="#756b8b" fontFamily="monospace">{i * 5}.0 м</text>)}
             {Array.from({ length: Math.ceil(state.room.heightM / 5) + 1 }, (_, i) => <text key={`y${i}`} x={-0.15} y={i * 5} textAnchor="end" fontSize={11 / view.pxPerMetre} fill="#756b8b" fontFamily="monospace">{i * 5}.0</text>)}
-            {sortedObjects.map((o) => <CanvasObject key={o.id} object={o} selected={selection.includes(o.id)} warning={warningIds.has(o.id)} highlight={guide?.target === o.id ? guide.rejected ? "#dc2626" : "#16a34a" : undefined} color={o.colorOverride ? o.color : state.editor.tariffs.find((t) => t.id === o.tariffId)?.color ?? o.color} />)}
+            {sortedObjects.map((o) => <CanvasObject key={o.id} object={o} selected={selection.includes(o.id)} warning={warningIds.has(o.id)} highlight={guide?.target === o.id ? guide.rejected ? "#dc2626" : "#16a34a" : undefined} color={o.colorOverride ? o.color : state.editor.tariffs.find((t) => t.id === o.tariffId)?.color ?? o.color} tariffName={state.editor.tariffs.find((t) => t.id === o.tariffId)?.name} />)}
             {selection.map((id) => { const o = state.editor.objects.find((o) => o.id === id); if (!o) return null; const w = o.width, h = o.type === "table_round" ? o.width : o.height; const handleSize = 8 / view.pxPerMetre; return <g key={id} data-object={id} transform={`translate(${o.x} ${o.y}) rotate(${o.rotation})`}>
               <rect x={-w / 2 - .05} y={-h / 2 - .05} width={w + .1} height={h + .1} fill="none" stroke="#7c3aed" strokeWidth={1.5 / view.pxPerMetre} strokeDasharray={`${4 / view.pxPerMetre} ${3 / view.pxPerMetre}`} pointerEvents="none" />
               {editable && !o.locked && <>
                 {o.type !== "seat" && [[-1,-1],[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0]].map(([x,y], i) => <rect key={i} data-handle={i} x={x! * w / 2 - handleSize / 2} y={y! * h / 2 - handleSize / 2} width={handleSize} height={handleSize} fill={i % 2 === 0 ? "#5b21b6" : "#ffffff"} stroke="#5b21b6" strokeWidth={1.3 / view.pxPerMetre} className="cursor-nwse-resize" />)}
                 <line x1={0} y1={-h / 2} x2={0} y2={-h / 2 - 24 / view.pxPerMetre} stroke="#7c3aed" strokeWidth={1 / view.pxPerMetre} />
                 <circle data-handle="rotate" cx={0} cy={-h / 2 - 24 / view.pxPerMetre} r={6 / view.pxPerMetre} fill="white" stroke="#5b21b6" strokeWidth={1.5 / view.pxPerMetre} className="cursor-grab" />
-                {o.type === "row" && <g role="button" tabIndex={0} aria-label="Добавить место в ряд" aria-disabled={state.editor.objects.filter((s)=>s.parentId===o.id).length>=capacity(o)} transform={`translate(${o.width/2+24/view.pxPerMetre} 0)`} onPointerDown={(e)=>e.stopPropagation()} onClick={()=>addSeat(o)} onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();addSeat(o);}}}><title>Добавить место — минимум 0,45 м на кресло</title><circle r={14/view.pxPerMetre} fill="#5b21b6"/><text textAnchor="middle" dominantBaseline="central" fill="white" fontSize={20/view.pxPerMetre}>+</text></g>}
+                {o.type === "row" && <g role="button" tabIndex={0} aria-label="Добавить место в ряд" aria-disabled={state.editor.objects.filter((s)=>s.parentId===o.id).length>=capacity(o)} transform={`translate(${o.width/2+24/view.pxPerMetre} 0)`} onPointerDown={(e)=>{e.preventDefault();e.stopPropagation();}} onPointerUp={(e)=>e.stopPropagation()} onClick={(e)=>{e.stopPropagation();addSeat(o);}} onDoubleClick={(e)=>e.stopPropagation()} onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();addSeat(o);}}}><title>Добавить место — минимум 0,45 м на кресло</title><circle r={14/view.pxPerMetre} fill="#5b21b6"/><text textAnchor="middle" dominantBaseline="central" fill="white" fontSize={20/view.pxPerMetre}>+</text></g>}
                 {o.type === "zone" && o.points.map((p,i) => <circle key={i} data-vertex={i} cx={p.x} cy={p.y} r={6 / view.pxPerMetre} fill="#5b21b6" onContextMenu={(e) => { e.preventDefault(); if (o.points.length > 3) patch(o.id, { points: o.points.filter((_,index) => index !== i) }); }} />)}
               </>}
             </g>; })}
@@ -405,10 +449,14 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
 
         {inline && <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 rounded-xl bg-white p-2 shadow-lg"><input autoFocus aria-label="Название объекта" className={input} defaultValue={state.editor.objects.find((o) => o.id === inline)?.name} onKeyDown={(e) => { if (e.key === "Enter") { patch(inline, { name: e.currentTarget.value }); setInline(null); } if (e.key === "Escape") setInline(null); }} onBlur={(e) => { patch(inline, { name: e.currentTarget.value }); setInline(null); }} /></div>}
       </div>
-      <div className="absolute left-4 top-[194px] md:top-[112px] z-10 flex rounded-full bg-white/95 p-1 shadow-sm lg:top-[112px]"><button className={button} onClick={fit}>Вписать зал</button><button className={button} aria-label="Уменьшить" onClick={() => { manualView.current = true; setView(zoomView(view, -1, size.w / 2, size.h / 2)); }}>−</button><button className={button} aria-label="Увеличить" onClick={() => { manualView.current = true; setView(zoomView(view, 1, size.w / 2, size.h / 2)); }}>+</button><button className={button} aria-pressed={snap} onClick={() => setSnap(!snap)}>Привязка {snap ? "●" : "○"}</button></div>
-      <div className="absolute bottom-auto left-4 top-[620px] rounded-xl border border-violet-100 bg-white/95 p-3 font-mono text-xs shadow-sm lg:bottom-24 lg:top-auto"><b>Север зала ↑</b><p className="mt-1">2,0 м = {view.pxPerMetre * 2} px (1:{Math.round(1000 / view.pxPerMetre)})</p><p className="mt-1 text-slate-500">X: {cursor.x.toFixed(2)} м · Y: {cursor.y.toFixed(2)} м</p></div>
-      {inspectorOpen && <aside id="hall-inspector" className="absolute left-3 right-3 top-[700px] z-20 max-h-[360px] overflow-y-auto rounded-2xl border border-violet-100 bg-white shadow-xl md:top-[720px] lg:left-auto lg:right-auto lg:top-auto lg:max-h-none lg:w-[356px]" style={desktop ? { left: panelX, top: panelY, height: inspectorHeight } : undefined} aria-label="Инспектор">
-        <div className="sticky top-0 z-10 rounded-t-2xl border-b border-violet-100 bg-[#f8f7ff] p-3"><div className="mb-2 flex items-center gap-2"><button type="button" className="cursor-grab touch-none rounded-lg px-2 py-1 text-violet-700 hover:bg-violet-100 active:cursor-grabbing disabled:cursor-default" aria-label="Переместить инспектор" title="Перетащите инспектор" disabled={!desktop} onPointerDown={startInspectorDrag} onPointerMove={moveInspector} onPointerUp={(e) => { inspectorDrag.current = null; if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId); }} onPointerCancel={() => { inspectorDrag.current = null; }}>⠿</button><h2 className="flex-1 text-lg font-bold">Инспектор</h2><button className="rounded-lg px-2 py-1 text-xs text-violet-700 hover:bg-violet-100" onClick={() => setInspectorPosition(null)} title="Вернуть инспектор справа">Сброс</button><button className="rounded-lg px-2 py-1 text-slate-500 hover:bg-violet-100" onClick={() => setInspectorOpen(false)} aria-label="Скрыть инспектор">×</button></div><div className="flex rounded-lg bg-[#eeecfa] p-1" role="tablist" onKeyDown={(e)=>{if(["ArrowLeft","ArrowRight","Home","End"].includes(e.key)){e.preventDefault();const next=e.key==="Home"?"object":e.key==="End"?"hall":tab==="object"?"hall":"object";setTab(next);document.getElementById(`hall-tab-${next}`)?.focus();}}}><button id="hall-tab-object" aria-controls="hall-inspector-panel" tabIndex={tab==="object"?0:-1} role="tab" aria-selected={tab === "object"} onClick={() => setTab("object")} className={`${button} flex-1 ${tab === "object" ? "bg-white text-violet-800 shadow-sm" : ""}`}>Свойства объекта</button><button id="hall-tab-hall" aria-controls="hall-inspector-panel" tabIndex={tab==="hall"?0:-1} role="tab" aria-selected={tab === "hall"} onClick={() => setTab("hall")} className={`${button} flex-1 ${tab === "hall" ? "bg-white text-violet-800 shadow-sm" : ""}`}>Зал и зоны</button></div></div>
+      <div className="absolute left-[68px] top-3 z-10 flex max-w-[calc(100%-88px)] items-center gap-1 overflow-x-auto rounded-xl border border-[#e5eefe] bg-white/95 p-1.5 text-xs shadow-[0_5px_18px_rgba(11,28,48,0.10)] backdrop-blur lg:max-w-[calc(100%-448px)]">
+        <button className="shrink-0 rounded-lg px-3 py-2 font-semibold transition hover:bg-[#eff4ff]" onClick={fit}>Вписать зал</button><span className="h-5 shrink-0 border-l border-[#d3e4fe]" aria-hidden="true" />
+        <span className="flex shrink-0 items-center gap-1.5 px-2 text-[#565e74]" role="status"><StudioIcon name="cloud" className="h-3.5 w-3.5 text-[#00645b]" />{saveStatus}</span><span className="h-5 shrink-0 border-l border-[#d3e4fe]" aria-hidden="true" />
+        <span className="shrink-0 px-2">Столиков: <b>{stats.tables}</b></span><span className="shrink-0 px-2">Мест: <b>{stats.seats}</b></span><span className="shrink-0 px-2">Тарифов: <b>{state.editor.tariffs.length}</b></span><span className="shrink-0 px-2 font-mono font-semibold text-[#4a00c1]">При аншлаге: {money(stats.total)}</span>
+      </div>
+      <div className="absolute bottom-4 left-[76px] z-10 rounded-xl border border-[#e5eefe] bg-white/95 p-3 font-mono text-xs shadow-[0_5px_18px_rgba(11,28,48,0.10)]"><b>Север зала: 0°</b><p className="mt-1 text-[#565e74]">Масштаб: 1 м = {view.pxPerMetre} px (1:{Math.round(1000 / view.pxPerMetre)})</p><p className="mt-1 text-[#7a7488]">X: {cursor.x.toFixed(2)} м · Y: {cursor.y.toFixed(2)} м</p></div>
+      {inspectorOpen && <aside id="hall-inspector" className="absolute left-3 right-3 top-[650px] z-20 max-h-[420px] overflow-y-auto rounded-2xl border border-[#e5eefe] bg-white shadow-[0_12px_32px_rgba(11,28,48,0.14)] md:top-[690px] lg:left-auto lg:right-auto lg:top-auto lg:max-h-none lg:w-[356px]" style={desktop ? { left: panelX, top: panelY, height: inspectorHeight } : undefined} aria-label="Инспектор">
+        <div className="sticky top-0 z-10 rounded-t-2xl border-b border-[#e5eefe] bg-white/95 p-3 backdrop-blur"><div className="mb-2 flex items-center gap-2"><button type="button" className="cursor-grab touch-none rounded-lg p-1 text-[#565e74] hover:bg-[#eff4ff] active:cursor-grabbing disabled:cursor-default" aria-label="Переместить инспектор" title="Перетащите инспектор" disabled={!desktop} onPointerDown={startInspectorDrag} onPointerMove={moveInspector} onPointerUp={(e) => { inspectorDrag.current = null; if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId); }} onPointerCancel={() => { inspectorDrag.current = null; }}><StudioIcon name="tune" className="h-[18px] w-[18px]" /></button><h2 className="flex-1 text-lg font-bold">Инспектор</h2><button className="rounded-lg px-2 py-1 text-xs font-semibold text-[#4a00c1] hover:bg-[#eff4ff]" onClick={() => setInspectorPosition(null)} title="Вернуть инспектор справа">Сброс</button><button className="grid h-7 w-7 place-items-center rounded-lg text-[#565e74] hover:bg-[#eff4ff]" onClick={() => setInspectorOpen(false)} aria-label="Скрыть инспектор"><StudioIcon name="close" className="h-[18px] w-[18px]" /></button></div><div className="flex rounded-xl bg-[#eff4ff] p-1 text-xs" role="tablist" onKeyDown={(e)=>{if(["ArrowLeft","ArrowRight","Home","End"].includes(e.key)){e.preventDefault();const next=e.key==="Home"?"object":e.key==="End"?"hall":tab==="object"?"hall":"object";setTab(next);document.getElementById(`hall-tab-${next}`)?.focus();}}}><button id="hall-tab-object" aria-controls="hall-inspector-panel" tabIndex={tab==="object"?0:-1} role="tab" aria-selected={tab === "object"} onClick={() => setTab("object")} className={`${button} flex-1 ${tab === "object" ? "bg-white text-[#4a00c1] shadow-sm" : "text-[#565e74]"}`}>Свойства объекта</button><button id="hall-tab-hall" aria-controls="hall-inspector-panel" tabIndex={tab==="hall"?0:-1} role="tab" aria-selected={tab === "hall"} onClick={() => setTab("hall")} className={`${button} flex-1 ${tab === "hall" ? "bg-white text-[#4a00c1] shadow-sm" : "text-[#565e74]"}`}>Слои &amp; Зоны</button></div></div>
         <fieldset id="hall-inspector-panel" role="tabpanel" aria-labelledby={`hall-tab-${tab}`} disabled={!editable} className="space-y-3 p-3">
           {tab === "object" ? selected ? <Inspector object={selected} state={state} patch={patch} commit={commit} select={(id) => setSelection([id])} addSeat={addSeat} duplicate={() => duplicate()} remove={() => { commit(removeObjects(state, selection)); setSelection([]); }} /> : <div className="py-10 text-center text-sm text-slate-500"><p className="mb-3 text-3xl text-violet-500">↖</p>Выберите объект на плане<br />или перетащите инструмент из панели</div> : <>
             <h3 className="font-semibold">Параметры зала</h3><div className="grid grid-cols-2 gap-3"><Field label="Ширина, м" value={state.room.widthM} min={2} max={200} onValue={(n) => commit({ ...state, room: { ...state.room, widthM: n } })} /><Field label="Глубина, м" value={state.room.heightM} min={2} max={200} onValue={(n) => commit({ ...state, room: { ...state.room, heightM: n } })} /></div>
@@ -420,17 +468,15 @@ export function Studio({ eventId, initial, request = apiRequest }: { eventId: st
           </>}
         </fieldset>
       </aside>}
-      <div ref={dock} className={`fixed inset-x-3 bottom-6 z-30 flex items-center gap-1 overflow-x-auto rounded-2xl border border-violet-100 bg-white/95 p-1.5 shadow-xl w-[calc(100%-24px)] lg:inset-x-auto lg:w-max lg:max-w-[calc(100%-32px)] lg:rounded-full ${dockPosition ? "" : "lg:left-1/2 lg:-translate-x-1/2"}`} style={dockPosition ? { left: dockPosition.x, top: dockPosition.y, right: "auto", bottom: "auto" } : undefined} aria-label="Панель инструментов зала">
-        <button type="button" className="sticky left-0 z-10 shrink-0 cursor-grab touch-none rounded-xl bg-violet-50 px-2 py-1.5 text-violet-700 hover:bg-violet-100 active:cursor-grabbing" aria-label="Переместить панель инструментов" title="Перетащите панель. Стрелки — переместить, Home — вернуть вниз" onPointerDown={startDockDrag} onPointerMove={moveDock} onPointerUp={(e) => { dockDrag.current = null; if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId); }} onPointerCancel={() => { dockDrag.current = null; }} onKeyDown={(e) => { if (e.key === "Home") { e.preventDefault(); setDockPosition(null); } else if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) { e.preventDefault(); const rect = dock.current?.getBoundingClientRect(); if (!rect) return; const step = e.shiftKey ? 50 : 20; setDockPosition(clampDock(rect.left + (e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0), rect.top + (e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0), rect.width, rect.height)); } }}>⠿</button>
-        <button type="button" className="shrink-0 rounded-lg px-2 py-1 text-xs text-violet-700 hover:bg-violet-100 disabled:opacity-30" aria-label="Вернуть панель инструментов вниз" disabled={!dockPosition} onClick={() => setDockPosition(null)} title="Вернуть панель вниз">↙</button>
-        <button className={button} disabled={!editable || !history.current.undo.length} onClick={() => undo()} title="Отменить Ctrl+Z">↶</button><button className={button} disabled={!editable || !history.current.redo.length} onClick={() => undo(true)} title="Повторить Ctrl+Shift+Z">↷</button><span className="mx-1 h-6 border-l border-violet-100" />
-        {tools.map((t) => <span key={t.id} className="flex shrink-0 items-center gap-1">{["table_round", "ruler"].includes(t.id) && <span className="mx-1 h-6 border-l border-violet-100" aria-hidden="true" />}<button draggable={editable && !["cursor", "ruler", "zone"].includes(t.id)} onDragStart={(e) => e.dataTransfer.setData("application/ticket-tool", t.id)} className={`${button} shrink-0 whitespace-nowrap px-2 py-1.5 ${tool === t.id ? "bg-violet-800 text-white hover:bg-violet-900" : ""}`} aria-pressed={tool === t.id} title={`${t.label} (${t.key}) — перетащите или выберите и нажмите на план`} onClick={() => setTool(t.id)}><span className="mr-1 text-base">{t.icon}</span><span className="text-xs">{t.label}</span></button></span>)}
-        <button className={`${button} shrink-0`} onClick={() => setShowTemplates(!showTemplates)}>Шаблоны</button>
-      </div>
-      {showTemplates && <div className="absolute bottom-24 left-4 z-30 w-80 rounded-2xl bg-white p-4 shadow-xl"><h3 className="font-bold">Шаблоны зала</h3><p className="my-2 text-xs text-slate-500">Вставляются копии объектов с новыми идентификаторами.</p>{templates.map((t) => <button key={t.id} className={`${button} block w-full text-left`} onClick={() => { const imported = importLayout(t); const tariffIds = new Map(imported.editor.tariffs.map((tariff) => [tariff.id, crypto.randomUUID()])); const ids = new Map(imported.editor.objects.map((o) => [o.id, crypto.randomUUID()])); commit({ ...state, editor: { version: 1, tariffs: [...state.editor.tariffs, ...imported.editor.tariffs.map((tariff) => ({ ...tariff, id: tariffIds.get(tariff.id)! }))], objects: [...state.editor.objects, ...imported.editor.objects.map((o) => ({ ...o, id: ids.get(o.id)!, parentId: o.parentId ? ids.get(o.parentId)! : null, tariffId: o.tariffId ? tariffIds.get(o.tariffId)! : null }))] } }); setShowTemplates(false); }}>{t.templateName}</button>)}<input className={input} aria-label="Название шаблона" placeholder="Название шаблона" value={templateName} onChange={(e) => setTemplateName(e.target.value)} /><button className={button} disabled={dirty || busy || !templateName.trim()} onClick={() => void saveTemplate()}>Сохранить текущий зал</button><button className={button} disabled={dirty || busy || !templateName.trim() || !selection.length} onClick={() => void saveTemplate(true)}>Сохранить выделение</button></div>}
+      <nav className="absolute bottom-3 left-2 top-3 z-20 flex w-12 flex-col items-center gap-1 overflow-visible rounded-xl border border-[#e5eefe] bg-white/95 py-2 shadow-[0_6px_20px_rgba(11,28,48,0.12)] backdrop-blur" aria-label="Панель инструментов зала">
+        {tools.map((t) => <span key={t.id} className="group relative flex shrink-0 flex-col items-center">{["table_round", "ruler"].includes(t.id) && <span className="mb-1 h-px w-7 bg-[#d3e4fe]" aria-hidden="true" />}<button draggable={editable && !["cursor", "ruler", "zone"].includes(t.id)} onDragStart={(e) => e.dataTransfer.setData("application/ticket-tool", t.id)} className={`grid h-9 w-9 place-items-center rounded-xl transition ${tool === t.id ? "bg-[#6320ee] text-white shadow-sm" : "text-[#494456] hover:bg-[#e5eeff] hover:text-[#0b1c30]"}`} aria-pressed={tool === t.id} aria-label={`${t.label} (${t.key})`} title={`${t.label} (${t.key})`} onClick={() => setTool(t.id)}><StudioIcon name={t.icon} className="h-5 w-5" /></button><span className="pointer-events-none absolute left-12 top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md bg-[#213145] px-2 py-1 text-[11px] font-semibold text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">{t.label} ({t.key})</span></span>)}
+        <span className="my-1 h-px w-7 bg-[#d3e4fe]" aria-hidden="true" />
+        <span className="group relative"><button className={`grid h-9 w-9 place-items-center rounded-xl transition ${showTemplates ? "bg-[#e8deff] text-[#4a00c1]" : "text-[#494456] hover:bg-[#e5eeff]"}`} onClick={() => setShowTemplates(!showTemplates)} aria-pressed={showTemplates} aria-label="Шаблоны рассадки" title="Шаблоны рассадки"><StudioIcon name="templates" className="h-5 w-5" /></button><span className="pointer-events-none absolute left-12 top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md bg-[#213145] px-2 py-1 text-[11px] font-semibold text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">Шаблоны рассадки</span></span>
+        {!inspectorOpen && <button className="mt-auto grid h-9 w-9 place-items-center rounded-xl text-[#4a00c1] hover:bg-[#e8deff]" onClick={() => setInspectorOpen(true)} aria-label="Показать инспектор" title="Показать инспектор"><StudioIcon name="tune" className="h-5 w-5" /></button>}
+      </nav>
+      {showTemplates && <div className="absolute left-16 top-4 z-30 w-80 rounded-2xl border border-[#e5eefe] bg-white p-4 shadow-xl"><h3 className="font-bold">Шаблоны зала</h3><p className="my-2 text-xs text-slate-500">Вставляются копии объектов с новыми идентификаторами.</p>{templates.map((t) => <button key={t.id} className={`${button} block w-full text-left`} onClick={() => { const imported = importLayout(t); const tariffIds = new Map(imported.editor.tariffs.map((tariff) => [tariff.id, crypto.randomUUID()])); const ids = new Map(imported.editor.objects.map((o) => [o.id, crypto.randomUUID()])); commit({ ...state, editor: { version: 1, tariffs: [...state.editor.tariffs, ...imported.editor.tariffs.map((tariff) => ({ ...tariff, id: tariffIds.get(tariff.id)! }))], objects: [...state.editor.objects, ...imported.editor.objects.map((o) => ({ ...o, id: ids.get(o.id)!, parentId: o.parentId ? ids.get(o.parentId)! : null, tariffId: o.tariffId ? tariffIds.get(o.tariffId)! : null }))] } }); setShowTemplates(false); }}>{t.templateName}</button>)}<input className={input} aria-label="Название шаблона" placeholder="Название шаблона" value={templateName} onChange={(e) => setTemplateName(e.target.value)} /><button className={button} disabled={dirty || busy || !templateName.trim()} onClick={() => void saveTemplate()}>Сохранить текущий зал</button><button className={button} disabled={dirty || busy || !templateName.trim() || !selection.length} onClick={() => void saveTemplate(true)}>Сохранить выделение</button></div>}
     </section>
     {(error || !editable) && <div className="relative z-20 border-t border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="alert">{error || "Структуру схемы можно менять только в черновике"}{stale && <button className={button} onClick={() => { if (window.confirm("Загрузить актуальную схему? Несохранённые изменения будут потеряны.")) void load(); }}>Загрузить актуальную схему</button>}</div>}
-    <footer className="flex justify-between px-5 py-3 text-xs text-slate-500"><b>TICKET Organizer Studio</b><span>Метры · KZT · {state.editor.objects.length} объектов</span></footer>
   </main>;
 }
 
@@ -440,16 +486,19 @@ function rowPath(o: HallObject): string {
   return `M ${-o.width/2} 0 A ${r} ${r} 0 ${sag>o.width/2?1:0} ${o.curvature>0?0:1} ${o.width/2} 0`;
 }
 
-const CanvasObject = memo(function CanvasObject({ object: o, selected, warning, highlight, color }: { object: HallObject; selected: boolean; warning: boolean; highlight?: string | undefined; color: string }) {
-  const stroke = highlight || (warning ? "#dc2626" : selected ? "#7c3aed" : color);
+const CanvasObject = memo(function CanvasObject({ object: o, selected, warning, highlight, color, tariffName }: { object: HallObject; selected: boolean; warning: boolean; highlight?: string | undefined; color: string; tariffName?: string | undefined }) {
+  const seatColor = o.type === "seat" && !o.tariffId && !o.colorOverride ? "#D1D5DB" : color;
+  const stroke = highlight || (warning ? "#dc2626" : selected ? "#7c3aed" : seatColor);
   const table = o.type === "table_round" || o.type === "table_rect";
   const tableStroke = highlight || (warning ? "#dc2626" : selected ? "#7c3aed" : "#d1d5db");
-  const labelSize = table ? Math.min(.38, Math.max(.16, o.width / Math.max(4, o.name.length * .62))) : Math.min(.3, Math.max(.13, o.width / Math.max(8, o.name.length)));
+  const displayName = o.type === "row" && /^Ряд(?: \d+)?$/i.test(o.name) ? `${o.name.toUpperCase()} (ПАРТЕР)` : o.name;
+  const tooltip = `${o.name || titles[o.type]}${table ? ` · ${o.width.toFixed(2)} × ${(o.type === "table_round" ? o.width : o.height).toFixed(2)} м${tariffName ? ` · ${tariffName}` : ""}` : ""}${o.locked ? " · заблокировано" : ""}`;
   return <g data-object={o.id} transform={`translate(${o.x} ${o.y}) rotate(${o.rotation})`} className={o.locked ? "cursor-not-allowed" : "cursor-move"}>
-    <title>{o.name || titles[o.type]}{o.locked ? " · заблокировано" : ""}</title>
-    {o.type === "seat" ? <><rect x={-.225} y={-.225} width={.45} height={.45} rx={.15} fill={color} stroke={stroke} strokeWidth={selected || warning ? .04 : .01} /><path d="M -.18 -.14 Q 0 -.23 .18 -.14" fill="none" stroke="#ffffffaa" strokeWidth={.025} /><text y={.075} fontSize={.2} fill="white" textAnchor="middle" transform={`rotate(${-o.rotation})`}>{o.number}</text></> : o.type === "table_round" ? <circle r={o.width / 2} fill="white" stroke={tableStroke} strokeWidth={selected || warning || highlight ? .04 : .02} filter="url(#hall-table-shadow)" /> : o.type === "zone" ? <polygon points={o.points.map((p) => `${p.x},${p.y}`).join(" ")} fill={color} fillOpacity={o.opacity} stroke={stroke} strokeWidth={.03} /> : o.type === "row" ? <path d={rowPath(o)} stroke={stroke} strokeWidth={.55} strokeOpacity={.12} fill="none" /> : <rect x={-o.width / 2} y={-o.height / 2} width={o.width} height={o.height} rx={o.type === "entrance" ? .02 : .12} fill={o.type === "prop" || o.type === "entrance" ? color : "white"} stroke={o.type === "table_rect" ? tableStroke : stroke} strokeWidth={selected || warning || highlight ? .04 : .02} filter={o.type === "table_rect" ? "url(#hall-table-shadow)" : undefined} />}
-    {o.type !== "seat" && <text textAnchor="middle" dominantBaseline="middle" y={o.type === "row" ? -.48 : 0} fontSize={labelSize} fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fill={o.type === "prop" || o.type === "entrance" ? "white" : "#202632"}>{o.type === "entrance" ? `${o.entranceType === "in" ? "→" : o.entranceType === "out" ? "←" : "↔"} ` : ""}{o.name}</text>}
-    {o.type === "prop" && <text y={.3} textAnchor="middle" fontSize={.18} fill="#e9d5ff">{o.description}</text>}
+    <title>{tooltip}</title>
+    {o.type === "seat" ? <><rect x={-.225} y={-.225} width={.45} height={.45} rx={.15} fill={seatColor} stroke={stroke} strokeWidth={selected || warning ? .04 : .01} /><path d="M -.18 -.14 Q 0 -.23 .18 -.14" fill="none" stroke="#111827" strokeWidth={.025} /><text y={.075} fontSize={.2} fill="#111827" textAnchor="middle" transform={`rotate(${-o.rotation})`}>{o.number}</text></> : o.type === "table_round" ? <circle r={o.width / 2} fill="white" stroke={tableStroke} strokeWidth={selected || warning || highlight ? .04 : .02} filter="url(#hall-table-shadow)" /> : o.type === "zone" ? <polygon points={o.points.map((p) => `${p.x},${p.y}`).join(" ")} fill={color} fillOpacity={o.opacity} stroke={stroke} strokeWidth={.03} /> : o.type === "row" ? <path d={rowPath(o)} stroke={stroke} strokeWidth={.55} strokeOpacity={.12} fill="none" /> : o.type === "entrance" ? <rect x={-o.width / 2} y={-o.height / 2} width={o.width} height={o.height} rx={Math.min(.1, o.height / 2)} fill="#dce9ff" stroke={tableStroke} strokeWidth={selected || warning ? .04 : .01} /> : <rect x={-o.width / 2} y={-o.height / 2} width={o.width} height={o.height} rx={.12} fill={o.type === "prop" ? color : "white"} stroke={o.type === "table_rect" ? tableStroke : stroke} strokeWidth={selected || warning || highlight ? .04 : .02} filter={o.type === "table_rect" ? "url(#hall-table-shadow)" : undefined} />}
+    {o.type === "row" ? <text textAnchor="middle" dominantBaseline="middle" transform={`translate(${-o.width / 2 - .22} 0) rotate(-90)`} fontSize={.18} fontFamily="Arial, Helvetica, sans-serif" fontWeight="400" fill="#202632">{displayName}</text> : o.type !== "seat" && <FittedSvgText text={`${o.type === "entrance" ? `${o.entranceType === "in" ? "→" : o.entranceType === "out" ? "←" : "↔"} ` : ""}${displayName}`} maxWidth={o.width * (o.type === "table_round" ? .68 : .88)} maxHeight={(o.type === "table_round" ? o.width * .68 : o.height * (o.type === "prop" && o.description ? .5 : .7))} y={o.type === "prop" && o.description ? -.12 : 0} fontSize={o.type === "entrance" ? .16 : table ? .38 : .3} fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fill={o.type === "prop" ? "white" : o.type === "entrance" ? "#005049" : "#202632"} />}
+    {o.type === "prop" && <text y={.25} textAnchor="middle" fontSize={.16} fill="#e9d5ff">{o.description || "Зона артистов / Президиум"} ({o.width.toFixed(1)} × {o.height.toFixed(1)} м)</text>}
+    {selected && table && <g transform={`translate(0 ${-((o.type === "table_round" ? o.width : o.height) / 2) - o.seatOffset - .65})`} pointerEvents="none"><rect x={-1.15} y={-.22} width={2.3} height={.4} rx={.08} fill="#213145" /><text y={.02} textAnchor="middle" dominantBaseline="middle" fontSize={.16} fontWeight="700" fill="white">{o.width.toFixed(2)} × {(o.type === "table_round" ? o.width : o.height).toFixed(2)} м{tariffName ? ` ${tariffName}` : ""}</text></g>}
   </g>;
 });
 function Field({ label, value, onValue, min = .1, max = 200, step = .1 }: { label: string; value: number; onValue: (n: number) => void; min?: number; max?: number; step?: number }) {
@@ -460,28 +509,68 @@ function ColorField({label,value,onValue}:{label:string;value:string;onValue:(va
   const [draft,setDraft]=useState(value);useEffect(()=>setDraft(value),[value]);
   return <input aria-label={label} type="color" value={draft} onChange={(e)=>setDraft(e.target.value)} onBlur={()=>{if(draft!==value)onValue(draft);}} />;
 }
-function TextField({ label, value, onValue }: { label: string; value: string; onValue: (n: string) => void }) {
+function TextField({ label, value, onValue, id }: { label: string; value: string; onValue: (n: string) => void; id?: string }) {
   const [draft, setDraft] = useState(value); useEffect(() => setDraft(value), [value]);
-  return <label className="block text-xs text-slate-600">{label}<input className={input} maxLength={120} value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => { if (draft !== value) onValue(draft); }} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} /></label>;
+  return <label className="block text-xs text-slate-600">{label}<input id={id} className={input} maxLength={120} value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => { if (draft !== value) onValue(draft); }} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} /></label>;
 }
 function Inspector({ object: o, state, patch, commit, select, addSeat, duplicate, remove }: { object: HallObject; state: HallState; patch: (id: string, p: Partial<HallObject>) => void; commit: (s: HallState) => void; select: (id: string) => void; addSeat: (o: HallObject, side?: HallObject["side"]) => void; duplicate: () => void; remove: () => void }) {
   const table = o.type.startsWith("table_");
+  const seating = table || o.type === "row";
   const children = state.editor.objects.filter((s) => s.parentId === o.id).sort((a,b) => a.number - b.number);
   const sold = o.type === "seat" || o.type === "zone" || o.type === "row" || table;
+  const tariff = state.editor.tariffs.find((t) => t.id === o.tariffId);
+  const tariffSeatCount = tariff ? state.editor.objects.filter((item) => item.type === "seat" && (item.tariffId === tariff.id || state.editor.objects.find((parent) => parent.id === item.parentId)?.tariffId === tariff.id)).length : 0;
+  const typeLabel: Record<HallObject["type"], string> = { table_rect: "Прямоугольный стол (Банкет)", table_round: "Круглый стол (Банкет)", seat: "Отдельное кресло", row: "Ряд кресел", zone: "Стоячая зона", prop: "Сцена / объект", entrance: "Вход / выход" };
+  const removeLastSeat = () => { const last = children.at(-1); if (last) commit(removeObjects(state, [last.id])); };
+  const rectSides = [["top", "сверху"], ["bottom", "снизу"], ["right", "справа"], ["left", "слева"]] as const;
+  const nextRectSide = o.type === "table_rect" ? rectSides.find(([side]) => children.filter((seat) => seat.side === side).length < capacity(o, side))?.[0] : null;
   return <>
-    <div className="rounded-xl bg-[#f3f1fc] p-3"><div className="mb-2 flex justify-between text-[10px] uppercase text-violet-800"><b>Выбранный элемент</b><span className="font-mono">#{o.id.slice(0,8)}</span></div><TextField label={`${titles[o.type]} · название`} value={o.name} onValue={(name) => patch(o.id, { name })} /><p className="mt-1 text-xs text-slate-500">{o.width.toFixed(1)} × {o.height.toFixed(1)} м</p></div>
-    <div className="flex justify-between"><label className="flex items-center gap-2 text-xs">Цвет<ColorField label="Цвет объекта" value={o.color} onValue={(color) => patch(o.id, { color, colorOverride: true })} /></label><label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={o.locked} onChange={(e) => patch(o.id, { locked: e.target.checked })} />Заблокировать</label></div>
-    {o.type !== "seat" && <div className="grid grid-cols-2 gap-3"><Field label={o.type === "table_round" ? "Диаметр, м" : "Ширина / длина, м"} value={o.width} onValue={(width) => patch(o.id, { width, ...(o.type === "table_round" ? { height: width } : {}) })} />{o.type !== "table_round" && <Field label="Глубина, м" value={o.height} onValue={(height) => patch(o.id, { height })} />}</div>}
+    <div className="rounded-xl bg-[#eff4ff] p-3">
+      <div className="flex items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-[#4a00c1] text-white"><StudioIcon name={o.type === "table_round" ? "roundTable" : o.type === "table_rect" ? "rectTable" : o.type === "seat" ? "chair" : o.type === "row" ? "row" : o.type === "zone" ? "zone" : o.type === "entrance" ? "door" : "stage"} className="h-6 w-6" /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-1"><strong className="truncate text-base">{o.name || titles[o.type]}</strong><button className="grid h-7 w-7 place-items-center rounded text-[#565e74] hover:bg-white" onClick={() => document.getElementById(`inspector-name-${o.id}`)?.focus()} aria-label="Изменить название"><StudioIcon name="edit" className="h-[18px] w-[18px]" /></button></div><p className="truncate text-xs text-[#565e74]">{typeLabel[o.type]}</p></div><ColorField label="Цвет объекта" value={o.color} onValue={(color) => patch(o.id, { color, colorOverride: true })} /></div>
+      <div className="mt-3"><TextField id={`inspector-name-${o.id}`} label="Название" value={o.name} onValue={(name) => patch(o.id, { name })} /></div>
+    </div>
 
-    {table && <><Field label="Отступ кресел от края, м" value={o.seatOffset} min={.225} max={3} step={.05} onValue={(seatOffset) => patch(o.id, { seatOffset })} /><label className="block text-xs">Способ продажи<select className={input} value={o.saleMode} onChange={(e) => patch(o.id, { saleMode: e.target.value as HallObject["saleMode"] })}><option value="whole_table">Стол целиком</option><option value="per_seat">По местам</option></select></label></>}
-    {o.type === "row" && <><div className="flex items-center justify-between"><span className="text-sm">Мест: {children.length} / {capacity(o)}</span><button className={button} disabled={!children.length} onClick={() => commit(removeObjects(state, [children.at(-1)!.id]))}>−</button><button className={button} disabled={children.length >= capacity(o)} onClick={() => addSeat(o)}>+</button></div><label className="flex gap-2 text-xs"><input type="checkbox" checked={o.curvature !== 0} onChange={(e) => patch(o.id, { curvature: e.target.checked ? .5 : 0 })} />Дуга</label>{o.curvature !== 0 && <Field label="Прогиб дуги, м" value={o.curvature} min={-100} max={100} onValue={(curvature) => patch(o.id, { curvature })} />}<Field label="Первый номер" value={o.startNumber} min={1} max={999000} step={1} onValue={(startNumber) => patch(o.id, { startNumber: Math.round(startNumber) })} /><label className="flex gap-2 text-xs"><input type="checkbox" checked={o.reverse} onChange={(e) => patch(o.id, { reverse: e.target.checked })} />Нумерация справа налево</label></>}
-    {table && <><div className="flex justify-between text-xs font-bold uppercase"><span>Места за столом · {children.length}</span><button className="text-violet-700" onClick={() => addSeat(o)}>+ Место</button></div>{o.type === "table_rect" && <div className="grid grid-cols-2 gap-1">{([['top','Сверху'],['right','Справа'],['bottom','Снизу'],['left','Слева']] as const).map(([side,label]) => <button key={side} className={`${button} bg-violet-50`} onClick={() => addSeat(o, side)} disabled={children.filter((s) => s.side === side).length >= capacity(o, side)}>+ {label}</button>)}</div>}{children.map((s) => <div key={s.id} draggable onDragStart={(e) => e.dataTransfer.setData("application/ticket-seat", s.id)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const other = state.editor.objects.find((a) => a.id === e.dataTransfer.getData("application/ticket-seat") && a.parentId === o.id); if (!other) return; const objects = state.editor.objects.map((a) => a.id === other.id ? { ...a, attachedOrder: s.attachedOrder } : a.id === s.id ? { ...a, attachedOrder: other.attachedOrder } : a); commit({ ...state, editor: arrangeSeats({ ...state.editor, objects }, o.id) }); }} className="rounded-xl bg-[#f4f2fd] p-3"><div className="mb-2 flex items-center gap-2"><button onClick={() => select(s.id)} className="grid h-6 w-6 place-items-center rounded-full bg-emerald-900 text-xs text-white">{s.number}</button><span className="flex-1 text-xs">Место {s.number}</span><span title="Перетащите для перестановки">⠿</span><button aria-label={`Удалить место ${s.number}`} onClick={() => commit(removeObjects(state, [s.id]))} className="text-red-700">×</button></div><TextField label="Имя места" value={s.name} onValue={(name) => patch(s.id, { name })} />{o.saleMode === "per_seat" && <Field label="Цена, ₸" value={(effectivePrice(s, state.editor) ?? effectivePrice(o, state.editor) ?? 0) / 100} min={0} max={20_000_000} onValue={(price) => patch(s.id, { price: Math.round(price * 100) })} />}</div>)}{o.type === "table_round" && <button className={`${button} w-full bg-violet-50`} onClick={() => commit({ ...state, editor: arrangeSeats(state.editor, o.id) })}>Авто-расстановка по окружности</button>}</>}
-    {sold && !(o.type === "seat" && state.editor.objects.find((p) => p.id === o.parentId)?.saleMode === "whole_table" && state.editor.objects.find((p) => p.id === o.parentId)?.type !== "row") && <div className="space-y-3 border-t border-violet-100 pt-4"><label className="block text-xs">Ценовой тариф<select className={input} value={o.tariffId ?? ""} onChange={(e) => patch(o.id, { tariffId: e.target.value || null, price: null, colorOverride: false })}><option value="">Без тарифа</option>{state.editor.tariffs.map((t) => <option key={t.id} value={t.id}>{t.name} — {money(t.price)}</option>)}</select></label><Field label={`Цена, ₸${o.price !== null && o.tariffId ? " · изменена" : ""}`} value={(effectivePrice(o, state.editor) ?? 0) / 100} min={0} max={20_000_000} step={1} onValue={(price) => patch(o.id, { price: Math.round(price * 100) })} />{o.price !== null && <button className="text-xs text-violet-700" onClick={() => patch(o.id, { price: null })}>Наследовать цену тарифа / родителя</button>}<Field label="Депозит, ₸" value={o.deposit / 100} min={0} max={20_000_000} onValue={(deposit) => patch(o.id, { deposit: Math.round(deposit * 100) })} /></div>}
+    {o.type === "table_rect" && <section className="space-y-2 border-b border-[#e5eefe] pb-3">
+      <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#565e74]">Добавить стул к столу</h3>
+      <div className="grid grid-cols-2 gap-2">
+        {rectSides.map(([side, direction]) => {
+          const full = children.filter((seat) => seat.side === side).length >= capacity(o, side);
+          return <button key={side} type="button" className="flex min-h-10 items-center justify-center gap-1 rounded-lg border border-[#dce6ff] bg-[#eff4ff] px-2 text-xs font-semibold text-[#29105a] hover:bg-[#dce9ff] disabled:cursor-not-allowed disabled:opacity-40" disabled={full} onClick={() => addSeat(o, side)} title={full ? "На этой стороне больше нет места для стула" : `Добавить стул ${direction}`}><StudioIcon name="plus" className="h-4 w-4" />Добавить стул {direction}</button>;
+        })}
+      </div>
+    </section>}
+
+    <section className="space-y-2 border-b border-[#e5eefe] pb-3"><h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#565e74]">Положение и размеры</h3><div className="grid grid-cols-2 gap-2"><Field label="X, м" value={o.x} min={-1000} max={1000} onValue={(x) => patch(o.id, { x })} /><Field label="Y, м" value={o.y} min={-1000} max={1000} onValue={(y) => patch(o.id, { y })} />{o.type !== "seat" && <><Field label={o.type === "table_round" ? "Диаметр, м" : "Ширина, м"} value={o.width} onValue={(width) => patch(o.id, { width, ...(o.type === "table_round" ? { height: width } : {}) })} />{o.type !== "table_round" && <Field label="Высота, м" value={o.height} onValue={(height) => patch(o.id, { height })} />}</>}<div className="col-span-2"><Field label="Угол поворота, °" value={o.rotation} min={-180} max={180} step={1} onValue={(rotation) => patch(o.id, { rotation: tableRotation(rotation, o.type) })} /></div></div></section>
+
+    {seating && <section className="space-y-2 border-b border-[#e5eefe] pb-3"><div className="flex items-center justify-between"><h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#565e74]">Параметры рассадки</h3><span className="rounded-full bg-[#89f5e7] px-2 py-0.5 text-[11px] font-bold text-[#00201d]">{children.length} {children.length === 1 ? "место" : "мест"}</span></div><div className="flex items-center justify-between"><span className="text-sm">Количество мест</span><div className="flex items-center rounded-lg bg-[#eff4ff] p-0.5"><button className="grid h-8 w-8 place-items-center rounded hover:bg-[#dce9ff] disabled:opacity-30" disabled={!children.length} onClick={removeLastSeat} aria-label="Убрать последнее место"><StudioIcon name="minus" className="h-4 w-4" /></button><b className="min-w-8 text-center text-sm">{children.length}</b><button className="grid h-8 w-8 place-items-center rounded hover:bg-[#dce9ff] disabled:opacity-30" disabled={o.type === "table_rect" ? !nextRectSide : children.length >= capacity(o)} onClick={() => addSeat(o, o.type === "table_rect" ? nextRectSide : "top")} aria-label="Добавить место"><StudioIcon name="plus" className="h-4 w-4" /></button></div></div><label className="block text-xs text-[#565e74]">Авто-нумерация мест<SelectPicker className={input} value={o.type === "row" && o.reverse ? "reverse" : "clockwise"} onChange={(e) => { if (o.type === "row") patch(o.id, { reverse: e.target.value === "reverse" }); }}><option value="clockwise">{o.type === "row" ? "Слева направо" : "По часовой стрелке"}</option>{o.type === "row" && <option value="reverse">Справа налево</option>}</SelectPicker></label><div className="flex items-center justify-between text-sm"><span>{o.type === "table_round" ? "Минимум по окружности" : "Интервал кресел"}</span><b className="font-mono">{o.type === "table_round" ? `${ROUND_SEAT_ARC_METRES * 100} см` : "45 см"}</b></div>{o.type === "table_round" && <p className="text-xs text-[#565e74]">Перетащите кресло по пунктирной окружности, чтобы направить места к сцене.</p>}{o.type === "table_round" && children.some((seat) => seat.orbitAngle !== undefined) && <button type="button" className="rounded-lg border border-[#dce6ff] bg-white px-3 py-2 text-xs font-semibold text-[#4a00c1] hover:bg-[#eff4ff]" onClick={() => { const editor = { ...state.editor, objects: state.editor.objects.map((item) => item.parentId === o.id ? { ...item, orbitAngle: undefined } : item) }; commit({ ...state, editor: arrangeSeats(editor, o.id) }); }}>Распределить места равномерно</button>}{table && <><Field label="Отступ кресел от края, м" value={o.seatOffset} min={.225} max={3} step={.05} onValue={(seatOffset) => patch(o.id, { seatOffset })} /><label className="block text-xs text-[#565e74]">Способ продажи<SelectPicker className={input} value={o.saleMode} onChange={(e) => patch(o.id, { saleMode: e.target.value as HallObject["saleMode"] })}><option value="whole_table">Стол целиком</option><option value="per_seat">По местам</option></SelectPicker></label></>}{o.type === "row" && <><label className="flex gap-2 text-xs"><input type="checkbox" checked={o.curvature !== 0} onChange={(e) => patch(o.id, { curvature: e.target.checked ? .5 : 0 })} />Дуга</label>{o.curvature !== 0 && <Field label="Прогиб дуги, м" value={o.curvature} min={-100} max={100} onValue={(curvature) => patch(o.id, { curvature })} />}<Field label="Первый номер" value={o.startNumber} min={1} max={999000} step={1} onValue={(startNumber) => patch(o.id, { startNumber: Math.round(startNumber) })} /></>}</section>}
+
+    {sold && !(o.type === "seat" && state.editor.objects.find((p) => p.id === o.parentId)?.saleMode === "whole_table" && state.editor.objects.find((p) => p.id === o.parentId)?.type !== "row") && <section className="space-y-2 border-b border-[#e5eefe] pb-3"><h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#565e74]">Ценовая категория / тариф</h3><label className="block text-xs text-[#565e74]">Тариф<SelectPicker id={`inspector-tariff-${o.id}`} className={input} value={o.tariffId ?? ""} onChange={(e) => patch(o.id, { tariffId: e.target.value || null, price: null, colorOverride: false })}><option value="">Без тарифа</option>{state.editor.tariffs.map((t) => <option key={t.id} value={t.id}>{t.name} — {money(t.price)}</option>)}</SelectPicker></label>{tariff && <div className="rounded-xl bg-[#edf6f5] p-3"><div className="flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: tariff.color }} /><strong className="min-w-0 flex-1 truncate text-sm">{tariff.name}</strong><b className="text-sm text-[#4a00c1]">{money(tariff.price)}</b></div><div className="mt-2 flex items-center justify-between text-[11px] text-[#565e74]"><span>Доступно мест по тарифу: {tariffSeatCount}</span><button className="font-semibold text-[#4a00c1]" type="button" onClick={() => document.getElementById(`inspector-tariff-${o.id}`)?.focus()}>Изменить</button></div></div>}<Field label={`Цена, ₸${o.price !== null && o.tariffId ? " · изменена" : ""}`} value={(effectivePrice(o, state.editor) ?? 0) / 100} min={0} max={20_000_000} step={1} onValue={(price) => patch(o.id, { price: Math.round(price * 100) })} />{o.price !== null && <button className="text-xs font-semibold text-[#4a00c1]" onClick={() => patch(o.id, { price: null })}>Наследовать цену тарифа / родителя</button>}<Field label="Депозит, ₸" value={o.deposit / 100} min={0} max={20_000_000} onValue={(deposit) => patch(o.id, { deposit: Math.round(deposit * 100) })} /></section>}
+
+    {table && <details className="rounded-xl bg-[#eff4ff] p-3"><summary className="cursor-pointer text-xs font-bold uppercase text-[#565e74]">Места за столом · {children.length}</summary><div className="mt-2 space-y-2">{children.map((seat) => <button key={seat.id} onClick={() => select(seat.id)} className="flex w-full items-center gap-2 rounded-lg bg-white p-2 text-left text-xs"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#00645b] text-white">{seat.number}</span><span className="flex-1 truncate">{seat.name || `Место ${seat.number}`}</span><span>{money(effectivePrice(seat, state.editor) ?? effectivePrice(o, state.editor) ?? 0)}</span></button>)}</div>{o.type === "table_round" && <button className={`${button} mt-2 w-full bg-white`} onClick={() => commit({ ...state, editor: arrangeSeats(state.editor, o.id) })}>Авто-расстановка по окружности</button>}</details>}
     {o.type === "seat" && <><p className="text-sm">Статус: {o.locked ? "заблокировано" : "свободно"}</p>{o.parentId && <button className={button} onClick={() => select(o.parentId!)}>↗ Перейти к столу / ряду</button>}</>}
-    {o.type === "zone" && <><Field label="Вместимость" value={o.capacity} min={0} max={100000} step={1} onValue={(capacity) => patch(o.id, { capacity: Math.round(capacity) })} /><Field label="Непрозрачность" value={o.opacity} min={.05} max={1} step={.05} onValue={(opacity) => patch(o.id, { opacity })} /><p className="font-mono text-sm">Площадь: {(Math.abs(o.points.reduce((sum,p,i) => { const n = o.points[(i+1)%o.points.length]!; return sum + p.x*n.y - n.x*p.y; },0))/2).toFixed(2)} м²</p><p className="text-xs text-slate-500">Перетащите вершину. Двойной щелчок по краю добавляет вершину. Выберите вершину и нажмите Delete для удаления.</p></>}
-    {o.type === "prop" && <TextField label="Описание объекта" value={o.description} onValue={(description) => patch(o.id, { description })} />}
-    {o.type === "entrance" && <label className="block text-xs">Тип прохода<select className={input} value={o.entranceType} onChange={(e) => patch(o.id, { entranceType: e.target.value as HallObject["entranceType"] })}><option value="in">Вход</option><option value="out">Выход</option><option value="both">Вход-выход</option></select></label>}
-    <details><summary className="cursor-pointer text-xs text-slate-500">Положение и поворот</summary><div className="grid grid-cols-3 gap-2"><Field label="X, м" value={o.x} min={-1000} max={1000} onValue={(x) => patch(o.id, { x })} /><Field label="Y, м" value={o.y} min={-1000} max={1000} onValue={(y) => patch(o.id, { y })} /><Field label="Поворот, °" value={o.rotation} min={-180} max={180} step={1} onValue={(rotation) => patch(o.id, { rotation })} /></div></details>
-    <div className="flex gap-2 border-t border-violet-100 pt-4"><button className={`${button} flex-1 bg-violet-50`} onClick={duplicate}>Дублировать</button><button className={`${button} text-red-700`} onClick={remove}>Удалить</button></div>
+    {o.type === "zone" && <><Field label="Вместимость" value={o.capacity} min={0} max={100000} step={1} onValue={(capacity) => patch(o.id, { capacity: Math.round(capacity) })} /><Field label="Непрозрачность" value={o.opacity} min={.05} max={1} step={.05} onValue={(opacity) => patch(o.id, { opacity })} /><p className="font-mono text-sm">Площадь: {(Math.abs(o.points.reduce((sum,p,i) => { const n = o.points[(i+1)%o.points.length]!; return sum + p.x*n.y - n.x*p.y; },0))/2).toFixed(2)} м²</p><p className="text-xs text-[#565e74]">Перетащите вершину. Двойной щелчок по краю добавляет вершину.</p></>}
+    {o.type === "prop" && <TextField label="Подзаголовок объекта" value={o.description} onValue={(description) => patch(o.id, { description })} />}
+    {o.type === "entrance" && <label className="block text-xs">Тип прохода<SelectPicker className={input} value={o.entranceType} onChange={(e) => patch(o.id, { entranceType: e.target.value as HallObject["entranceType"] })}><option value="in">Вход</option><option value="out">Выход</option><option value="both">Вход-выход</option></SelectPicker></label>}
+
+    <section className="space-y-2"><h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#565e74]">Выравнивание и действия</h3><div className="grid grid-cols-4 gap-1"><button className="grid h-10 place-items-center rounded-lg bg-[#eff4ff] hover:bg-[#dce9ff]" onClick={() => patch(o.id, { y: o.height / 2 })} title="По верхнему краю" aria-label="По верхнему краю"><StudioIcon name="alignTop" className="h-5 w-5" /></button><button className="grid h-10 place-items-center rounded-lg bg-[#eff4ff] hover:bg-[#dce9ff]" onClick={() => patch(o.id, { x: state.room.widthM / 2 })} title="По центру горизонтали" aria-label="По центру горизонтали"><StudioIcon name="alignCenter" className="h-5 w-5" /></button><button className="grid h-10 place-items-center rounded-lg bg-[#eff4ff] hover:bg-[#dce9ff]" onClick={() => patch(o.id, { y: state.room.heightM / 2 })} title="По центру вертикали" aria-label="По центру вертикали"><StudioIcon name="distribute" className="h-5 w-5" /></button><button className="grid h-10 place-items-center rounded-lg bg-[#eff4ff] hover:bg-[#dce9ff]" onClick={() => patch(o.id, { rotation: -o.rotation })} title="Отразить поворот" aria-label="Отразить поворот"><StudioIcon name="flip" className="h-5 w-5" /></button></div><div className="grid grid-cols-3 gap-1"><button className="inline-flex h-9 items-center justify-center gap-1 rounded-lg bg-[#eff4ff] text-xs font-semibold hover:bg-[#dce9ff]" onClick={duplicate}><StudioIcon name="copy" className="h-4 w-4" />Копия</button><button className="inline-flex h-9 items-center justify-center gap-1 rounded-lg bg-[#eff4ff] text-xs font-semibold hover:bg-[#dce9ff]" onClick={() => patch(o.id, { locked: !o.locked })} aria-pressed={o.locked}><StudioIcon name={o.locked ? "unlock" : "lock"} className="h-4 w-4" />Блок</button><button className="inline-flex h-9 items-center justify-center gap-1 rounded-lg bg-[#ffdad6] text-xs font-semibold text-[#93000a] hover:bg-[#ffc9c3]" onClick={remove}><StudioIcon name="trash" className="h-4 w-4" />Удалить</button></div></section>
   </>;
+}
+
+function StudioIcon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
+  const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  const paths: Record<IconName, React.ReactNode> = {
+    ticket: <><path d="M4 6h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4V6Z"/><path d="M9 7.5v9" strokeDasharray="2 2"/></>,
+    cloud: <><path d="M7 18h10a4 4 0 0 0 .4-8A6 6 0 0 0 6 9.5 4.5 4.5 0 0 0 7 18Z"/><path d="m9.5 13 2 2 3.5-4"/></>,
+    minus: <path d="M5 12h14"/>, plus: <path d="M12 5v14M5 12h14"/>,
+    eye: <><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></>,
+    save: <><path d="M5 3h12l2 2v16H5V3Z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></>, person: <><circle cx="12" cy="8" r="3"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></>,
+    back: <path d="m15 18-6-6 6-6M9 12h11"/>, undo: <path d="m9 7-5 5 5 5M4 12h9a6 6 0 0 1 6 6"/>, redo: <path d="m15 7 5 5-5 5M20 12h-9a6 6 0 0 0-6 6"/>, check: <><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></>,
+    cursor: <path d="m5 3 13 9-6 .8-3.2 5.1L5 3Z"/>, roundTable: <circle cx="12" cy="12" r="8"/>, rectTable: <rect x="4" y="7" width="16" height="10" rx="1"/>,
+    chair: <path d="M200-120q-17 0-28.5-11.5T160-160v-40q-50 0-85-35t-35-85v-200q0-50 35-85t85-35v-80q0-50 35-85t85-35h400q50 0 85 35t35 85v80q50 0 85 35t35 85v200q0 50-35 85t-85 35v40q0 17-11.5 28.5T760-120q-17 0-28.5-11.5T720-160v-40H240v40q0 17-11.5 28.5T200-120Zm-40-160h640q17 0 28.5-11.5T840-320v-200q0-17-11.5-28.5T800-560q-17 0-28.5 11.5T760-520v160H200v-160q0-17-11.5-28.5T160-560q-17 0-28.5 11.5T120-520v200q0 17 11.5 28.5T160-280Zm120-160h400v-80q0-27 11-49t29-39v-112q0-17-11.5-28.5T680-760H280q-17 0-28.5 11.5T240-720v112q18 17 29 39t11 49v80Z"/>, row: <><path d="M5 5h14M5 9h14M5 13h14M5 17h14M5 21h14"/><path d="M3 4v18M21 4v18"/></>,
+    stage: <path d="M476.5-723.5Q453-700 420-700q-13 0-24-3.5T374-715q-24 8-38.5 29T321-640h519l-40 280H604v-80h127q5-30 8.5-60t8.5-60H212q5 30 8.5 60t8.5 60h127v80H160l-40-280h120q0-49 27-89t73-59q3-31 26-51.5t54-20.5q33 0 56.5 23.5T500-780q0 33-23.5 56.5ZM391-200h178l23-240H368l23 240Zm-71 80-30-312q-4-35 20-61.5t59-26.5h222q35 0 59 26.5t20 61.5l-30 312H320Z"/>, door: <path d="M160-80v-720q0-33 23.5-56.5T240-880h480q33 0 56.5 23.5T800-800v720H160Zm80-80h480v-640H240v640Zm380-260q25 0 42.5-17.5T680-480q0-25-17.5-42.5T620-540q-25 0-42.5 17.5T560-480q0 25 17.5 42.5T620-420Z"/>, zone: <><path d="m5 6 6-3 8 5-2 10-9 3-4-8 1-7Z"/><circle cx="5" cy="6" r="1" fill="currentColor"/><circle cx="19" cy="8" r="1" fill="currentColor"/><circle cx="8" cy="21" r="1" fill="currentColor"/></>, ruler: <><path d="m5 19 14-14 2 2L7 21l-2-2Z"/><path d="m10 14 2 2m1-5 2 2m1-5 2 2"/></>, templates: <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M17.5 14v7M14 17.5h7"/></>,
+    tune: <><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M10 14v6"/></>, close: <path d="m6 6 12 12M18 6 6 18"/>, edit: <><path d="m4 20 4.5-1 10-10-3.5-3.5-10 10L4 20Z"/><path d="m13.5 6.5 3.5 3.5"/></>, copy: <><rect x="8" y="8" width="11" height="12" rx="1"/><path d="M16 8V4H5v12h3"/></>, lock: <><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></>, unlock: <><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M16 10V7a4 4 0 0 0-7.5-2"/></>, trash: <><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6"/></>,
+    alignTop: <><path d="M4 4h16M8 7v13M16 7v8"/><path d="M6 9h4M14 9h4"/></>, alignCenter: <><path d="M12 3v18M5 8h14M7 16h10"/></>, distribute: <><path d="M4 4v16M20 4v16M9 7v10M15 7v10"/></>, flip: <><path d="M12 3v18M5 7l5 5-5 5M19 7l-5 5 5 5"/></>,
+  };
+  const material = name === "chair" || name === "stage" || name === "door";
+  return <svg aria-hidden="true" className={className} viewBox={material ? "0 -960 960 960" : "0 0 24 24"} {...(material ? { fill: "currentColor" } : common)}>{paths[name]}</svg>;
 }

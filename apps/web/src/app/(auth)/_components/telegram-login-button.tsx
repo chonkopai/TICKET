@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { saveSession } from "../_lib/session";
+import { safeReturnPath } from "../_lib/public-auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
@@ -40,7 +41,7 @@ export function TelegramLoginButton({ onAuthenticated }: { onAuthenticated?: () 
         }
         saveSession((await response.json()) as AuthResponse);
         if (onAuthenticated) onAuthenticated();
-        else router.replace("/account");
+        else router.replace(safeReturnPath());
       })().catch(() => setError(ru.auth.unavailable));
     };
 

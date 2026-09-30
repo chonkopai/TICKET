@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from "@event-platform/database";
 import type {
   AccountDashboard,
+  AccountNotificationList,
   AccountOrder,
   AccountOrderList,
   NotificationPreferences,
@@ -9,7 +10,7 @@ import type {
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 
 import { DATABASE_CLIENT } from "./auth.constants.js";
-import type { AccountOrderQueryDto, UpdateNotificationPreferencesDto, UpdateOrganizerProfileDto } from "./account.dto.js";
+import type { AccountNotificationQueryDto, AccountOrderQueryDto, UpdateNotificationPreferencesDto, UpdateOrganizerProfileDto } from "./account.dto.js";
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
   transactionalTicketDelivery: true,
@@ -59,21 +60,65 @@ export class AccountService {
     });
   }
 
+  async notifications(userId: string, query: AccountNotificationQueryDto): Promise<AccountNotificationList> {
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+    const where: Prisma.NotificationWhereInput = { userId, channel: "in_app", status: "sent", ...(query.unreadOnly === "true" ? { readAt: null } : {}) };
+    const [rows, total, unreadCount] = await this.database.$transaction([
+      this.database.notification.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * limit, take: limit, select: { id: true, eventId: true, type: true, payload: true, createdAt: true, readAt: true, event: { select: { title: true } } } }),
+      this.database.notification.count({ where }),
+      this.database.notification.count({ where: { userId, channel: "in_app", status: "sent", readAt: null } }),
+    ]);
+    return {
+      items: rows.map((row) => {
+        const payload = row.payload && typeof row.payload === "object" && !Array.isArray(row.payload) ? row.payload as { text?: unknown } : {};
+        return { id: row.id, eventId: row.eventId, eventTitle: row.event?.title ?? null, type: row.type, text: typeof payload.text === "string" ? payload.text : "Уведомление о событии", createdAt: row.createdAt.toISOString(), readAt: row.readAt?.toISOString() ?? null };
+      }),
+      page, limit, total, unreadCount, hasNext: page * limit < total,
+    };
+  }
+
+  async readNotification(userId: string, id: string): Promise<{ readAt: string }> {
+    const row = await this.database.notification.findFirst({ where: { id, userId, channel: "in_app", status: "sent" }, select: { id: true, readAt: true } });
+    if (!row) throw new NotFoundException({ code: "NOTIFICATION_NOT_FOUND" });
+    if (row.readAt) return { readAt: row.readAt.toISOString() };
+    const now = new Date();
+    await this.database.notification.updateMany({ where: { id, userId, channel: "in_app", status: "sent", readAt: null }, data: { readAt: now } });
+    const saved = await this.database.notification.findUniqueOrThrow({ where: { id }, select: { readAt: true } });
+    return { readAt: saved.readAt?.toISOString() ?? now.toISOString() };
+  }
+
   async organizerProfile(userId: string, fallbackName: string | null): Promise<OrganizerProfile> {
-    const row = await this.database.organizerProfile.findUnique({ where: { userId } });
-    return { organizationName: row?.organizationName ?? fallbackName ?? "Организатор" };
+    const [row, user] = await Promise.all([
+      this.database.organizerProfile.findUnique({ where: { userId } }),
+      this.database.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true, email: true, phone: true, photoUrl: true } }),
+    ]);
+    return { organizationName: row?.organizationName ?? fallbackName ?? "Организатор", name: user.name, email: user.email, phone: user.phone, photoUrl: user.photoUrl, address: row?.address ?? null, showContactInfo: row?.showContactInfo ?? false };
   }
 
   async updateOrganizerProfile(userId: string, input: UpdateOrganizerProfileDto): Promise<OrganizerProfile> {
-    const organizationName = input.organizationName.trim();
     return this.database.$transaction(async (transaction) => {
+      const current = await transaction.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true } });
+      const currentProfile = await transaction.organizerProfile.findUnique({ where: { userId } });
+      const organizationName = input.organizationName?.trim() ?? currentProfile?.organizationName ?? current.name ?? "Организатор";
+      const address = input.address === undefined ? currentProfile?.address ?? null : input.address?.trim() || null;
+      const showContactInfo = input.showContactInfo ?? currentProfile?.showContactInfo ?? false;
       const row = await transaction.organizerProfile.upsert({
         where: { userId },
-        create: { userId, organizationName },
-        update: { organizationName },
+        create: { userId, organizationName, address, showContactInfo },
+        update: { organizationName, address, showContactInfo },
       });
-      await recordAccountMutation(transaction, userId, "organizer_profile.updated", ["organizationName"]);
-      return { organizationName: row.organizationName };
+      const user = await transaction.user.update({
+        where: { id: userId },
+        data: {
+          ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+          ...(input.email !== undefined ? { email: input.email?.trim() || null } : {}),
+          ...(input.phone !== undefined ? { phone: input.phone?.trim() || null } : {}),
+        },
+        select: { name: true, email: true, phone: true, photoUrl: true },
+      });
+      await recordAccountMutation(transaction, userId, "organizer_profile.updated", Object.keys(input));
+      return { organizationName: row.organizationName, name: user.name, email: user.email, phone: user.phone, photoUrl: user.photoUrl, address: row.address, showContactInfo: row.showContactInfo };
     });
   }
 

@@ -220,7 +220,7 @@ export class SeatsService {
         tables: {
           include: {
             seatRecords: {
-              include: { allocations: { where: { status: { in: ["active", "consumed"] } }, select: { id: true } } },
+              include: { ticketType: true, allocations: { where: { status: { in: ["active", "consumed"] } }, select: { id: true } } },
               orderBy: { sortOrder: "asc" },
             },
           },
@@ -229,7 +229,7 @@ export class SeatsService {
         rows: {
           include: {
             seats: {
-              include: { allocations: { where: { status: { in: ["active", "consumed"] } }, select: { id: true } } },
+              include: { ticketType: true, allocations: { where: { status: { in: ["active", "consumed"] } }, select: { id: true } } },
               orderBy: { sortOrder: "asc" },
             },
           },
@@ -240,17 +240,23 @@ export class SeatsService {
     const parsed = venueLayoutSchemaAny.safeParse(refreshed.layoutJson);
     if (!parsed.success) throw new ConflictException({ code: "VENUE_LAYOUT_INVALID", message: "The venue layout is invalid" });
     const hideFullPrices = refreshed.event?.paymentMode === "deposit" && !refreshed.event.showFullAmountForDeposit;
+    const now = new Date();
+    const saleable = (seat: { status: SeatStatus; allocations: Array<{ id: string }>; ticketType: { status: TicketTypeStatus; salesStartAt: Date | null; salesEndAt: Date | null } | null }) =>
+      seat.status === SeatStatus.available && seat.allocations.length === 0 && seat.ticketType?.status === TicketTypeStatus.active && (!seat.ticketType.salesStartAt || seat.ticketType.salesStartAt <= now) && (!seat.ticketType.salesEndAt || seat.ticketType.salesEndAt > now);
+    const category = (seat: (typeof refreshed.seats)[number]) =>
+      (seat.rowId ? refreshed.rows.find((row) => row.id === seat.rowId)?.typeLabel : seat.tableId ? refreshed.tables.find((table) => table.id === seat.tableId)?.typeLabel : null)
+      ?? (seat.ticketType?.name && !/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(seat.ticketType.name) ? seat.ticketType.name : null);
     // Prices in editor metadata follow the same deposit visibility policy as public ticket types.
     const publicJson = parsed.data.version === 2 && parsed.data.editor && hideFullPrices
       ? { ...parsed.data, editor: { ...parsed.data.editor, tariffs: parsed.data.editor.tariffs.map((t) => ({ ...t, price: 0 })), objects: parsed.data.editor.objects.map((o) => ({ ...o, price: null })) } }
       : parsed.data;
     return {
-      seats: refreshed.seats.map((seat) => ({ id: seat.id, number: seat.number, label: seat.label, sortOrder: seat.sortOrder, status: seat.status, tableId: seat.tableId, rowId: seat.rowId, ticketTypeId: seat.ticketTypeId, availability: seat.status === "available" && seat.allocations.length === 0 && seat.ticketType?.status === "active" ? "available" as const : "unavailable" as const, price: hideFullPrices ? null : seat.ticketType?.price ?? null, deposit: seat.ticketType?.deposit ?? 0, currency: seat.ticketType?.currency.trim() ?? "KZT" })),
+      seats: refreshed.seats.map((seat) => ({ id: seat.id, number: seat.number, label: seat.label, sortOrder: seat.sortOrder, status: seat.status, tableId: seat.tableId, rowId: seat.rowId, ticketTypeId: seat.ticketTypeId, availability: saleable(seat) ? "available" as const : "unavailable" as const, tariffName: category(seat), price: hideFullPrices ? null : seat.ticketType?.price ?? null, deposit: seat.ticketType?.deposit ?? 0, currency: seat.ticketType?.currency.trim() ?? "KZT" })),
       id: refreshed.id,
       eventId,
       layoutJson: publicJson as PublicVenueLayout["layoutJson"],
-      tables: refreshed.tables.map((table) => ({ id: table.id, number: table.number, name: table.name, seats: table.seats, price: hideFullPrices ? null : table.price, deposit: table.deposit, currency: table.currency.trim(), description: table.description, typeLabel: table.typeLabel, shortDescription: table.shortDescription, saleMode: table.saleMode, status: table.status, holdExpiresAt: table.holdExpiresAt?.toISOString() ?? null, seatRecords: table.seatRecords.map((seat) => ({ id: seat.id, number: seat.number, label: seat.label, sortOrder: seat.sortOrder, status: seat.status, tableId: seat.tableId, rowId: seat.rowId, ticketTypeId: seat.ticketTypeId, availability: seat.status === SeatStatus.available && seat.allocations.length === 0 ? "available" : "unavailable" })) })),
-      rows: refreshed.rows.map((row) => ({ id: row.id, number: row.number, name: row.name, typeLabel: row.typeLabel, shortDescription: row.shortDescription, price: hideFullPrices ? null : row.price, deposit: row.deposit, currency: row.currency.trim(), availability: row.status === TableStatus.available && row.seats.some((seat) => seat.status === SeatStatus.available && seat.allocations.length === 0) ? "available" : "unavailable", seats: row.seats.map((seat) => ({ id: seat.id, number: seat.number, label: seat.label, sortOrder: seat.sortOrder, status: seat.status, tableId: seat.tableId, rowId: seat.rowId, ticketTypeId: seat.ticketTypeId, availability: seat.status === SeatStatus.available && seat.allocations.length === 0 ? "available" : "unavailable", price: hideFullPrices ? null : row.price, deposit: row.deposit, currency: row.currency.trim() })) })),
+      tables: refreshed.tables.map((table) => ({ id: table.id, number: table.number, name: table.name, seats: table.seats, price: hideFullPrices ? null : table.price, deposit: table.deposit, currency: table.currency.trim(), description: table.description, typeLabel: table.typeLabel, shortDescription: table.shortDescription, saleMode: table.saleMode, status: table.status, holdExpiresAt: table.holdExpiresAt?.toISOString() ?? null, seatRecords: table.seatRecords.map((seat) => ({ id: seat.id, number: seat.number, label: seat.label, sortOrder: seat.sortOrder, status: seat.status, tableId: seat.tableId, rowId: seat.rowId, ticketTypeId: seat.ticketTypeId, availability: saleable(seat) ? "available" : "unavailable" })) })),
+      rows: refreshed.rows.map((row) => ({ id: row.id, number: row.number, name: row.name, typeLabel: row.typeLabel, shortDescription: row.shortDescription, price: hideFullPrices ? null : row.price, deposit: row.deposit, currency: row.currency.trim(), availability: row.status === TableStatus.available && row.seats.some(saleable) ? "available" : "unavailable", seats: row.seats.map((seat) => ({ id: seat.id, number: seat.number, label: seat.label, sortOrder: seat.sortOrder, status: seat.status, tableId: seat.tableId, rowId: seat.rowId, ticketTypeId: seat.ticketTypeId, availability: saleable(seat) ? "available" : "unavailable", tariffName: seat.ticketType?.name ?? null, price: hideFullPrices ? null : seat.ticketType?.price ?? null, deposit: seat.ticketType?.deposit ?? 0, currency: seat.ticketType?.currency.trim() ?? "KZT" })) })),
     };
   }
 

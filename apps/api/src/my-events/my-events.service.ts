@@ -1,10 +1,11 @@
 import type { Prisma, PrismaClient } from "@event-platform/database";
 import { EventStatus, TicketStatus } from "@event-platform/database";
-import type { GuestBooking, GuestEvent, GuestEventList, GuestParticipationStatus, GuestTicket } from "@event-platform/shared-types";
+import type { EventLocale, GuestBooking, GuestEvent, GuestEventList, GuestParticipationStatus, GuestTicket } from "@event-platform/shared-types";
 import { zonedInputToIso } from "@event-platform/shared-types";
 import { Inject, Injectable } from "@nestjs/common";
 
 import { DATABASE_CLIENT } from "../auth/auth.constants.js";
+import { eventContent, eventContentHash } from "../events/event-translation-content.js";
 
 const MAX_EVENT_SCAN = 500;
 type EventWithGuestData = Prisma.EventGetPayload<{
@@ -18,7 +19,7 @@ type EventWithGuestData = Prisma.EventGetPayload<{
 export class MyEventsService {
   constructor(@Inject(DATABASE_CLIENT) private readonly database: PrismaClient) {}
 
-  async list(userId: string, status: "upcoming" | "past", page: number, limit: number, now = new Date()): Promise<GuestEventList> {
+  async list(userId: string, status: "upcoming" | "past", page: number, limit: number, now = new Date(), locale: EventLocale = "ru"): Promise<GuestEventList> {
     const include: Prisma.EventInclude = {
       ticketTypes: { include: { tickets: { where: { OR: [{ ownerUserId: userId }, { order: { buyerUserId: userId } }] } } } },
       venueLayout: { include: { tables: { include: { bookings: { where: { order: { buyerUserId: userId } }, include: { order: { include: { deposit: true } } } } } } } },
@@ -44,7 +45,23 @@ export class MyEventsService {
       });
     const skip = (page - 1) * limit;
     const items = filtered.slice(skip, skip + limit);
-    return { items, status, page, limit, total: filtered.length, hasNext: skip + items.length < filtered.length };
+    const sourceById = new Map(events.map((event) => [event.id, event]));
+    const translations = items.length ? await this.database.eventTranslation.findMany({ where: { eventId: { in: items.map((item) => item.id) }, locale } }) : [];
+    const translationById = new Map(translations.map((translation) => [translation.eventId, translation]));
+    const localized = items.map((item) => {
+      const source = sourceById.get(item.id);
+      const sourceLocale = (source?.sourceLocale ?? "ru") as EventLocale;
+      const candidate = sourceLocale === locale ? null : translationById.get(item.id);
+      const translation = candidate && source && (candidate.origin === "manual" || candidate.sourceHash === eventContentHash(eventContent(source))) ? candidate : null;
+      return { ...item, ...(translation ? {
+        title: translation.title, announcement: translation.announcement, description: translation.description,
+        program: translation.program, rules: translation.rules, visitTerms: translation.visitTerms,
+        cancellationTerms: translation.cancellationTerms, depositTerms: translation.depositTerms,
+        extraConditions: translation.extraConditions, venueName: translation.venueName, address: translation.address,
+        tickets: item.tickets.map((ticket) => ({ ...ticket, eventTitle: translation.title })),
+      } : {}), contentLocale: translation ? locale : sourceLocale, sourceLocale };
+    });
+    return { items: localized, status, page, limit, total: filtered.length, hasNext: skip + items.length < filtered.length };
   }
 
   private presentEvent(event: EventWithGuestData, now: Date): GuestEvent {
@@ -52,7 +69,12 @@ export class MyEventsService {
     const time = timeString(event.time);
     const startsAt = zonedInputToIso(`${date}T${time}`, event.timezone);
     const isPast = new Date(startsAt) <= now;
-    const tickets = event.ticketTypes.flatMap((type) => type.tickets.map((ticket) => presentGuestTicket(ticket, type.name, event.id, event.title)));
+    const tickets = event.ticketTypes.flatMap((type) => type.tickets.map((ticket) => presentGuestTicket(
+      ticket,
+      type.isInternal ? "Место за столом" : type.name,
+      event.id,
+      event.title,
+    )));
     const bookings = event.venueLayout?.tables.flatMap((table) => table.bookings.map((booking) => presentBooking(booking, table))) ?? [];
     const participationStatus = eventParticipation(event.status, tickets, bookings, isPast);
     return {
@@ -83,9 +105,10 @@ export class MyEventsService {
   }
 }
 
-function presentGuestTicket(ticket: { id: string; status: TicketStatus; usedAt: Date | null; createdAt: Date; updatedAt: Date }, typeName: string, eventId: string, eventTitle: string): GuestTicket {
+function presentGuestTicket(ticket: { id: string; status: TicketStatus; usedAt: Date | null; seatLabelSnapshot: string | null; createdAt: Date; updatedAt: Date }, typeName: string, eventId: string, eventTitle: string): GuestTicket {
   return {
     id: ticket.id, eventId, eventTitle, ticketTypeName: typeName, status: ticket.status,
+    seatLabel: ticket.seatLabelSnapshot,
     usedAt: ticket.usedAt?.toISOString() ?? null, qrPath: `/me/tickets/${ticket.id}/qr`, walletPath: `/me/tickets/${ticket.id}/wallet`,
     createdAt: ticket.createdAt.toISOString(), updatedAt: ticket.updatedAt.toISOString(),
   };

@@ -1,11 +1,11 @@
-import { ru } from "@event-platform/shared-types";
+import { redirect } from "next/navigation";
 
-import { PublicEventsBrowser } from "../../components/public-events-browser";
-import { PageShell, SectionHeading } from "../../components/ui";
-
-export default function EventsPage() {
-  return <PageShell>
-    <SectionHeading title={ru.publicEvent.catalogTitle} description={ru.publicEvent.catalogDescription} />
-    <PublicEventsBrowser />
-  </PageShell>;
+export default async function EventsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const incoming = await searchParams;
+  const params = new URLSearchParams();
+  for (const key of ["lang", "search", "city", "category", "datePreset", "from", "to", "free", "paymentMode", "minPrice", "maxPrice", "sort"]) {
+    const value = incoming[key];
+    if (typeof value === "string") params.set(key, value);
+  }
+  redirect(params.size ? `/?${params.toString()}` : "/");
 }

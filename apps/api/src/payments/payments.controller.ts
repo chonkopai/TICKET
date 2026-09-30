@@ -4,6 +4,7 @@ import { BadRequestException, Controller, Get, Headers, HttpCode, Param, Post, R
 import type { AuthenticatedPrincipal } from "../auth/auth.constants.js";
 import { CurrentUser } from "../auth/auth.decorators.js";
 import { JwtAuthGuard } from "../auth/auth.guards.js";
+import { SensitiveRateGuard } from "../auth/sensitive-rate.guard.js";
 import { BookingService } from "../booking/booking.service.js";
 import { PaymentService } from "./payment.service.js";
 
@@ -13,6 +14,7 @@ export class OrdersPaymentController {
   constructor(private readonly payments: PaymentService, private readonly booking: BookingService) {}
 
   @Post(":id/pay")
+  @UseGuards(SensitiveRateGuard)
   async pay(@CurrentUser() user: AuthenticatedPrincipal, @Param("id") orderId: string, @Headers("idempotency-key") key: string | undefined): Promise<PaymentLinkResponse> {
     const result = await this.payments.createLink(user.userId, orderId, key);
     if (result.amount === 0 && result.status === "pending") {

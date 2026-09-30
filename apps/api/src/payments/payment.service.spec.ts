@@ -53,6 +53,15 @@ describe("DevelopmentPaymentProvider", () => {
 });
 
 describe("Payment settlement", () => {
+  it("never reuses a payment idempotency key for a different order", async () => {
+    const first = await prisma.order.create({ data: { type: "ticket", buyerUserId: guestId, amount: 1000, currency: "KZT", paymentStatus: "pending", expiresAt: new Date(now.getTime() + 900_000) } });
+    const second = await prisma.order.create({ data: { type: "ticket", buyerUserId: guestId, amount: 1000, currency: "KZT", paymentStatus: "pending", expiresAt: new Date(now.getTime() + 900_000) } });
+    const key = `shared-${randomUUID()}`;
+    expect((await payments.createLink(guestId, first.id, key)).orderId).toBe(first.id);
+    await expect(payments.createLink(guestId, second.id, key)).rejects.toBeInstanceOf(ConflictException);
+    expect(await prisma.payment.count({ where: { orderId: second.id } })).toBe(0);
+  });
+
   it("finalizes a ticket exactly once for duplicate and concurrent callbacks", async () => {
     const checkout = await booking.checkoutTickets(guestId, `pay-${randomUUID()}`, { ticketTypeId: typeId, quantity: 1, termsAccepted: true });
     const attempt = await prisma.payment.findFirst({ where: { orderId: checkout.orderId } });

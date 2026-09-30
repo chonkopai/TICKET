@@ -1,3 +1,5 @@
+import type { EventLocale } from "./events.js";
+
 export type TicketTypeStatus = "draft" | "active" | "paused" | "sold_out";
 export type TicketStatus =
   | "created"
@@ -93,6 +95,10 @@ export interface UseTicketResponse {
   ticket: OrganizerTicket;
 }
 
+export type EventScanPreview =
+  | { kind: "ticket"; ticket: OrganizerTicket }
+  | { kind: "group_pass"; groupPassId: string; tableLabel: string; totalSeats: number; admitted: number; remaining: number; status: "active" | "used" | "cancelled" };
+
 export interface UseGroupPassRequest {
   token: string;
   confirm: true;
@@ -112,12 +118,14 @@ export interface GuestTicket {
   id: string;
   eventId: string;
   eventTitle: string;
+  contentLocale?: EventLocale;
+  sourceLocale?: EventLocale;
   ticketTypeName: string;
   seatLabel?: string | null;
   status: TicketStatus;
   usedAt: string | null;
   qrPath: string;
-  walletPath: string;
+  walletPath: string | null;
   createdAt: string;
   updatedAt: string;
 }

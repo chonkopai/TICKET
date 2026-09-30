@@ -1,8 +1,22 @@
-import { ru, type PublicEventSummary } from "@event-platform/shared-types";
+"use client";
+
+import { INTL_LOCALES } from "../lib/locale";
+
+import { type EventLocale, type PublicEventSummary } from "@event-platform/shared-types";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { AgeRestrictionBadge } from "./age-restriction-badge";
 import { FavoriteButton } from "./favorite-button";
+import { useDisplayCurrency } from "./currency-provider";
+import { useLocale } from "./locale-provider";
+import { HOME_COPY } from "../app/home-copy";
+
+const UI_COPY: Record<EventLocale, { fullPayment: string; unavailable: string; retry: string; loading: string; tickets: string; tables: string; seats: string }> = {
+  ru: { fullPayment: "Полная оплата", unavailable: "Недоступно", retry: "Повторить", loading: "Загрузка", tickets: "билетов", tables: "столов", seats: "мест" },
+  kk: { fullPayment: "Толық төлем", unavailable: "Қолжетімсіз", retry: "Қайталау", loading: "Жүктелуде", tickets: "билет", tables: "үстел", seats: "орын" },
+  en: { fullPayment: "Full payment", unavailable: "Unavailable", retry: "Retry", loading: "Loading", tickets: "tickets", tables: "tables", seats: "seats" },
+};
 
 export function PageShell({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <main className={`mx-auto min-h-screen w-full max-w-6xl px-5 py-8 sm:px-8 sm:py-12 ${className}`}>{children}</main>;
@@ -20,21 +34,28 @@ export function SectionHeading({ eyebrow, title, description, action }: { eyebro
 }
 
 export function EventCard({ event }: { event: PublicEventSummary }) {
-  const price = event.startingAmount === 0 ? ru.publicEvent.freePrice : event.startingAmount === null ? null : `${ru.publicEvent.fromPrice} ${formatMoney(event.startingAmount, event.startingCurrency ?? "KZT")}`;
-  const availability = ru.publicEvent.saleStatuses[event.saleStatus];
+  const locale = useLocale();
+  const copy = HOME_COPY[locale];
+  const ui = UI_COPY[locale];
+  const { formatMoney } = useDisplayCurrency();
+  const price = event.startingPrices.length > 1
+    ? event.startingPrices.map((item) => `${item.amount === 0 ? copy.free : `${copy.from} ${formatMoney(item.amount, item.currency)}`} ${priceUnit(item.unit, locale)}`).join(" · ")
+    : event.startingAmount === 0 ? copy.free : event.startingAmount === null ? null : `${copy.from} ${formatMoney(event.startingAmount, event.startingCurrency ?? "KZT")} ${priceUnit(event.startingUnit, locale)}`;
+  const availability = copy.saleStatuses[event.saleStatus];
   return <article className="group relative overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
     <Link className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-600" href={`/events/${event.id}`}>
       <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-indigo-100 via-white to-amber-100">
         {event.posterUrl ? <img alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" loading="lazy" src={event.posterUrl} /> : <div aria-hidden="true" className="flex h-full items-end p-5"><span className="text-3xl font-semibold text-indigo-900">{event.title.slice(0, 1)}</span></div>}
-        <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-zinc-800 shadow-sm">{event.category ? ru.events.categories[event.category] : ""}</span>
+        <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-zinc-800 shadow-sm">{event.category ? copy.categories[event.category] : ""}</span>
+        <AgeRestrictionBadge age={event.ageRestriction} className="absolute bottom-3 right-4" />
       </div>
       <div className="p-5">
-        <p className="text-sm font-bold uppercase tracking-wide text-indigo-700">{formatLocalDate(event.date)}</p>
+        <p className="text-sm font-bold uppercase tracking-wide text-indigo-700">{formatLocalDate(event.date, locale)}</p>
         <p className="mt-1 text-sm font-medium text-zinc-600">{event.time} · {event.timezone}</p>
         <h3 className="mt-3 line-clamp-2 text-xl font-semibold leading-tight group-hover:text-indigo-700">{event.title}</h3>
         <p className="mt-3 truncate text-sm text-zinc-600">{event.city} · {event.venueName}</p>
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm"><span className="rounded-full bg-indigo-50 px-2.5 py-1 font-semibold text-indigo-800">{event.paymentMode === "deposit" ? ru.checkout.deposit : ru.checkout.fullPayment}</span>{price ? <span className="font-semibold text-zinc-900">{price}</span> : <span className="font-semibold text-zinc-700">{ru.publicEvent.priceUnavailable}</span>}</div>
-        <div className="mt-4 flex items-center justify-between gap-2 text-xs font-semibold"><span className={event.saleStatus === "sold_out" || event.saleStatus === "sales_ended" ? "text-red-700" : event.saleStatus === "few_left" ? "text-amber-700" : "text-emerald-700"}>{availability}</span><span className="text-zinc-500">{availabilityCount(event)}</span></div>
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm"><span className="rounded-full bg-indigo-50 px-2.5 py-1 font-semibold text-indigo-800">{event.paymentMode === "deposit" ? copy.deposit : ui.fullPayment}</span>{price ? <span className="font-semibold text-zinc-900">{price}</span> : <span className="font-semibold text-zinc-700">{event.saleStatus === "sold_out" || event.saleStatus === "sales_ended" || event.saleStatus === "temporarily_unavailable" ? availability : copy.priceUnknown}</span>}</div>
+        <div className="mt-4 flex items-center justify-between gap-2 text-xs font-semibold"><span className={event.saleStatus === "sold_out" || event.saleStatus === "sales_ended" ? "text-red-700" : event.saleStatus === "few_left" ? "text-amber-700" : "text-emerald-700"}>{availability}</span><span className="text-zinc-500">{availabilityCount(event, locale)}</span></div>
       </div>
     </Link>
     <FavoriteButton eventId={event.id} />
@@ -46,26 +67,28 @@ export function EmptyState({ title, description, action }: { title: string; desc
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
-  return <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900"><p>{message}</p>{onRetry ? <button className="mt-3 rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700" onClick={onRetry} type="button">Повторить</button> : null}</div>;
+  const copy = UI_COPY[useLocale()];
+  return <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900"><p>{message}</p>{onRetry ? <button className="mt-3 rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700" onClick={onRetry} type="button">{copy.retry}</button> : null}</div>;
 }
 
 export function LoadingGrid({ count = 6 }: { count?: number }) {
-  return <div aria-label="Загрузка" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: count }, (_, index) => <div aria-hidden="true" className="overflow-hidden rounded-3xl border border-zinc-200 bg-white" key={index}><div className="aspect-[16/9] animate-pulse bg-zinc-200" /><div className="space-y-3 p-5"><div className="h-5 w-3/4 animate-pulse rounded bg-zinc-200" /><div className="h-4 w-1/2 animate-pulse rounded bg-zinc-100" /></div></div>)}</div>;
+  const copy = UI_COPY[useLocale()];
+  return <div aria-label={copy.loading} className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: count }, (_, index) => <div aria-hidden="true" className="overflow-hidden rounded-3xl border border-zinc-200 bg-white" key={index}><div className="aspect-[16/9] animate-pulse bg-zinc-200" /><div className="space-y-3 p-5"><div className="h-5 w-3/4 animate-pulse rounded bg-zinc-200" /><div className="h-4 w-1/2 animate-pulse rounded bg-zinc-100" /></div></div>)}</div>;
 }
 
-function formatMoney(value: number, currency: string): string {
-  return `${(value / 100).toLocaleString("ru-RU")} ${currency}`;
-}
+function priceUnit(unit: PublicEventSummary["startingUnit"], locale: EventLocale): string { const copy = HOME_COPY[locale]; return unit === "table" ? copy.tableUnit : unit === "seat" ? copy.seatUnit : copy.ticketUnit; }
 
-function formatLocalDate(value: string): string {
+function formatLocalDate(value: string, locale: EventLocale): string {
   const date = new Date(`${value}T00:00:00Z`);
-  return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+  return new Intl.DateTimeFormat(INTL_LOCALES[locale], { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(date);
 }
 
-function availabilityCount(event: PublicEventSummary): string {
-  if (event.saleStatus === "sold_out" || event.saleStatus === "sales_ended") return "";
+function availabilityCount(event: PublicEventSummary, locale: EventLocale): string {
+  if (event.saleStatus === "sold_out" || event.saleStatus === "sales_ended" || event.saleStatus === "temporarily_unavailable") return "";
   const labels: string[] = [];
-  if (event.remainingTickets > 0) labels.push(`${event.remainingTickets} ${ru.publicEvent.availability.tickets}`);
-  if (event.remainingTables > 0) labels.push(`${event.remainingTables} ${ru.publicEvent.availability.tables}`);
+  const copy = UI_COPY[locale];
+  if (event.remainingTickets > 0) labels.push(`${event.remainingTickets} ${copy.tickets}`);
+  if (event.remainingTables > 0) labels.push(`${event.remainingTables} ${copy.tables}`);
+  if (event.remainingSeats > 0) labels.push(`${event.remainingSeats} ${copy.seats}`);
   return labels.join(" · ");
 }

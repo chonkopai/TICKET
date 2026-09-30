@@ -15,6 +15,6 @@ export class MyEventsController {
 
   @Get()
   list(@CurrentUser() principal: AuthenticatedPrincipal, @Query(new ExplicitDtoPipe(MyEventsQueryDto)) query: MyEventsQueryDto): Promise<GuestEventList> {
-    return this.events.list(principal.userId, query.status, query.page, query.limit);
+    return this.events.list(principal.userId, query.status, query.page, query.limit, new Date(), query.locale);
   }
 }

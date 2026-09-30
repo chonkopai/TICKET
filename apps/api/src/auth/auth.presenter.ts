@@ -4,7 +4,7 @@ import type { AuthUser } from "@event-platform/shared-types";
 export function presentUser(user: User): AuthUser {
   return {
     id: user.id,
-    telegramId: user.telegramId.toString(),
+    telegramId: user.telegramId?.toString() ?? null,
     telegramChatId: user.telegramChatId?.toString() ?? null,
     role: user.role,
     name: user.name,

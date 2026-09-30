@@ -15,7 +15,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 
-import { AUTH_CONFIG, DATABASE_CLIENT, type AuthConfig } from "./auth.constants.js";
+import { AUTH_CONFIG, DATABASE_CLIENT, type AuthConfig, type AuthenticatedPrincipal } from "./auth.constants.js";
 import { presentUser } from "./auth.presenter.js";
 import type { UpdateMeDto } from "./dto.js";
 import { TelegramLinkService } from "./telegram-link.service.js";
@@ -46,8 +46,7 @@ export class AuthService {
         photoUrl: payload.photo_url ?? null,
       },
       update: {
-        name,
-        ...(payload.photo_url ? { photoUrl: payload.photo_url } : {}),
+        // Keep a name or photo explicitly chosen in the account editor.
       },
     });
 
@@ -58,11 +57,16 @@ export class AuthService {
     return this.tokens.rotate(refreshToken);
   }
 
-  async authenticate(accessToken: string): Promise<{ userId: string; role: User["role"] }> {
-    const { userId } = await this.tokens.verifyAccess(accessToken);
+  revokeRefreshFamily(refreshToken: string): Promise<void> {
+    return this.tokens.revokeFamily(refreshToken);
+  }
+
+  async authenticate(accessToken: string): Promise<{ userId: string; role: User["role"]; sessionFamilyId?: string; authenticatedAt?: number }> {
+    const { userId, credentialVersion, sessionFamilyId, authenticatedAt } = await this.tokens.verifyAccess(accessToken);
     const user = await this.database.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException("User no longer exists");
-    return { userId: user.id, role: user.role };
+    if (credentialVersion !== undefined && credentialVersion !== user.credentialVersion) throw new UnauthorizedException("Session was revoked");
+    return { userId: user.id, role: user.role, ...(sessionFamilyId ? { sessionFamilyId } : {}), ...(authenticatedAt ? { authenticatedAt } : {}) };
   }
 
   async getMe(userId: string): Promise<AuthUser> {
@@ -108,8 +112,10 @@ export class AuthService {
     );
   }
 
-  issueTelegramLinkToken(userId: string): Promise<TelegramLinkTokenResponse> {
-    return this.telegramLinks.issue(userId);
+  async issueTelegramLinkToken(principal: AuthenticatedPrincipal): Promise<TelegramLinkTokenResponse> {
+    await this.findUser(principal.userId);
+    if (!principal.sessionFamilyId || !principal.authenticatedAt || Date.now() / 1_000 - principal.authenticatedAt > 10 * 60) throw new UnauthorizedException({ code: "RECENT_AUTH_REQUIRED" });
+    return this.telegramLinks.issue(principal.userId, new Date(), principal.sessionFamilyId);
   }
 
   consumeTelegramLink(input: TelegramLinkConsumeRequest): Promise<User> {

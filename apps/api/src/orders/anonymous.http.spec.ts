@@ -18,7 +18,7 @@ describe("anonymous HTTP boundary", () => {
     hashes.push(secretHash(body.sessionToken));
     expect(body.sessionToken).toHaveLength(43); expect(body.accessToken).not.toBe(body.sessionToken);
     const read = await fetch(`${origin}/quick/session`, { headers: { authorization: `Bearer ${body.sessionToken}` } });
-    expect(await read.json()).toEqual({ verified: false, orderId: null });
+    expect(await read.json()).toEqual({ verified: false, telegramVerified: false, verifiedEmail: null, orderId: null });
     const tampered = await fetch(`${origin}/quick/sessions`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "Guest", telegramId: "123", price: 1 }) });
     expect(tampered.status).toBe(400);
   });

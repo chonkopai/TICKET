@@ -36,5 +36,5 @@ export function FavoriteButton({ eventId }: { eventId: string }) {
     } finally { setBusy(false); }
   }
 
-  return <button aria-label={favorite ? ru.publicEvent.favoriteRemove : ru.publicEvent.favoriteAdd} aria-pressed={favorite} className="absolute right-4 top-4 z-10 rounded-full bg-white/95 p-2 text-xl leading-none text-indigo-700 shadow-sm transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 disabled:opacity-60" disabled={busy} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void change(); }} type="button">{favorite ? "♥" : "♡"}</button>;
+  return <button aria-label={favorite ? ru.publicEvent.favoriteRemove : ru.publicEvent.favoriteAdd} aria-pressed={favorite} className="absolute right-4 top-4 z-10 flex size-9 items-center justify-center rounded-full border border-white/35 bg-white/50 text-lg leading-none text-indigo-700 shadow-sm backdrop-blur-sm transition hover:scale-105 hover:bg-white/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 disabled:opacity-60" disabled={busy} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void change(); }} type="button">{favorite ? "♥" : "♡"}</button>;
 }

@@ -37,6 +37,11 @@ export function createStartHandler(options: StartHandlerOptions): (ctx: Context)
       return;
     }
 
+    if (ctx.chat.type !== "private" || ctx.chat.id !== ctx.from.id) {
+      await ctx.reply(ru.bot.unableToIdentify);
+      return;
+    }
+
     const body: TelegramLinkConsumeRequest = {
       token,
       telegramId: ctx.from.id,
@@ -58,7 +63,8 @@ export function createStartHandler(options: StartHandlerOptions): (ctx: Context)
       await replyWelcome(ctx, options);
       return;
     }
-    await ctx.reply(ru.bot.linked);
+    const outcome = await response.json().catch(() => ({ pending: false })) as { pending?: boolean };
+    await ctx.reply(outcome.pending ? ru.bot.linkPending : ru.bot.linked);
     await replyWelcome(ctx, options);
   };
 }

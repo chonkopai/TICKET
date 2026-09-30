@@ -22,7 +22,10 @@ export class PaymentService {
   async createLink(userId: string, orderId: string, rawKey: string | undefined, anonymous = false): Promise<PaymentLinkResponse> {
     const key = idempotencyKey(rawKey);
     const prior = anonymous ? null : await this.database.idempotencyRecord.findUnique({ where: { userId_operation_key: { userId, operation: PAY_OPERATION, key } } });
-    if (prior?.response) return prior.response as unknown as PaymentLinkResponse;
+    if (prior) {
+      if (prior.resourceId !== orderId) throw new ConflictException({ code: "IDEMPOTENCY_KEY_REUSED" });
+      if (prior.response) return prior.response as unknown as PaymentLinkResponse;
+    }
     const intent = await this.database.$transaction(async (transaction) => {
       await lockOrder(transaction, orderId);
       const order = await transaction.order.findFirst({ where: { id: orderId, ...(anonymous ? { buyerUserId: null, anonymousSession: { id: userId } } : { buyerUserId: userId }) }, include: { payments: { where: { provider: this.provider.name }, orderBy: { createdAt: "desc" } } } });
@@ -113,11 +116,13 @@ export class PaymentService {
   }
 
   private async saveIdempotency(userId: string, key: string, result: PaymentLinkResponse): Promise<void> {
-    await this.database.idempotencyRecord.upsert({
-      where: { userId_operation_key: { userId, operation: PAY_OPERATION, key } },
-      create: { userId, operation: PAY_OPERATION, key, resourceId: result.orderId, response: result as unknown as Prisma.InputJsonObject },
-      update: { resourceId: result.orderId, response: result as unknown as Prisma.InputJsonObject },
-    });
+    try {
+      await this.database.idempotencyRecord.create({ data: { userId, operation: PAY_OPERATION, key, resourceId: result.orderId, response: result as unknown as Prisma.InputJsonObject } });
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
+      const prior = await this.database.idempotencyRecord.findUnique({ where: { userId_operation_key: { userId, operation: PAY_OPERATION, key } } });
+      if (!prior || prior.resourceId !== result.orderId) throw new ConflictException({ code: "IDEMPOTENCY_KEY_REUSED" });
+    }
   }
 }
 

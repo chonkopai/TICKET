@@ -1,10 +1,32 @@
 export type EventStatus = "draft" | "published" | "cancelled" | "completed";
+export const EVENT_LOCALES = ["ru", "kk", "en"] as const;
+export type EventLocale = (typeof EVENT_LOCALES)[number];
+export interface EventLocalizedContent {
+  title: string;
+  venueName: string;
+  address: string;
+  announcement: string | null;
+  description: string | null;
+  program: string | null;
+  rules: string | null;
+  visitTerms: string | null;
+  cancellationTerms: string | null;
+  depositTerms: string | null;
+  extraConditions: string | null;
+}
+export interface EventTranslation extends EventLocalizedContent {
+  locale: EventLocale;
+  status: "source" | "manual" | "machine" | "stale";
+  translatedFrom: EventLocale | null;
+  updatedAt: string;
+}
 export type EventPaymentMode = "deposit" | "full_payment";
 export type PaymentLabel = "deposit" | "full_payment";
 export type PublicSaleStatus =
   | "available"
   | "few_left"
   | "sold_out"
+  | "temporarily_unavailable"
   | "sales_not_started"
   | "sales_ended";
 export const EVENT_CATEGORIES = [
@@ -22,12 +44,16 @@ export const EVENT_CATEGORIES = [
   "other",
 ] as const;
 export type EventCategory = (typeof EVENT_CATEGORIES)[number];
+export const EVENT_AGE_RESTRICTIONS = [0, 6, 12, 16, 18, 21] as const;
+export type EventAgeRestriction = (typeof EVENT_AGE_RESTRICTIONS)[number];
 
 export interface OrganizerEvent {
   id: string;
   organizerId: string;
+  sourceLocale?: EventLocale | undefined;
   title: string;
   category: EventCategory;
+  countryCode: string;
   city: string;
   posterUrl: string | null;
   announcement: string | null;
@@ -43,6 +69,7 @@ export interface OrganizerEvent {
   date: string;
   time: string;
   timezone: string;
+  ageRestriction: EventAgeRestriction;
   venueName: string;
   address: string;
   status: EventStatus;
@@ -51,12 +78,15 @@ export interface OrganizerEvent {
 }
 
 export interface CreateEventRequest {
+  sourceLocale?: EventLocale | undefined;
   title: string;
   category: EventCategory;
+  countryCode?: string;
   city: string;
   date: string;
   time: string;
   timezone?: string;
+  ageRestriction?: EventAgeRestriction;
   venueName: string;
   address: string;
   announcement?: string | null;
@@ -88,6 +118,7 @@ export interface DeleteEventResponse {
 
 export interface PublicTicketType {
   id: string;
+  venueObjectId: string | null;
   name: string;
   price: number | null;
   deposit: number;
@@ -130,8 +161,11 @@ export interface PublicPaymentOption {
 
 export interface PublicEvent {
   id: string;
+  contentLocale?: EventLocale;
+  sourceLocale?: EventLocale;
   title: string;
   category: EventCategory;
+  countryCode: string;
   city: string;
   posterUrl: string | null;
   announcement: string | null;
@@ -147,24 +181,29 @@ export interface PublicEvent {
   date: string;
   time: string;
   timezone: string;
+  ageRestriction: EventAgeRestriction;
   startsAt: string;
   venueName: string;
   address: string;
   ticketTypes: PublicTicketType[];
   tables: PublicTable[];
-  organizer: { name: string | null; photoUrl: string | null; contact: string | null };
+  organizer: { name: string | null; personName: string | null; photoUrl: string | null; contact: string | null };
 }
 
 export interface PublicEventSummary {
   id: string;
+  contentLocale?: EventLocale;
+  sourceLocale?: EventLocale;
   title: string;
   category: EventCategory;
+  countryCode: string;
   city: string;
   posterUrl: string | null;
   announcement: string | null;
   date: string;
   time: string;
   timezone: string;
+  ageRestriction: EventAgeRestriction;
   startsAt: string;
   venueName: string;
   address: string;
@@ -173,8 +212,13 @@ export interface PublicEventSummary {
   startingAmount: number | null;
   startingFullAmount: number | null;
   startingCurrency: string | null;
+  /** What one starting amount buys; a whole table is never a per-seat price. */
+  startingUnit: "ticket" | "seat" | "table" | null;
+  /** One minimum due-now option per currency; never compare unlike currencies. */
+  startingPrices: Array<{ amount: number; fullAmount: number | null; currency: string; unit: "ticket" | "seat" | "table" }>;
   remainingTickets: number;
   remainingTables: number;
+  remainingSeats: number;
   saleStatus: PublicSaleStatus;
   organizer: { name: string | null; photoUrl: string | null };
 }

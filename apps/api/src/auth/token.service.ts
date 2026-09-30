@@ -18,6 +18,8 @@ interface EventPlatformClaims extends JWTPayload {
   tokenType?: "access" | "refresh";
   role?: string;
   familyId?: string;
+  credentialVersion?: number;
+  authTime?: number;
 }
 
 @Injectable()
@@ -35,17 +37,20 @@ export class TokenService {
   }
 
   async issuePair(user: User): Promise<AuthTokens> {
-    return this.createPair(user, this.database, randomUUID());
+    return this.createPair(user, this.database, randomUUID(), Math.floor(Date.now() / 1_000));
   }
 
   async rotate(refreshToken: string): Promise<AuthTokens> {
     const claims = await this.verify(refreshToken, this.refreshKey, "refresh");
-    if (!claims.jti || !claims.sub || !claims.familyId) throw new UnauthorizedException();
+    const credentialVersion = claims.credentialVersion ?? 0;
+    const authTime = claims.authTime ?? claims.iat;
+    if (!claims.jti || !claims.sub || !claims.familyId || !Number.isInteger(credentialVersion) || !Number.isInteger(authTime)) throw new UnauthorizedException();
 
     const tokenHash = hashToken(refreshToken);
     const now = new Date();
 
     return this.database.$transaction(async (transaction) => {
+      await transaction.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${`refresh-family:${claims.familyId}`}, 0))`;
       const stored = await transaction.refreshToken.findUnique({
         where: { tokenHash },
         include: { user: true },
@@ -56,6 +61,7 @@ export class TokenService {
         stored.id !== claims.jti ||
         stored.userId !== claims.sub ||
         stored.familyId !== claims.familyId ||
+        stored.user.credentialVersion !== credentialVersion ||
         stored.revokedAt ||
         stored.expiresAt <= now
       ) {
@@ -68,7 +74,7 @@ export class TokenService {
       });
       if (claimed.count !== 1) throw new UnauthorizedException("Refresh token was already rotated");
 
-      const pair = await this.createPair(stored.user, transaction, stored.familyId);
+      const pair = await this.createPair(stored.user, transaction, stored.familyId, authTime!);
       const nextClaims = await this.verify(pair.refreshToken, this.refreshKey, "refresh");
       if (!nextClaims.jti) throw new UnauthorizedException();
 
@@ -81,21 +87,35 @@ export class TokenService {
     });
   }
 
-  async verifyAccess(accessToken: string): Promise<{ userId: string }> {
+  async revokeFamily(refreshToken: string): Promise<void> {
+    const claims = await this.verify(refreshToken, this.refreshKey, "refresh");
+    if (!claims.jti || !claims.sub || !claims.familyId) throw new UnauthorizedException();
+    await this.database.$transaction(async (transaction) => {
+      await transaction.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${`refresh-family:${claims.familyId}`}, 0))`;
+      const stored = await transaction.refreshToken.findUnique({ where: { tokenHash: hashToken(refreshToken) }, select: { id: true, userId: true, familyId: true } });
+      if (!stored || stored.id !== claims.jti || stored.userId !== claims.sub || stored.familyId !== claims.familyId) throw new UnauthorizedException();
+      await transaction.refreshToken.updateMany({ where: { familyId: stored.familyId, userId: stored.userId, revokedAt: null }, data: { revokedAt: new Date() } });
+    });
+  }
+
+  async verifyAccess(accessToken: string): Promise<{ userId: string; credentialVersion: number; sessionFamilyId?: string; authenticatedAt: number }> {
     const claims = await this.verify(accessToken, this.accessKey, "access");
-    if (!claims.sub) throw new UnauthorizedException();
-    return { userId: claims.sub };
+    const credentialVersion = claims.credentialVersion ?? 0;
+    const authTime = claims.authTime ?? claims.iat;
+    if (!claims.sub || !Number.isInteger(credentialVersion) || !Number.isInteger(authTime)) throw new UnauthorizedException();
+    return { userId: claims.sub, credentialVersion, ...(claims.familyId ? { sessionFamilyId: claims.familyId } : {}), authenticatedAt: authTime! };
   }
 
   private async createPair(
     user: User,
     database: TokenDatabase,
     familyId: string,
+    authTime: number,
   ): Promise<AuthTokens> {
     const issuedAt = Math.floor(Date.now() / 1_000);
     const accessTokenId = randomUUID();
     const refreshTokenId = randomUUID();
-    const accessToken = await new SignJWT({ tokenType: "access", role: user.role })
+    const accessToken = await new SignJWT({ tokenType: "access", role: user.role, familyId, credentialVersion: user.credentialVersion, authTime })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setSubject(user.id)
       .setIssuer(ISSUER)
@@ -108,6 +128,8 @@ export class TokenService {
       tokenType: "refresh",
       role: user.role,
       familyId,
+      credentialVersion: user.credentialVersion,
+      authTime,
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setSubject(user.id)

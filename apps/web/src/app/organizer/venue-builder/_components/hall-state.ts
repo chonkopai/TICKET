@@ -41,7 +41,9 @@ export function changeCommand(before: HallState, after: HallState): Command {
 }
 export function importLayout(layout: VenueLayout): HallState {
   const json = layout.layoutJson;
-  if (json.version === 2 && json.editor) return { room: json.room, editor: json.editor };
+  if (json.version === 2 && json.editor) {
+    return { room: json.room, editor: { ...json.editor, objects: json.editor.objects.map((object) => object.type === "entrance" ? wallSnap(object, json.room) : object) } };
+  }
   let editor: HallEditor = { version: 1, objects: [], tariffs: [] };
   const room = json.version === 2 ? json.room : { widthM: metres(json.canvas.width / 34), heightM: metres(json.canvas.height / 34) };
   for (const t of json.tables) {
@@ -70,6 +72,13 @@ export function importLayout(layout: VenueLayout): HallState {
   return { room, editor };
 }
 export function updateObject(state: HallState, id: string, patch: Partial<HallObject>): HallState {
+  const existing = state.editor.objects.find((o) => o.id === id);
+  const parent = state.editor.objects.find((o) => o.id === existing?.parentId);
+  if (existing?.type === "seat" && parent?.type === "table_round" && (patch.x !== undefined || patch.y !== undefined)) {
+    const { x, y, ...otherChanges } = patch;
+    const updated = Object.keys(otherChanges).length ? updateObject(state, id, otherChanges) : state;
+    return moveRoundSeatOnOrbit(updated, id, { x: x ?? existing.x, y: y ?? existing.y });
+  }
   let editor = { ...state.editor, objects: state.editor.objects.map((o) => o.id === id ? { ...o, ...patch } : o) };
   let object = editor.objects.find((o) => o.id === id);
   if(object?.type === "entrance") { object=wallSnap(object,state.room); editor.objects=editor.objects.map((o)=>o.id===id?object!:o); }
@@ -101,6 +110,83 @@ export function updateObject(state: HallState, id: string, patch: Partial<HallOb
 export function capacity(parent: HallObject, side: HallObject["side"] = null): number {
   if (parent.type === "table_round") return Math.floor(Math.PI * parent.width / 0.5);
   return Math.floor((parent.type === "row" ? rowLength(parent) : side === "top" || side === "bottom" ? parent.width : parent.height) / 0.45);
+}
+export const ROUND_SEAT_ARC_METRES = 0.4;
+
+export function moveRoundSeatOnOrbit(state: HallState, seatId: string, pointer: { x: number; y: number }): HallState {
+  const seat = state.editor.objects.find((o) => o.id === seatId);
+  const table = state.editor.objects.find((o) => o.id === seat?.parentId);
+  if (!seat || !table || seat.type !== "seat" || table.type !== "table_round" || seat.locked) return state;
+  const radius = table.width / 2 + table.seatOffset;
+  const circumference = 2 * Math.PI * radius;
+  // 40 cm occupies this fraction of the orbit circumference at every zoom level.
+  // In the SVG it is ROUND_SEAT_ARC_METRES * view.pxPerMetre pixels.
+  const minAngle = 2 * Math.PI * ROUND_SEAT_ARC_METRES / circumference;
+  const local = rotatePoint(pointer.x - table.x, pointer.y - table.y, -table.rotation);
+  if (Math.hypot(local.x, local.y) < 0.01) return state;
+  const signed = (angle: number) => Math.atan2(Math.sin(angle), Math.cos(angle));
+  const currentLocal = rotatePoint(seat.x - table.x, seat.y - table.y, -table.rotation);
+  const current = seat.orbitAngle === undefined ? Math.atan2(currentLocal.y, currentLocal.x) : seat.orbitAngle * Math.PI / 180;
+  const desired = Math.atan2(local.y, local.x);
+  const others = state.editor.objects.filter((o) => o.parentId === table.id && o.type === "seat" && o.id !== seatId);
+  let clockwise = Math.PI * 2, counterclockwise = Math.PI * 2;
+  for (const other of others) {
+    const p = rotatePoint(other.x - table.x, other.y - table.y, -table.rotation);
+    const angle = other.orbitAngle === undefined ? Math.atan2(p.y, p.x) : other.orbitAngle * Math.PI / 180;
+    clockwise = Math.min(clockwise, (angle - current + Math.PI * 2) % (Math.PI * 2));
+    counterclockwise = Math.min(counterclockwise, (current - angle + Math.PI * 2) % (Math.PI * 2));
+  }
+  const delta = Math.max(-Math.max(0, counterclockwise - minAngle), Math.min(Math.max(0, clockwise - minAngle), signed(desired - current)));
+  const occupied = state.editor.objects.filter((o) => o.id !== seatId && o.id !== table.id && (o.type === "seat" || o.type.startsWith("table_"))).map((o) => {
+    const points = footprint(o);
+    return { points, minX: Math.min(...points.map((p) => p.x)), maxX: Math.max(...points.map((p) => p.x)), minY: Math.min(...points.map((p) => p.y)), maxY: Math.max(...points.map((p) => p.y)) };
+  });
+  const valid = (angle: number) => {
+    const localPosition = rotatePoint(Math.cos(angle) * radius, Math.sin(angle) * radius, table.rotation);
+    const candidate = { ...seat, x: table.x + localPosition.x, y: table.y + localPosition.y, rotation: signed(angle + Math.PI / 2 + table.rotation * Math.PI / 180) * 180 / Math.PI };
+    if (candidate.x - seat.width / 2 < 0 || candidate.y - seat.height / 2 < 0 || candidate.x + seat.width / 2 > state.room.widthM || candidate.y + seat.height / 2 > state.room.heightM) return false;
+    const shape = footprint(candidate);
+    const minX = Math.min(...shape.map((p) => p.x)), maxX = Math.max(...shape.map((p) => p.x));
+    const minY = Math.min(...shape.map((p) => p.y)), maxY = Math.max(...shape.map((p) => p.y));
+    return occupied.every((other) => other.maxX <= minX || other.minX >= maxX || other.maxY <= minY || other.minY >= maxY || !polygonsOverlap(shape, other.points));
+  };
+  let allowed = current;
+  const steps = Math.max(1, Math.min(2000, Math.ceil(Math.abs(delta) * radius / 0.02)));
+  for (let i = 1; i <= steps; i++) {
+    const candidate = current + delta * i / steps;
+    if (!valid(candidate)) break;
+    allowed = candidate;
+  }
+  if (Math.abs(signed(allowed - current)) < 0.0001) return state;
+  const normalized = signed(allowed);
+  const editor = { ...state.editor, objects: state.editor.objects.map((o) => {
+    if (o.parentId !== table.id || o.type !== "seat") return o;
+    if (o.id !== seatId) {
+      const p = rotatePoint(o.x - table.x, o.y - table.y, -table.rotation);
+      return { ...o, orbitAngle: o.orbitAngle ?? metres(signed(Math.atan2(p.y, p.x)) * 180 / Math.PI) };
+    }
+    return { ...o, orbitAngle: metres(normalized * 180 / Math.PI) };
+  }) };
+  return { ...state, editor: arrangeSeats(editor, table.id) };
+}
+export function pointWithinRow(row: HallObject, point: { x: number; y: number }, tolerance = 0.45): boolean {
+  const local = rotatePoint(point.x - row.x, point.y - row.y, -row.rotation);
+  if (Math.abs(row.curvature) < 0.001) {
+    const nearestX = Math.max(-row.width / 2, Math.min(row.width / 2, local.x));
+    return Math.hypot(local.x - nearestX, local.y) <= tolerance;
+  }
+  const length = rowLength(row), sag = Math.abs(row.curvature);
+  const radius = row.width ** 2 / (8 * sag) + sag / 2;
+  const sign = Math.sign(row.curvature);
+  const samples = Math.min(2048, Math.max(24, Math.ceil(length / 0.1)));
+  for (let i = 0; i <= samples; i += 1) {
+    const along = length * i / samples;
+    const angle = (along - length / 2) / radius;
+    const x = radius * Math.sin(angle);
+    const y = sign * (radius * Math.cos(angle) - (radius - sag));
+    if (Math.hypot(local.x - x, local.y - y) <= tolerance) return true;
+  }
+  return false;
 }
 export function attachSeat(state: HallState, seatId: string): { state: HallState; target: string | null; rejected: boolean } {
   const seat = state.editor.objects.find((o) => o.id === seatId)!;
@@ -168,7 +254,18 @@ export function snapDimension(value: number): number {
 }
 
 export function wallSnap(o: HallObject, room: HallState["room"]): HallObject {
-  const x=metres(Math.max(0,Math.min(room.widthM,o.x))), y=metres(Math.max(0,Math.min(room.heightM,o.y)));
-  const walls=[{x:0,y,rotation:-90,d:Math.abs(o.x)},{x:room.widthM,y,rotation:90,d:Math.abs(o.x-room.widthM)},{x,y:0,rotation:0,d:Math.abs(o.y)},{x,y:room.heightM,rotation:180,d:Math.abs(o.y-room.heightM)}].sort((a,b)=>a.d-b.d);
+  const alongWall = (value: number, length: number) => {
+    const half = Math.min(o.width / 2, length / 2);
+    return metres(Math.max(half, Math.min(length - half, value)));
+  };
+  const inset = o.height / 2;
+  const verticalY = alongWall(o.y, room.heightM);
+  const horizontalX = alongWall(o.x, room.widthM);
+  const walls = [
+    { x: inset, y: verticalY, rotation: -90, d: Math.abs(o.x) },
+    { x: room.widthM - inset, y: verticalY, rotation: 90, d: Math.abs(o.x - room.widthM) },
+    { x: horizontalX, y: inset, rotation: 0, d: Math.abs(o.y) },
+    { x: horizontalX, y: room.heightM - inset, rotation: 180, d: Math.abs(o.y - room.heightM) },
+  ].sort((a,b)=>a.d-b.d);
   return {...o,x:walls[0]!.x,y:walls[0]!.y,rotation:walls[0]!.rotation};
 }

@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import type { Prisma, PrismaClient, User } from "@event-platform/database";
+import { Prisma, type PrismaClient, type User } from "@event-platform/database";
 import type {
   TelegramLinkConsumeRequest,
   TelegramLinkTokenResponse,
@@ -24,12 +24,12 @@ export class TelegramLinkService {
     @Inject(AUTH_CONFIG) private readonly config: AuthConfig,
   ) {}
 
-  async issue(userId: string, now = new Date()): Promise<TelegramLinkTokenResponse> {
+  async issue(userId: string, now = new Date(), sessionFamilyId?: string): Promise<TelegramLinkTokenResponse> {
     const token = randomBytes(24).toString("base64url");
     const expiresAt = new Date(now.getTime() + LINK_TOKEN_TTL_MS);
 
     await this.database.telegramLinkToken.create({
-      data: { userId, tokenHash: hashToken(token), expiresAt },
+      data: { userId, tokenHash: hashToken(token), expiresAt, ...(sessionFamilyId ? { sessionFamilyId } : {}) },
     });
 
     return {
@@ -44,7 +44,8 @@ export class TelegramLinkService {
     const telegramId = BigInt(input.telegramId);
     const telegramChatId = BigInt(input.chatId);
 
-    return this.database.$transaction(async (transaction) => {
+    try {
+      return await this.database.$transaction(async (transaction) => {
       const record = await transaction.telegramLinkToken.findUnique({
         where: { tokenHash },
         include: { user: true },
@@ -54,7 +55,10 @@ export class TelegramLinkService {
         throw new UnauthorizedException("Telegram link token is invalid, expired, or already used");
       }
       if (record.user.telegramId !== telegramId) {
-        throw new ForbiddenException("This link token belongs to a different Telegram account");
+        if (record.user.telegramId !== null) throw new ForbiddenException("This link token belongs to a different Telegram account");
+        if (!record.sessionFamilyId) throw new UnauthorizedException("A web session is required to confirm this link");
+        const identityOwner = await transaction.user.findUnique({ where: { telegramId } });
+        if (identityOwner && identityOwner.id !== record.userId) throw new ConflictException("This Telegram account is already linked to another user");
       }
 
       const chatOwner = await transaction.user.findUnique({ where: { telegramChatId } });
@@ -68,6 +72,11 @@ export class TelegramLinkService {
       });
       if (claimed.count !== 1) throw new ConflictException("Telegram link token was already used");
 
+      if (record.user.telegramId === null) {
+        await transaction.telegramLinkToken.update({ where: { id: record.id }, data: { pendingTelegramId: telegramId, pendingChatId: telegramChatId, pendingAt: now } });
+        return record.user;
+      }
+
       const telegramName = [input.firstName, input.lastName].filter(Boolean).join(" ") || undefined;
       const data: Prisma.UserUpdateInput = { telegramChatId };
       if (!record.user.name && telegramName) data.name = telegramName;
@@ -75,7 +84,40 @@ export class TelegramLinkService {
         where: { id: record.userId },
         data,
       });
-    });
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") throw new ConflictException("This Telegram chat is already linked to another user");
+      throw error;
+    }
+  }
+
+  async status(userId: string, sessionFamilyId: string, token: string, now = new Date()): Promise<{ state: "waiting" | "ready" | "linked" | "expired" }> {
+    const row = await this.database.telegramLinkToken.findUnique({ where: { tokenHash: hashToken(token) } });
+    if (!row || row.userId !== userId || row.sessionFamilyId !== sessionFamilyId || row.expiresAt <= now) return { state: "expired" };
+    if (row.confirmedAt) return { state: "linked" };
+    if (row.usedAt && !row.pendingTelegramId) return { state: "linked" };
+    return { state: row.pendingTelegramId && row.pendingChatId ? "ready" : "waiting" };
+  }
+
+  async confirm(userId: string, sessionFamilyId: string, token: string, now = new Date()): Promise<User> {
+    try {
+      return await this.database.$transaction(async transaction => {
+        const row = await transaction.telegramLinkToken.findUnique({ where: { tokenHash: hashToken(token) } });
+        if (!row || row.userId !== userId || row.sessionFamilyId !== sessionFamilyId || !row.usedAt || !row.pendingTelegramId || !row.pendingChatId || row.confirmedAt || row.expiresAt <= now) throw new UnauthorizedException("Telegram link is not ready for confirmation");
+        await transaction.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${`telegram-link:${userId}`}, 0))`;
+        const telegramOwner = await transaction.user.findUnique({ where: { telegramId: row.pendingTelegramId } });
+        const chatOwner = await transaction.user.findUnique({ where: { telegramChatId: row.pendingChatId } });
+        if ((telegramOwner && telegramOwner.id !== userId) || (chatOwner && chatOwner.id !== userId)) throw new ConflictException("Telegram identity is already linked");
+        const claimed = await transaction.user.updateMany({ where: { id: userId, telegramId: null }, data: { telegramId: row.pendingTelegramId, telegramChatId: row.pendingChatId } });
+        if (claimed.count !== 1) throw new ConflictException("Telegram identity is already linked");
+        await transaction.telegramLinkToken.update({ where: { id: row.id }, data: { confirmedAt: now } });
+        await transaction.auditLog.create({ data: { actorId: userId, action: "identity.telegram_linked", entityType: "user", entityId: userId } });
+        return transaction.user.findUniqueOrThrow({ where: { id: userId } });
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") throw new ConflictException("Telegram identity is already linked");
+      throw error;
+    }
   }
 }
 

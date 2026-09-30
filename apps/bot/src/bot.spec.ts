@@ -12,7 +12,7 @@ describe("/start", () => {
   });
   it("verifies an anonymous recipient without invoking account linking", async () => {
     const reply = vi.fn().mockResolvedValue({ message_id: 12 });
-    const request = vi.fn().mockResolvedValue({ ok: true });
+    const request = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ pending: false }) });
     const token = "a".repeat(43);
     const context = { message: { text: `/start q_${token}` }, from: { id: 777 }, chat: { id: 777, type: "private" }, reply } as unknown as Context;
     await createStartHandler({ apiBaseUrl: "http://localhost:3001", botApiSecret: "s".repeat(32), fetch: request })(context);
@@ -42,11 +42,11 @@ describe("/start", () => {
 
   it("consumes a deep-link token using the sender and chat identity", async () => {
     const reply = vi.fn().mockResolvedValue(undefined);
-    const request = vi.fn().mockResolvedValue({ ok: true });
+    const request = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ pending: false }) });
     const context = {
       message: { text: "/start abc_DEF-123" },
       from: { id: 777, first_name: "Aruzhan", last_name: "S." },
-      chat: { id: 999 },
+      chat: { id: 777, type: "private" },
       reply,
     } as unknown as Context;
     const handler = createStartHandler({
@@ -64,7 +64,7 @@ describe("/start", () => {
       body: JSON.stringify({
         token: "abc_DEF-123",
         telegramId: 777,
-        chatId: 999,
+        chatId: 777,
         firstName: "Aruzhan",
         lastName: "S.",
       }),

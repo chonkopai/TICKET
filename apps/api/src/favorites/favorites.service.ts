@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@event-platform/database";
-import type { FavoriteList, FavoriteMutation } from "@event-platform/shared-types";
+import type { EventLocale, FavoriteList, FavoriteMutation } from "@event-platform/shared-types";
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 
 import { DATABASE_CLIENT } from "../auth/auth.constants.js";
@@ -12,7 +12,7 @@ export class FavoritesService {
     @Inject(PublicEventsService) private readonly publicEvents: PublicEventsService,
   ) {}
 
-  async list(userId: string, page: number, limit: number): Promise<FavoriteList> {
+  async list(userId: string, page: number, limit: number, locale?: EventLocale): Promise<FavoriteList> {
     const [rows, total] = await this.database.$transaction([
       this.database.favorite.findMany({
         where: { userId, event: { status: "published" } },
@@ -23,7 +23,7 @@ export class FavoritesService {
       }),
       this.database.favorite.count({ where: { userId, event: { status: "published" } } }),
     ]);
-    const items = (await Promise.all(rows.map((row) => this.publicEvents.summary(row.eventId))))
+    const items = (await Promise.all(rows.map((row) => this.publicEvents.summary(row.eventId, new Date(), locale))))
       .filter((summary): summary is NonNullable<typeof summary> => summary !== null);
     return { items, page, limit, total, hasNext: page * limit < total };
   }

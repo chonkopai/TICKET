@@ -106,12 +106,13 @@ Webhook and polling consumers must not run at the same time.
 
 ## Available functionality
 
-- Telegram-based login, access/refresh sessions and guest/organizer/admin roles
+- Telegram, verified email and verified phone sign-in with shared account sessions and roles
 - Public home page, event catalog, search, filters, favorites and recently viewed events
 - Organizer event wizard, draft preview, publishing lifecycle and poster management
 - Ticket types, authoritative inventory, secure QR codes and optional Apple Wallet passes
 - Venue layout editor and PostgreSQL-protected table holds
-- Logged-in and anonymous ticket/table checkout
+- Logged-in and anonymous ticket/table checkout, including verified email-only guests
+- Optional ticket email after payment, with a scoped 30-day purchase link and manual resend
 - Deposit or full-payment policy selected by the organizer
 - Signed development-payment callbacks and idempotent order finalization
 - Guest account, My Events, ticket details and cancellation flows
@@ -130,6 +131,15 @@ The following integrations also require client/provider credentials before produ
 - production object storage
 - SMS and push delivery
 - production hosting, domain and monitoring
+
+Email codes and opted-in ticket delivery use Resend. Verify the sending domain and set
+`RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `OTP_HMAC_SECRET`, and the public HTTPS `WEB_ORIGIN` in
+server-side configuration; no key belongs in the web bundle. A missing Resend key makes email
+verification and sending explicitly unavailable. The email worker is part of the API process and
+uses committed outbox rows. Resend accepting an email confirms provider acceptance only, not
+arrival in a mailbox. Phone verification remains unavailable until an SMS provider and supported
+regions are selected. See [the identity contract](docs/multi-channel-identity-contract.md) and
+[ticket email contract](docs/ticket-email-delivery-contract.md) for rollout and access rules.
 
 ## Quality checks
 

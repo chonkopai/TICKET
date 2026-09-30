@@ -272,6 +272,7 @@ export interface DuplicateVenueElementResponse {
 
 export interface PublicVenueSeat extends VenueSeat {
   availability: "available" | "unavailable";
+  tariffName: string | null;
   price: number | null;
   deposit: number;
   currency: string;

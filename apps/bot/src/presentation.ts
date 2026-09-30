@@ -8,6 +8,20 @@ import { ru } from "@event-platform/shared-types";
 
 export type BotRole = BotIdentityResponse["user"]["role"];
 
+const ticketStatusLabels: Record<string, string> = {
+  created: "Создан",
+  pending_payment: "Ожидает оплаты",
+  paid: "Оплачен",
+  active: "Действителен",
+  used: "Использован",
+  cancelled: "Отменён",
+  refunded: "Возвращён",
+};
+
+export function formatTicketStatus(status: string): string {
+  return ticketStatusLabels[status] ?? status;
+}
+
 export function formatWelcome(role: BotRole = "guest"): string {
   return `${ru.bot.welcomeIntro}\n\n${ru.bot.commandsTitle}\n${formatCommandList(role)}`;
 }
@@ -34,9 +48,11 @@ export function formatEventList(events: readonly PublicEventSummary[]): string {
 }
 
 export function formatEventSummary(event: PublicEventSummary): string {
-  const price = event.startingAmount === null
-    ? ru.bot.priceUnavailable
-    : formatStartingPrice(event.paymentMode, event.startingAmount, event.startingCurrency);
+  const price = event.startingPrices.length > 1
+    ? event.startingPrices.map((item) => `${formatStartingPrice(event.paymentMode, item.amount, item.currency)}${item.unit === "table" ? " за стол" : item.unit === "seat" ? " за место" : " за билет"}`).join("\n")
+    : event.startingAmount === null
+    ? (["sold_out", "sales_ended", "temporarily_unavailable"].includes(event.saleStatus) ? ru.publicEvent.saleStatuses[event.saleStatus] : ru.bot.priceUnavailable)
+    : `${formatStartingPrice(event.paymentMode, event.startingAmount, event.startingCurrency)}${event.startingUnit === "table" ? " за стол" : event.startingUnit === "seat" ? " за место" : " за билет"}`;
   return [
     `🎫 ${truncate(event.title, 180)}`,
     `${event.date} ${event.time} (${event.timezone})`,
@@ -45,7 +61,7 @@ export function formatEventSummary(event: PublicEventSummary): string {
   ].join("\n");
 }
 
-export function formatEventDetails(event: PublicEvent): string {
+export function formatEventDetails(event: PublicEvent, hasSeatSelection = false): string {
   const lines = [
     `🎫 ${truncate(event.title, 200)}`,
     `${event.date} ${event.time} (${event.timezone})`,
@@ -56,8 +72,9 @@ export function formatEventDetails(event: PublicEvent): string {
 
   const options = [
     ...event.ticketTypes.map((ticket) => formatPaymentOption(ticket.name, ticket.payment, ticket.status === "active" && ticket.remaining > 0 ? `${ticket.remaining} ${ru.bot.availableTickets}` : ru.bot.soldOut)),
-    ...event.tables.map((table) => formatPaymentOption(`${ru.bot.tablePrice} ${table.name ?? table.number}`, table.payment, table.availability === "available" ? ru.bot.availableTables : ru.bot.soldOut)),
+    ...event.tables.filter((table) => table.saleMode === "whole_table").map((table) => formatPaymentOption(`${ru.bot.tablePrice} ${table.name ?? table.number}`, table.payment, table.availability === "available" ? ru.bot.availableTables : ru.bot.soldOut)),
   ];
+  if (hasSeatSelection) options.push("Места по схеме: выберите конкретное место на сайте, затем подтвердите покупку через Telegram.");
   lines.push("", options.length ? options.join("\n\n") : ru.bot.priceUnavailable);
   return lines.join("\n");
 }

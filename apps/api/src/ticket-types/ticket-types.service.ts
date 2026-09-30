@@ -128,12 +128,13 @@ export class TicketTypesService {
       orderBy: [{ price: "asc" }, { name: "asc" }],
       include: { event: true },
     });
-    const counters = await this.countersFor(types);
+    const counters = await this.countersFor(types, now);
     return types.map((type) => {
       const current = counters.get(type.id)!;
       const inWindow = (!type.salesStartAt || type.salesStartAt <= now) && (!type.salesEndAt || type.salesEndAt > now);
       return {
         id: type.id,
+        venueObjectId: type.venueObjectId,
         name: type.venueObjectId ? type.name.replace(` · ${type.venueObjectId}`, "") : type.name,
         price:
           type.event.paymentMode === EventPaymentMode.deposit &&
@@ -325,11 +326,10 @@ export class TicketTypesService {
     });
   }
 
-  private async countersFor(ticketTypes: TicketType[]): Promise<Map<string, TicketTypeCounters>> {
+  private async countersFor(ticketTypes: TicketType[], now = new Date()): Promise<Map<string, TicketTypeCounters>> {
     const ids = ticketTypes.map(({ id }) => id);
     const result = new Map(ticketTypes.map((type) => [type.id, emptyCounters(type.quantityTotal)]));
     if (ids.length === 0) return result;
-    const now = new Date();
     const [byStatus, paid, reservations] = await Promise.all([
       this.database.ticket.groupBy({
         by: ["ticketTypeId", "status"],
