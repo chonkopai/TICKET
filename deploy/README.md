@@ -21,17 +21,17 @@ Set `SITE_DOMAIN=staging.ticketron.live` for the first run. Replace every `repla
 Build and start the application:
 
 ```sh
-docker compose --env-file .env.demo -f compose.demo.yml build web
-docker compose --env-file .env.demo -f compose.demo.yml up -d postgres redis
-docker compose --env-file .env.demo -f compose.demo.yml run --rm migrate
-docker compose --env-file .env.demo -f compose.demo.yml up -d api bot web
-docker compose --env-file .env.demo -f compose.demo.yml ps
+sudo docker compose --env-file .env.demo -f compose.demo.yml build web
+sudo docker compose --env-file .env.demo -f compose.demo.yml up -d postgres redis
+sudo docker compose --env-file .env.demo -f compose.demo.yml run --rm migrate
+sudo docker compose --env-file .env.demo -f compose.demo.yml up -d api bot web
+sudo docker compose --env-file .env.demo -f compose.demo.yml ps
 ```
 
 Check that the web container can reach the API through the configured rewrite:
 
 ```sh
-docker compose --env-file .env.demo -f compose.demo.yml exec -T web node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>{console.log(r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(e);process.exit(1)})"
+sudo docker compose --env-file .env.demo -f compose.demo.yml exec -T web node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>{console.log(r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(e);process.exit(1)})"
 ```
 
 This should print `200`. Do not run the development seed against a database containing data. The first deployment starts with an empty event catalog unless you deliberately import data.
@@ -41,7 +41,7 @@ This should print `200`. Do not run the development seed against a database cont
 After the app checks pass, add an A record named `staging` at Name.com pointing to the VM's public IP, `20.164.17.32`, and allow inbound TCP 80/443 in the VM's Azure network security group. Then start Caddy:
 
 ```sh
-docker compose --env-file .env.demo -f compose.demo.yml up -d caddy
+sudo docker compose --env-file .env.demo -f compose.demo.yml up -d caddy
 curl -I https://staging.ticketron.live
 ```
 
@@ -50,7 +50,7 @@ Caddy obtains and renews the HTTPS certificate. The demo sends a `noindex` heade
 Mock checkout remains pending until the VM operator applies a signed callback. For a test order only, run:
 
 ```sh
-docker compose --env-file .env.demo -f compose.demo.yml exec api node dist/payments/dev-callback.js ORDER_ID payment.succeeded
+sudo docker compose --env-file .env.demo -f compose.demo.yml exec api node dist/payments/dev-callback.js ORDER_ID payment.succeeded
 ```
 
 Replace `ORDER_ID` with the test order's ID. This issues a test ticket without a real charge. The callback command is unavailable outside explicit demo mode.
