@@ -6,7 +6,7 @@ import { DevelopmentPaymentProvider } from "../booking/payment-provider.js";
 
 const env = loadApiEnv();
 const [orderId, eventType = "payment.succeeded"] = process.argv.slice(2);
-if (env.NODE_ENV === "production" || env.PAYMENT_PROVIDER_NAME !== "mock") throw new Error("Signed development callbacks are disabled in this environment");
+if ((env.NODE_ENV === "production" && !env.DEMO_MODE) || env.PAYMENT_PROVIDER_NAME !== "mock") throw new Error("Signed development callbacks are disabled in this environment");
 if (!orderId || !/^[0-9a-f-]{36}$/i.test(orderId) || !["payment.succeeded", "payment.failed", "payment.expired"].includes(eventType)) throw new Error("Usage: tsx src/payments/dev-callback.ts <order-id> [payment.succeeded|payment.failed|payment.expired]");
 if (!env.PAYMENT_PROVIDER_WEBHOOK_SECRET || env.PAYMENT_PROVIDER_WEBHOOK_SECRET.length < 32) throw new Error("Configure a private development webhook secret");
 try {

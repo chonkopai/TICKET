@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 
 loadWebEnv();
 
+const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:3001";
+const botBaseUrl = process.env.BOT_INTERNAL_URL ?? "http://localhost:3002";
+
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["sulphate-shown-subtract.ngrok-free.dev"],
   reactStrictMode: true,
@@ -12,43 +15,43 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-      { source: "/api/quick/:path*", destination: "http://localhost:3001/quick/:path*" },
-      { source: "/orders/:path*", destination: "http://localhost:3001/orders/:path*" },
+      { source: "/api/quick/:path*", destination: `${apiBaseUrl}/quick/:path*` },
+      { source: "/orders/:path*", destination: `${apiBaseUrl}/orders/:path*` },
       {
         source: "/auth/:path*",
-        destination: "http://localhost:3001/auth/:path*",
+        destination: `${apiBaseUrl}/auth/:path*`,
       },
       {
         source: "/me",
-        destination: "http://localhost:3001/me",
+        destination: `${apiBaseUrl}/me`,
       },
       {
         source: "/me/:path*",
-        destination: "http://localhost:3001/me/:path*",
+        destination: `${apiBaseUrl}/me/:path*`,
       },
       {
         source: "/api/health",
-        destination: "http://localhost:3001/health",
+        destination: `${apiBaseUrl}/health`,
       },
       {
         source: "/api/organizer/:path*",
-        destination: "http://localhost:3001/organizer/:path*",
+        destination: `${apiBaseUrl}/organizer/:path*`,
       },
       {
         source: "/api/tables/:path*",
-        destination: "http://localhost:3001/tables/:path*",
+        destination: `${apiBaseUrl}/tables/:path*`,
       },
       {
         source: "/api/events/:path*",
-        destination: "http://localhost:3001/events/:path*",
+        destination: `${apiBaseUrl}/events/:path*`,
       },
       {
         source: "/media/:path*",
-        destination: "http://localhost:3001/media/:path*",
+        destination: `${apiBaseUrl}/media/:path*`,
       },
       {
         source: "/telegram/webhook",
-        destination: "http://localhost:3002/telegram/webhook",
+        destination: `${botBaseUrl}/telegram/webhook`,
       },
     ];
   },

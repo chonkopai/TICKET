@@ -36,6 +36,7 @@ const providerSchema = z.object({
 
 export const apiEnvSchema = z.object({
   NODE_ENV: nodeEnvironmentSchema,
+  DEMO_MODE: booleanSchema,
   API_PORT: portSchema.default(3001),
   DATABASE_URL: z.url({ protocol: /^postgres(?:ql)?$/ }),
   REDIS_URL: z.url({ protocol: /^redis(?:s)?$/ }),
@@ -62,6 +63,7 @@ export const apiEnvSchema = z.object({
   if (env.RESEND_API_KEY && !env.RESEND_FROM_EMAIL) context.addIssue({ code: "custom", path: ["RESEND_FROM_EMAIL"], message: "Resend sender is required with an API key" });
   if (env.RESEND_FROM_EMAIL && !env.RESEND_FROM_EMAIL.toLowerCase().endsWith("@mail.ticketron.live")) context.addIssue({ code: "custom", path: ["RESEND_FROM_EMAIL"], message: "Sender must use the verified mail.ticketron.live domain" });
   if (env.NODE_ENV === "production" && !env.OTP_HMAC_SECRET) context.addIssue({ code: "custom", path: ["OTP_HMAC_SECRET"], message: "OTP HMAC secret is required in production" });
+  if (env.NODE_ENV === "production" && env.PAYMENT_PROVIDER_NAME === "mock" && !env.DEMO_MODE) context.addIssue({ code: "custom", path: ["DEMO_MODE"], message: "Mock payments require explicit demo mode in production" });
   if (env.NODE_ENV !== "production") return;
   if (!env.WEB_ORIGIN.startsWith("https://")) context.addIssue({ code: "custom", path: ["WEB_ORIGIN"], message: "Production web origin must use HTTPS" });
   if (!isAbsolute(env.POSTER_STORAGE_DIR)) context.addIssue({ code: "custom", path: ["POSTER_STORAGE_DIR"], message: "Production media directory must be an absolute mounted path" });

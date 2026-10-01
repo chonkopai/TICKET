@@ -121,9 +121,10 @@ Webhook and polling consumers must not run at the same time.
 
 ## Development payment provider
 
-The default `PAYMENT_PROVIDER_NAME=mock` adapter is for local development only. It uses signed
-server-side callbacks and must never be enabled in production. A production payment gateway,
-webhook verification rules and refund implementation must be configured before launch.
+The default `PAYMENT_PROVIDER_NAME=mock` adapter is for local development and explicit
+`DEMO_MODE=true` deployments only. It uses signed server-side callbacks and never charges a
+customer. A real payment gateway, webhook verification rules and refund implementation must be
+configured before a paid launch. The demo VM setup is in [deploy/README.md](deploy/README.md).
 
 The following integrations also require client/provider credentials before production use:
 

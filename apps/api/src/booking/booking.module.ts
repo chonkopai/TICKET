@@ -43,7 +43,7 @@ import { ResendTicketEmailSender } from "../orders/ticket-email-sender.js";
       provide: PAYMENT_PROVIDER,
       useFactory: () => {
         const env = loadApiEnv();
-        if (env.NODE_ENV === "production") {
+        if (env.NODE_ENV === "production" && !env.DEMO_MODE) {
           throw new Error("Development payment provider cannot run in production");
         }
         if (env.PAYMENT_PROVIDER_NAME !== "mock") throw new Error("The selected payment provider has no configured adapter");

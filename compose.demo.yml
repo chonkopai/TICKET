@@ -1,0 +1,154 @@
+name: ticketron-demo
+
+x-log-limits: &log-limits
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ticketron
+      POSTGRES_USER: ticketron
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.demo}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketron -d ticketron"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    logging: *log-limits
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    logging: *log-limits
+
+  migrate:
+    image: ticketron-demo:${RELEASE_TAG:-local}
+    profiles: ["tools"]
+    working_dir: /app/packages/database
+    command: ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: postgresql://ticketron:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.demo}@postgres:5432/ticketron?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    logging: *log-limits
+
+  api:
+    image: ticketron-demo:${RELEASE_TAG:-local}
+    init: true
+    restart: unless-stopped
+    working_dir: /app/apps/api
+    command: ["node", "dist/main.js"]
+    env_file: .env.demo
+    environment:
+      NODE_ENV: production
+      DEMO_MODE: "true"
+      API_PORT: "3001"
+      DATABASE_URL: postgresql://ticketron:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.demo}@postgres:5432/ticketron?schema=public
+      REDIS_URL: redis://redis:6379
+      WEB_ORIGIN: https://${SITE_DOMAIN:?Set SITE_DOMAIN in .env.demo}
+      POSTER_STORAGE_DIR: /data/posters
+      PAYMENT_PROVIDER_NAME: mock
+      TRANSACTIONAL_NOTIFICATIONS_ENABLED: "false"
+    volumes:
+      - poster_data:/data/posters
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    logging: *log-limits
+
+  bot:
+    image: ticketron-demo:${RELEASE_TAG:-local}
+    init: true
+    restart: unless-stopped
+    working_dir: /app/apps/bot
+    command: ["node", "dist/main.js"]
+    env_file: .env.demo
+    environment:
+      NODE_ENV: production
+      BOT_PORT: "3002"
+      API_BASE_URL: http://api:3001
+      WEB_ORIGIN: https://${SITE_DOMAIN:?Set SITE_DOMAIN in .env.demo}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    logging: *log-limits
+
+  web:
+    image: ticketron-demo:${RELEASE_TAG:-local}
+    build:
+      context: .
+      dockerfile: Dockerfile.demo
+      args:
+        SITE_DOMAIN: ${SITE_DOMAIN:?Set SITE_DOMAIN in .env.demo}
+        TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:?Set TELEGRAM_BOT_USERNAME in .env.demo}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+    init: true
+    restart: unless-stopped
+    working_dir: /app/apps/web
+    command: ["node", "node_modules/next/dist/bin/next", "start", "--port", "3000", "--hostname", "0.0.0.0"]
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: https://${SITE_DOMAIN:?Set SITE_DOMAIN in .env.demo}
+      NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:?Set TELEGRAM_BOT_USERNAME in .env.demo}
+      API_INTERNAL_URL: http://api:3001
+      BOT_INTERNAL_URL: http://bot:3002
+    depends_on:
+      api:
+        condition: service_healthy
+      bot:
+        condition: service_healthy
+    logging: *log-limits
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?Set SITE_DOMAIN in .env.demo}
+    volumes:
+      - ./deploy/Caddyfile.demo:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_started
+    logging: *log-limits
+
+volumes:
+  postgres_data:
+  redis_data:
+  poster_data:
+  caddy_data:
+  caddy_config:

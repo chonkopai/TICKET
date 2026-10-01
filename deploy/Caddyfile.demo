@@ -1,0 +1,13 @@
+{$SITE_DOMAIN} {
+  encode zstd gzip
+  header X-Robots-Tag "noindex, nofollow"
+
+  @telegram path /telegram/webhook
+  handle @telegram {
+    reverse_proxy bot:3002
+  }
+
+  handle {
+    reverse_proxy web:3000
+  }
+}

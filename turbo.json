@@ -2,6 +2,7 @@
   "$schema": "https://turborepo.com/schema.json",
   "globalEnv": [
     "API_BASE_URL",
+    "API_INTERNAL_URL",
     "API_PORT",
     "APPLE_WALLET_ICON_PATH",
     "APPLE_WALLET_ORGANIZATION_NAME",
@@ -12,6 +13,7 @@
     "APPLE_WALLET_TEAM_ID",
     "APPLE_WALLET_WWDR_CERT_PATH",
     "BOT_API_SECRET",
+    "BOT_INTERNAL_URL",
     "BOT_PORT",
     "DATABASE_URL",
     "GOOGLE_CLIENT_ID",
