@@ -4,8 +4,10 @@ import type { OrganizerEvent } from "@event-platform/shared-types";
 export function presentEvent(event: Event): OrganizerEvent {
   return {
     id: event.id,
+    creationVersion:event.creationVersion,
     organizerId: event.organizerId,
     sourceLocale: event.sourceLocale as OrganizerEvent["sourceLocale"],
+    currency:event.currency?.trim()??null,
     title: event.title,
     category: event.category,
     countryCode: event.countryCode,

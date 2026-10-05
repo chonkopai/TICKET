@@ -1,3 +1,5 @@
+import { historicalPaymentOption } from "../events/historical-deposit.js";
+import { assertCurrentResourceWrite,rejectDepositInput } from "../events/current-sale-policy.js";
 import { randomBytes, randomUUID } from "node:crypto";
 
 import {
@@ -51,6 +53,7 @@ export class TablesService {
   ) {}
 
   async create(organizerId: string, layoutId: string, input: CreateTableRequest): Promise<VenueTable> {
+    rejectDepositInput(input);
     assertManagedStatus(input.status);
     const id = randomUUID();
     try {
@@ -63,7 +66,7 @@ export class TablesService {
           // Keep the legacy whole-table creation contract usable for already-published events;
           // any numbered/per-seat structure must still be created while the event is a draft.
           if (event.status !== EventStatus.draft && input.saleMode !== undefined) throw new ConflictException({ code: "VENUE_STRUCTURE_DRAFT_ONLY", message: "Venue structure can only be changed while the event is a draft" });
-          assertDeposit(event, input.deposit, input.price);
+          assertCurrentResourceWrite(event);
         }
         const currentJson = parseLayout(layout.layoutJson);
         if (currentJson.tables.length >= 500) throw layoutLimit();
@@ -82,7 +85,7 @@ export class TablesService {
             name: nullableText(input.name),
             seats: input.seats,
             price: input.price,
-            deposit: input.deposit,
+            deposit: 0,
             currency: normalizeCurrency(input.currency),
             description: nullableText(input.description),
             typeLabel: nullableText(input.typeLabel),
@@ -94,7 +97,7 @@ export class TablesService {
         await transaction.venueLayout.update({ where: { id: layoutId }, data: { layoutJson: nextJson, revision: { increment: 1 } } });
         await this.record(transaction, organizerId, created.id, "table.created", {
           layoutId,
-          changedFields: ["number", "name", "seats", "price", "deposit", "currency", "description", "status", "geometry"],
+          changedFields: ["number", "name", "seats", "price", "currency", "description", "status", "geometry"],
         });
         return created;
       });
@@ -152,11 +155,12 @@ export class TablesService {
         status: seat.status === "available" && seat.allocations.length === 0 ? "available" : "unavailable",
       })),
       availability: table.status === TableStatus.booked ? "booked" : table.status === TableStatus.available ? "available" : "unavailable",
-      payment: paymentOption(layout.event!, table.price, table.deposit, table.currency.trim()),
+      payment: historicalPaymentOption(layout.event!, table.price, table.deposit, table.currency.trim()),
     }));
   }
 
   async update(organizerId: string, id: string, input: UpdateTableRequest): Promise<VenueTable> {
+    rejectDepositInput(input);
     if (Object.keys(input).length === 0) throw new BadRequestException({ code: "TABLE_UPDATE_EMPTY", message: "At least one table field is required" });
     assertManagedStatus(input.status);
     try {
@@ -173,14 +177,13 @@ export class TablesService {
         if (layout.eventId) {
           const event = await transaction.event.findUniqueOrThrow({ where: { id: layout.eventId } });
           if (event.status !== EventStatus.draft && (input.number !== undefined || input.seats !== undefined || input.saleMode !== undefined)) throw new ConflictException({ code: "VENUE_STRUCTURE_DRAFT_ONLY", message: "Seat numbering and sale mode can only change while the event is a draft" });
-          assertDeposit(event, input.deposit ?? current.deposit, input.price ?? current.price);
+          assertCurrentResourceWrite(event);
         }
         const data: Prisma.TableUpdateInput = {};
         if (input.number !== undefined) data.number = input.number;
         if (input.name !== undefined) data.name = nullableText(input.name);
         if (input.seats !== undefined) data.seats = input.seats;
         if (input.price !== undefined) data.price = input.price;
-        if (input.deposit !== undefined) data.deposit = input.deposit;
         if (input.currency !== undefined) data.currency = normalizeCurrency(input.currency);
         if (input.description !== undefined) data.description = nullableText(input.description);
         if (input.typeLabel !== undefined) data.typeLabel = nullableText(input.typeLabel);
@@ -223,6 +226,7 @@ export class TablesService {
       assertLegacyLayout(layout.layoutJson);
       if (layout.eventId) {
         const event = await transaction.event.findUniqueOrThrow({ where: { id: layout.eventId } });
+        assertCurrentResourceWrite(event);
         const numberedSeats = await transaction.seat.count({ where: { tableId: id } });
         if (event.status !== EventStatus.draft && numberedSeats > 0) throw new ConflictException({ code: "VENUE_STRUCTURE_DRAFT_ONLY", message: "Venue structure can only be changed while the event is a draft" });
       }
@@ -499,37 +503,6 @@ function tableUnavailable(): ConflictException { return new ConflictException({ 
 function holdConflict(): ConflictException { return new ConflictException({ code: "TABLE_HOLD_CONFLICT", message: "Hold token does not match the active table hold" }); }
 function confirmationConflict(): ConflictException { return new ConflictException({ code: "TABLE_CONFIRMATION_CONFLICT", message: "Table hold and pending booking cannot be confirmed" }); }
 function layoutLimit(): ConflictException { return new ConflictException({ code: "VENUE_LAYOUT_TABLE_LIMIT", message: "A venue layout can contain at most 500 tables" }); }
-
-function assertDeposit(
-  event: { paymentMode: EventPaymentMode; showFullAmountForDeposit: boolean },
-  deposit: number,
-  price: number,
-): void {
-  if (event.paymentMode === EventPaymentMode.deposit && deposit <= 0) {
-    throw new BadRequestException({ code: "DEPOSIT_AMOUNT_REQUIRED", message: "A positive table deposit is required for deposit events" });
-  }
-  if (event.paymentMode === EventPaymentMode.deposit && event.showFullAmountForDeposit && price < deposit) {
-    throw new BadRequestException({ code: "DEPOSIT_EXCEEDS_FULL_AMOUNT", message: "Deposit cannot exceed the displayed full table amount" });
-  }
-}
-
-function paymentOption(
-  event: { paymentMode: EventPaymentMode; showFullAmountForDeposit: boolean; depositTerms: string | null; cancellationTerms: string | null },
-  price: number,
-  deposit: number,
-  currency: string,
-) {
-  const isDeposit = event.paymentMode === EventPaymentMode.deposit;
-  return {
-    mode: event.paymentMode,
-    label: event.paymentMode,
-    amountDue: isDeposit ? deposit : price,
-    fullAmount: !isDeposit || event.showFullAmountForDeposit ? price : null,
-    currency,
-    depositTerms: event.depositTerms,
-    cancellationTerms: event.cancellationTerms,
-  };
-}
 
 function mapTableConstraint(error: unknown): unknown {
   if ((error as { code?: string }).code === "P2002") {

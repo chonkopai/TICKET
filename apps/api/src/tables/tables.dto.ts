@@ -22,7 +22,6 @@ export class CreateTableDto implements CreateTableRequest {
   @IsOptional() @IsString() @MaxLength(120) name?: string | null;
   @IsInt() @Min(1) @Max(10_000) seats!: number;
   @IsInt() @Min(0) price!: number;
-  @IsInt() @Min(0) deposit!: number;
   @IsOptional() @IsString() @Matches(/^[A-Za-z]{3}$/) currency?: string;
   @IsOptional() @IsString() @MaxLength(5_000) description?: string | null;
   @IsOptional() @IsString() @MaxLength(40) typeLabel?: string | null;
@@ -37,7 +36,6 @@ export class UpdateTableDto implements UpdateTableRequest {
   @IsOptional() @IsString() @MaxLength(120) name?: string | null;
   @IsOptional() @IsInt() @Min(1) @Max(10_000) seats?: number;
   @IsOptional() @IsInt() @Min(0) price?: number;
-  @IsOptional() @IsInt() @Min(0) deposit?: number;
   @IsOptional() @IsString() @Matches(/^[A-Za-z]{3}$/) currency?: string;
   @IsOptional() @IsString() @MaxLength(5_000) description?: string | null;
   @IsOptional() @IsString() @MaxLength(40) typeLabel?: string | null;

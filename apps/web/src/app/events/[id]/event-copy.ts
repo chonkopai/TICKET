@@ -6,7 +6,7 @@ interface EventCopy {
   share: string; copied: string; about: string; metres: string;
   mixedCurrencies: string; row: string; table: string; seat: string; selectedSeat: string;
   interactiveMap: string; chooseSeat: string; selectionHint: string; dimensions: string;
-  available: string; selected: string; unavailable: string; mapZoom: string; zoomOut: string;
+  tariffs: string; available: string; selected: string; unavailable: string; mapZoom: string; zoomOut: string;
   zoomReset: string; zoomIn: string; yourSelection: string; noSelection: string;
   remove: string; wholeTable: string; seats: string; remaining: string;
   decrease: string; increase: string; checkout: string; removeSelection: string;
@@ -28,7 +28,7 @@ export const EVENT_COPY: Record<EventLocale, EventCopy> = {
     mixedCurrencies: "Места с разными валютами нужно оформить отдельно.", row: "Ряд", table: "Стол",
     seat: "место", selectedSeat: "Выбранное место", interactiveMap: "Интерактивная схема",
     chooseSeat: "Выберите место, стол или зону", selectionHint: "Выбор на схеме появится справа и в блоке оформления. Доступность проверяется при покупке.",
-    dimensions: "Габариты зала:", available: "Свободно", selected: "Выбрано", unavailable: "Недоступно",
+    tariffs: "Тарифы и цены", dimensions: "Габариты зала:", available: "Свободно", selected: "Выбрано", unavailable: "Недоступно",
     mapZoom: "Масштаб схемы", zoomOut: "Уменьшить схему", zoomReset: "Сбросить масштаб", zoomIn: "Увеличить схему",
     yourSelection: "Ваш выбор", noSelection: "Нажмите на свободное место, стол или зону на схеме. Можно выбрать несколько видов билетов вместе.",
     remove: "Убрать", wholeTable: "Стол целиком", seats: "мест", remaining: "Доступно:",
@@ -50,7 +50,7 @@ export const EVENT_COPY: Record<EventLocale, EventCopy> = {
     mixedCurrencies: "Әртүрлі валютамен көрсетілген орындарды бөлек рәсімдеңіз.", row: "Қатар", table: "Үстел",
     seat: "орын", selectedSeat: "Таңдалған орын", interactiveMap: "Интерактивті сызба",
     chooseSeat: "Орынды, үстелді немесе аймақты таңдаңыз", selectionHint: "Таңдауыңыз оң жақта және рәсімдеу бөлімінде көрінеді. Қолжетімділік сатып алу кезінде тексеріледі.",
-    dimensions: "Зал өлшемі:", available: "Бос", selected: "Таңдалған", unavailable: "Қолжетімсіз",
+    tariffs: "Тарифтер мен бағалар", dimensions: "Зал өлшемі:", available: "Бос", selected: "Таңдалған", unavailable: "Қолжетімсіз",
     mapZoom: "Сызба масштабы", zoomOut: "Сызбаны кішірейту", zoomReset: "Масштабты қалпына келтіру", zoomIn: "Сызбаны үлкейту",
     yourSelection: "Сіздің таңдауыңыз", noSelection: "Сызбадағы бос орынды, үстелді немесе аймақты басыңыз. Билеттердің бірнеше түрін бірге таңдауға болады.",
     remove: "Алып тастау", wholeTable: "Үстел толығымен", seats: "орын", remaining: "Қолжетімді:",
@@ -72,7 +72,7 @@ export const EVENT_COPY: Record<EventLocale, EventCopy> = {
     mixedCurrencies: "Seats priced in different currencies must be purchased separately.", row: "Row", table: "Table",
     seat: "seat", selectedSeat: "Selected seat", interactiveMap: "Interactive map",
     chooseSeat: "Choose a seat, table, or area", selectionHint: "Your selection will appear on the right and at checkout. Availability is checked when you buy.",
-    dimensions: "Venue dimensions:", available: "Available", selected: "Selected", unavailable: "Unavailable",
+    tariffs: "Tariffs and prices", dimensions: "Venue dimensions:", available: "Available", selected: "Selected", unavailable: "Unavailable",
     mapZoom: "Map zoom", zoomOut: "Zoom out", zoomReset: "Reset zoom", zoomIn: "Zoom in",
     yourSelection: "Your selection", noSelection: "Choose an available seat, table, or area on the map. You can select multiple ticket types.",
     remove: "Remove", wholeTable: "Whole table", seats: "seats", remaining: "Available:",

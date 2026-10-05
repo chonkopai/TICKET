@@ -1,3 +1,6 @@
+import { assertCurrentSale } from "../events/current-sale-policy.js";
+import { acceptedSnapshot } from "./accepted-policy-snapshot.js";
+import { readCheckoutSnapshot,parseHistoricalPurchaseSnapshot } from "@event-platform/shared-types";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 
 import {
@@ -18,7 +21,7 @@ import {
   type PrismaClient,
 } from "@event-platform/database";
 import {
-  venueLayoutSchemaAny,
+  venueLayoutSchemaAny,publishedHallV3Schema,checkedOrderTotal,type EventLocale,
   type BookingOptions,
   type CancellationResponse,
   type CancellationTermsResponse,
@@ -40,6 +43,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 
+import { readCanonicalHall,canonicalHallCompatibility } from "../venue/canonical-hall.compat.js";
 import { DATABASE_CLIENT } from "../auth/auth.constants.js";
 import { DomainEventsService } from "../domain-events/domain-events.service.js";
 import { lockTable, TablesService } from "../tables/tables.service.js";
@@ -97,7 +101,7 @@ export class BookingService {
     const prior = anonymous ? null : await this.replayed(userId, CART_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
     if (prior) {
       if (prior.paymentLink) return prior;
-      const link = await this.paymentLinks.createLink(userId, prior.orderId, `checkout-${key}`);
+      const link = await this.checkoutLink(userId, prior, `checkout-${key}`);
       return { ...prior, paymentLink: link.paymentLink };
     }
     try {
@@ -106,6 +110,7 @@ export class BookingService {
         if (replay) return replay;
         const event = await transaction.event.findFirst({ where: { id: input.eventId, status: EventStatus.published } });
         if (!event) throw new NotFoundException({ code: "EVENT_NOT_FOUND", message: "Event was not found" });
+        assertCurrentSale(event);
         const now = this.clock.now();
         const configuredExpiry = new Date(now.getTime() + this.config.checkoutTtlSeconds * 1_000);
         const types = tickets.length ? await transaction.ticketType.findMany({ where: { id: { in: tickets.map((item) => item.ticketTypeId) }, eventId: event.id, isInternal: false, seats: { none: {} }, status: TicketTypeStatus.active } }) : [];
@@ -128,10 +133,8 @@ export class BookingService {
         if (currencies.some((value) => value !== currency)) throw new ConflictException({ code: "CART_CURRENCY_MISMATCH", message: "All selections must use the same currency" });
         const full = tickets.reduce((sum, item) => sum + types.find((type) => type.id === item.ticketTypeId)!.price * item.quantity, 0)
           + seats.reduce((sum, seat) => sum + seat.ticketType!.price, 0) + (table?.price ?? 0);
-        const due = event.paymentMode === EventPaymentMode.deposit
-          ? tickets.reduce((sum, item) => sum + types.find((type) => type.id === item.ticketTypeId)!.deposit * item.quantity, 0) + seats.reduce((sum, seat) => sum + seat.ticketType!.deposit, 0) + (table?.deposit ?? 0)
-          : full;
-        if (event.paymentMode === EventPaymentMode.deposit && (due <= 0 || types.some((type) => type.deposit <= 0) || seats.some((seat) => seat.ticketType!.deposit <= 0) || (table && table.deposit <= 0))) throw new ConflictException({ code: "DEPOSIT_NOT_CONFIGURED", message: "A positive deposit is required for every selection" });
+        const due = full;
+        assertChargeTotal(full);assertChargeTotal(due);
         const orderId = randomUUID();
         let hold: Awaited<ReturnType<TablesService["holdInTransaction"]>> | null = null;
         let includedSeats: Awaited<ReturnType<typeof ensureWholeTableSeats>> = [];
@@ -141,16 +144,17 @@ export class BookingService {
           includedSeats = await ensureWholeTableSeats(transaction, table.id, table.venueLayoutId, table.seats, table.seatRecords);
         }
         const expiresAt = hold && hold.expiresAt < configuredExpiry ? hold.expiresAt : configuredExpiry;
-        const fullAmount = event.paymentMode === EventPaymentMode.deposit && !event.showFullAmountForDeposit ? null : full;
+        const fullAmount = full;
         const itemLabels = [
-          ...tickets.map((item) => ({ kind: "ticket" as const, id: item.ticketTypeId, name: types.find((type) => type.id === item.ticketTypeId)!.name, quantity: item.quantity, amountDue: (event.paymentMode === EventPaymentMode.deposit ? types.find((type) => type.id === item.ticketTypeId)!.deposit : types.find((type) => type.id === item.ticketTypeId)!.price) * item.quantity })),
-          ...seats.map((seat) => ({ kind: "seat" as const, id: seat.id, name: seat.label, quantity: 1, amountDue: event.paymentMode === EventPaymentMode.deposit ? seat.ticketType!.deposit : seat.ticketType!.price })),
-          ...(table ? [{ kind: "table" as const, id: table.id, name: table.name ?? `Стол №${table.number}`, quantity: 1, amountDue: event.paymentMode === EventPaymentMode.deposit ? table.deposit : table.price }] : []),
+          ...tickets.map((item) => ({ kind: "ticket" as const, id: item.ticketTypeId, name: types.find((type) => type.id === item.ticketTypeId)!.name, quantity: item.quantity, amountDue: (types.find((type) => type.id === item.ticketTypeId)!.price) * item.quantity })),
+          ...seats.map((seat) => ({ kind: "seat" as const, id: seat.id, name: seat.label, quantity: 1, amountDue: seat.ticketType!.price })),
+          ...(table ? [{ kind: "table" as const, id: table.id, name: table.name ?? `Стол №${table.number}`, quantity: 1, amountDue: table.price }] : []),
         ];
         const snapshot: CheckoutSnapshot = { eventId: event.id, eventTitle: event.title, eventDate: event.date.toISOString().slice(0, 10), eventTime: event.time.toISOString().slice(11, 16), eventTimezone: event.timezone, venueName: event.venueName, itemId: itemLabels[0]!.id, itemName: itemLabels.map((item) => item.name).join(", "), itemKind: "cart", quantity: itemLabels.reduce((sum, item) => sum + item.quantity, 0), paymentMode: event.paymentMode, paymentLabel: event.paymentMode, unitFullAmount: full, fullAmount, amountDue: due, currency, cancellationTerms: event.cancellationTerms, depositTerms: event.depositTerms, items: itemLabels,
           seatIds: [...seatIds, ...includedSeats.map((seat) => seat.id)], groupPass: Boolean(table) };
         const deliveryEmail = await this.resolveEmail(transaction, userId, input.emailDelivery, sessionFamilyId, anonymous);
-        await transaction.order.create({ data: { id: orderId, type: OrderType.ticket, buyerUserId: anonymous ? null : userId, ...(anonymous ? { guestContact: anonymous.guestContact } : {}), amount: due, currency, checkoutSnapshot: json(snapshot), termsAcceptedAt: now, expiresAt, emailDeliveryAddress: deliveryEmail, emailDeliveryRequestedAt: deliveryEmail ? now : null } });
+        const frozen=await acceptedSnapshot(transaction,event,snapshot,input,now);
+        await transaction.order.create({ data: { id: orderId, type: OrderType.ticket, buyerUserId: anonymous ? null : userId, ...(anonymous ? { guestContact: anonymous.guestContact } : {}), amount: due, currency, checkoutSnapshot: frozen, termsAcceptedAt: now, expiresAt, emailDeliveryAddress: deliveryEmail, emailDeliveryRequestedAt: deliveryEmail ? now : null } });
         const ticketIds: string[] = [];
         for (const item of tickets) {
           await this.ticketTypes.reserveInTransaction(transaction, item.ticketTypeId, item.quantity, expiresAt, orderId, now);
@@ -161,7 +165,7 @@ export class BookingService {
         }
         for (const seat of seats) {
           const label = seat.table ? `Стол ${seat.table.number} · Место ${seat.number}` : `Ряд ${seat.row?.number ?? ""} · Место ${seat.number}`;
-          const ticket = await transaction.ticket.create({ data: { ticketTypeId: seat.ticketType!.id, orderId, ownerUserId: anonymous ? null : userId, qrToken: randomBytes(32).toString("base64url"), seatLabelSnapshot: label, status: TicketStatus.pending_payment } });
+          const ticket = await transaction.ticket.create({ data: { ticketTypeId: seat.ticketType!.id, orderId, ownerUserId: anonymous ? null : userId, qrToken: randomBytes(32).toString("base64url"), seatLabelSnapshot: frozenSeatLabel(frozen,seat.id,label), status: TicketStatus.pending_payment } });
           ticketIds.push(ticket.id);
           await transaction.seatAllocation.create({ data: { seatId: seat.id, orderId, ticketId: ticket.id } });
         }
@@ -172,14 +176,13 @@ export class BookingService {
           bookingId = booking.id;
           const admissionType = await ensureAdmissionTicketType(transaction, event.id, table.id, currency);
           for (const seat of includedSeats) {
-            const ticket = await transaction.ticket.create({ data: { ticketTypeId: admissionType.id, orderId, ownerUserId: anonymous ? null : userId, qrToken: randomBytes(32).toString("base64url"), seatLabelSnapshot: `Стол ${table.number} · Место ${seat.number}`, status: TicketStatus.pending_payment } });
+            const ticket = await transaction.ticket.create({ data: { ticketTypeId: admissionType.id, orderId, ownerUserId: anonymous ? null : userId, qrToken: randomBytes(32).toString("base64url"), seatLabelSnapshot: frozenSeatLabel(frozen,seat.id,`Стол ${table.number} · Место ${seat.number}`), status: TicketStatus.pending_payment } });
             ticketIds.push(ticket.id);
             await transaction.seatAllocation.create({ data: { seatId: seat.id, orderId, ticketId: ticket.id } });
           }
           const pass = await transaction.groupPass.create({ data: { orderId, tableId: table.id, token: randomBytes(32).toString("base64url"), totalSeats: includedSeats.length } });
           groupPassId = pass.id;
         }
-        if (event.paymentMode === EventPaymentMode.deposit) await transaction.deposit.create({ data: { eventId: event.id, orderId, amount: due, currency, terms: requiredDepositTerms(event.depositTerms) } });
         const response: CheckoutResponse = { orderId, kind: "cart", paymentMode: event.paymentMode, paymentLabel: event.paymentMode, amountDue: due, fullAmount, currency, paymentLink: "", expiresAt: expiresAt.toISOString(), ticketIds, bookingId, emailDelivery: deliveryEmail ? { address: deliveryEmail, status: "pending_payment" } : null, ...(groupPassId ? { groupPassId, groupPassQrPath: `/me/group-passes/${groupPassId}/qr` } : {}) };
         await this.domainEvents.append(transaction, { eventType: "checkout.cart_created", aggregateType: "order", aggregateId: orderId, payload: { userId: anonymous ? null : userId, eventId: event.id, items: itemLabels, amountDue: due } });
         if (!anonymous) await saveResponse(transaction, userId, CART_CHECKOUT, key, orderId, response);
@@ -187,8 +190,7 @@ export class BookingService {
       };
       const response = anonymous ? await create(anonymous.transaction) : await this.database.$transaction(create, { timeout: 15_000 });
       if (anonymous) return response;
-      const link = await this.paymentLinks.createLink(userId, response.orderId, `checkout-${key}`);
-      if (response.amountDue === 0) await this.settleSucceeded(response.orderId);
+      const link = await this.checkoutLink(userId, response, `checkout-${key}`);
       const finalResponse = { ...response, paymentLink: link.paymentLink };
       await this.database.idempotencyRecord.update({ where: { userId_operation_key: { userId, operation: CART_CHECKOUT, key } }, data: { response: json(finalResponse) } });
       return finalResponse;
@@ -210,7 +212,7 @@ export class BookingService {
     const prior = anonymous ? null : await this.replayed(userId, TICKET_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
     if (prior) {
       if (prior.paymentLink) return prior;
-      const link = await this.paymentLinks.createLink(userId, prior.orderId, `checkout-${key}`);
+      const link = await this.checkoutLink(userId, prior, `checkout-${key}`);
       return { ...prior, paymentLink: link.paymentLink };
     }
 
@@ -224,10 +226,11 @@ export class BookingService {
           include: { event: true },
         });
         if (!ticketType) throw new NotFoundException({ code: "TICKET_TYPE_NOT_FOUND", message: "Ticket type was not found" });
+        assertCurrentSale(ticketType.event);
 
         const now = this.clock.now();
         const expiresAt = new Date(now.getTime() + this.config.checkoutTtlSeconds * 1_000);
-        const amounts = paymentAmounts(ticketType.event, ticketType.price, ticketType.deposit, input.quantity);
+        const amounts = paymentAmounts(ticketType.event, ticketType.price, input.quantity);
         const snapshot: CheckoutSnapshot = {
           eventId: ticketType.eventId,
           eventTitle: ticketType.event.title,
@@ -250,6 +253,7 @@ export class BookingService {
         };
         const orderId = randomUUID();
         const deliveryEmail = await this.resolveEmail(transaction, userId, input.emailDelivery, sessionFamilyId, anonymous);
+        const frozen=await acceptedSnapshot(transaction,ticketType.event,snapshot,input,now);
         await transaction.order.create({
           data: {
             id: orderId,
@@ -258,7 +262,7 @@ export class BookingService {
             ...(anonymous ? { guestContact: anonymous.guestContact } : {}),
             amount: amounts.amountDue,
             currency: snapshot.currency,
-            checkoutSnapshot: json(snapshot),
+            checkoutSnapshot: frozen,
             emailDeliveryAddress: deliveryEmail,
             emailDeliveryRequestedAt: deliveryEmail ? now : null,
             termsAcceptedAt: now,
@@ -278,17 +282,6 @@ export class BookingService {
             },
             select: { id: true },
           }));
-        }
-        if (ticketType.event.paymentMode === EventPaymentMode.deposit) {
-          await transaction.deposit.create({
-            data: {
-              eventId: ticketType.eventId,
-              orderId,
-              amount: amounts.amountDue,
-              currency: snapshot.currency,
-              terms: requiredDepositTerms(ticketType.event.depositTerms),
-            },
-          });
         }
         const response: CheckoutResponse = {
           orderId,
@@ -315,8 +308,7 @@ export class BookingService {
       };
       const response = anonymous ? await create(anonymous.transaction) : await this.database.$transaction(create, { timeout: 15_000 });
       if (anonymous) return response;
-      const linked = await this.paymentLinks.createLink(userId, response.orderId, `checkout-${key}`);
-      if (response.amountDue === 0) await this.settleSucceeded(response.orderId);
+      const linked = await this.checkoutLink(userId, response, `checkout-${key}`);
       const finalResponse = { ...response, paymentLink: linked.paymentLink };
       await this.database.idempotencyRecord.update({ where: { userId_operation_key: { userId, operation: TICKET_CHECKOUT, key } }, data: { response: json(finalResponse) } });
       return finalResponse;
@@ -337,7 +329,7 @@ export class BookingService {
     const prior = anonymous ? null : await this.replayed(userId, TABLE_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
     if (prior) {
       if (prior.paymentLink) return prior;
-      const link = await this.paymentLinks.createLink(userId, prior.orderId, `checkout-${key}`);
+      const link = await this.checkoutLink(userId, prior, `checkout-${key}`);
       return { ...prior, paymentLink: link.paymentLink };
     }
     try {
@@ -358,7 +350,7 @@ export class BookingService {
         const hold = await this.tables.holdInTransaction(transaction, table.id, holdKey, now);
         const includedSeats = await ensureWholeTableSeats(transaction, table.id, table.venueLayoutId, table.seats, table.seatRecords);
         const expiresAt = hold.expiresAt < configuredExpiry ? hold.expiresAt : configuredExpiry;
-        const amounts = paymentAmounts(event, table.price, table.deposit, 1);
+        const amounts = paymentAmounts(event, table.price, 1);
         const snapshot: CheckoutSnapshot = {
           eventId: event.id,
           eventTitle: event.title,
@@ -385,6 +377,7 @@ export class BookingService {
         };
         const orderId = randomUUID();
         const deliveryEmail = await this.resolveEmail(transaction, userId, input.emailDelivery, sessionFamilyId, anonymous);
+        const frozen=await acceptedSnapshot(transaction,event,snapshot,input,now);
         await transaction.order.create({
           data: {
             id: orderId,
@@ -393,7 +386,7 @@ export class BookingService {
             ...(anonymous ? { guestContact: anonymous.guestContact } : {}),
             amount: amounts.amountDue,
             currency: snapshot.currency,
-            checkoutSnapshot: json(snapshot),
+            checkoutSnapshot: frozen,
             emailDeliveryAddress: deliveryEmail,
             emailDeliveryRequestedAt: deliveryEmail ? now : null,
             termsAcceptedAt: now,
@@ -406,16 +399,11 @@ export class BookingService {
         const admissionType = await ensureAdmissionTicketType(transaction, event.id, table.id, table.currency.trim());
         const individualTicketIds: string[] = [];
         for (const seat of includedSeats) {
-          const ticket = await transaction.ticket.create({ data: { ticketTypeId: admissionType.id, orderId, ownerUserId: anonymous ? null : userId, qrToken: randomBytes(32).toString("base64url"), seatLabelSnapshot: `Стол ${table.number} · Место ${seat.number}`, status: TicketStatus.pending_payment } });
+          const ticket = await transaction.ticket.create({ data: { ticketTypeId: admissionType.id, orderId, ownerUserId: anonymous ? null : userId, qrToken: randomBytes(32).toString("base64url"), seatLabelSnapshot: frozenSeatLabel(frozen,seat.id,`Стол ${table.number} · Место ${seat.number}`), status: TicketStatus.pending_payment } });
           individualTicketIds.push(ticket.id);
           await transaction.seatAllocation.create({ data: { seatId: seat.id, orderId, ticketId: ticket.id } });
         }
         const groupPass = await transaction.groupPass.create({ data: { orderId, tableId: table.id, token: randomBytes(32).toString("base64url"), totalSeats: includedSeats.length } });
-        if (event.paymentMode === EventPaymentMode.deposit) {
-          await transaction.deposit.create({
-            data: { eventId: event.id, orderId, amount: amounts.amountDue, currency: snapshot.currency, terms: requiredDepositTerms(event.depositTerms) },
-          });
-        }
         const response: CheckoutResponse = {
           orderId,
           kind: "table",
@@ -443,8 +431,7 @@ export class BookingService {
       };
       const response = anonymous ? await create(anonymous.transaction) : await this.database.$transaction(create, { timeout: 15_000 });
       if (anonymous) return response;
-      const linked = await this.paymentLinks.createLink(userId, response.orderId, `checkout-${key}`);
-      if (response.amountDue === 0) await this.settleSucceeded(response.orderId);
+      const linked = await this.checkoutLink(userId, response, `checkout-${key}`);
       const finalResponse = { ...response, paymentLink: linked.paymentLink };
       await this.database.idempotencyRecord.update({ where: { userId_operation_key: { userId, operation: TABLE_CHECKOUT, key } }, data: { response: json(finalResponse) } });
       return finalResponse;
@@ -465,7 +452,7 @@ export class BookingService {
     const prior = anonymous ? null : await this.replayed(userId, SEAT_CHECKOUT, key, fingerprint, Boolean(input.emailDelivery));
     if (prior) {
       if (prior.paymentLink) return prior;
-      const link = await this.paymentLinks.createLink(userId, prior.orderId, `checkout-${key}`);
+      const link = await this.checkoutLink(userId, prior, `checkout-${key}`);
       return { ...prior, paymentLink: link.paymentLink };
     }
     const seatIds = [...new Set(input.seatIds)];
@@ -492,6 +479,7 @@ export class BookingService {
           throw new ConflictException({ code: "SEAT_SALE_MODE_INVALID", message: "This table is sold as a whole" });
         }
         const event = seats[0]!.ticketType!.event;
+        assertCurrentSale(event);
         if (event.status !== EventStatus.published || seats.some((seat) => seat.ticketType!.eventId !== event.id || seat.allocations.length > 0 || (seat.table && seat.table.venueLayoutId !== seat.venueLayoutId) || (seat.row && seat.row.venueLayoutId !== seat.venueLayoutId))) {
           throw new ConflictException({ code: "SEAT_UNAVAILABLE", message: "One or more selected seats are unavailable" });
         }
@@ -506,11 +494,12 @@ export class BookingService {
         const currency = seats[0]!.ticketType!.currency.trim();
         if (seats.some((seat) => seat.ticketType!.currency.trim() !== currency)) throw new ConflictException({ code: "SEAT_CURRENCY_MISMATCH", message: "Selected seats use different currencies" });
         const fullAmount = seats.reduce((sum, seat) => sum + seat.ticketType!.price, 0);
-        const amountDue = event.paymentMode === EventPaymentMode.deposit ? seats.reduce((sum, seat) => sum + seat.ticketType!.deposit, 0) : fullAmount;
-        if (event.paymentMode === EventPaymentMode.deposit && amountDue <= 0) throw new ConflictException({ code: "DEPOSIT_NOT_CONFIGURED", message: "A positive deposit is required" });
+        const amountDue = fullAmount;
+        assertChargeTotal(fullAmount);assertChargeTotal(amountDue);
         const seatAssignments = seats.map((seat) => seat.table
           ? { seatId: seat.id, seatNumber: seat.number, parentKind: "table" as const, parentNumber: seat.table.number, displayLabel: `Стол ${seat.table.number} · Место ${seat.number}` }
-          : { seatId: seat.id, seatNumber: seat.number, parentKind: "row" as const, parentNumber: seat.row!.number, displayLabel: `Ряд ${seat.row!.number} · Место ${seat.number}` });
+          : seat.row?{ seatId: seat.id, seatNumber: seat.number, parentKind: "row" as const, parentNumber: seat.row.number, displayLabel: `Ряд ${seat.row.number} · Место ${seat.number}` }
+          : {seatId:seat.id,seatNumber:seat.number,parentKind:"standalone" as const,parentNumber:seat.number,displayLabel:seat.label||`Место ${seat.number}`});
         const snapshot: CheckoutSnapshot = {
           eventId: event.id,
           eventTitle: event.title,
@@ -525,7 +514,7 @@ export class BookingService {
           paymentMode: event.paymentMode,
           paymentLabel: event.paymentMode,
           unitFullAmount: seats.length === 1 ? seats[0]!.ticketType!.price : fullAmount,
-          fullAmount: event.paymentMode === EventPaymentMode.deposit && !event.showFullAmountForDeposit ? null : fullAmount,
+          fullAmount: fullAmount,
           amountDue,
           currency,
           cancellationTerms: event.cancellationTerms,
@@ -533,18 +522,19 @@ export class BookingService {
           seatIds,
           seatLabels: seatAssignments.map(({ displayLabel }) => displayLabel),
           seatAssignments,
+          items:seats.map(seat=>({kind:"seat",id:seat.id,name:seat.label,quantity:1,amountDue:seat.ticketType!.price})),
         };
         const orderId = randomUUID();
         const deliveryEmail = await this.resolveEmail(transaction, userId, input.emailDelivery, sessionFamilyId, anonymous);
-        await transaction.order.create({ data: { id: orderId, type: OrderType.ticket, buyerUserId: anonymous ? null : userId, ...(anonymous ? { guestContact: anonymous.guestContact } : {}), amount: amountDue, currency, checkoutSnapshot: json(snapshot), termsAcceptedAt: now, expiresAt, emailDeliveryAddress: deliveryEmail, emailDeliveryRequestedAt: deliveryEmail ? now : null } });
+        const frozen=await acceptedSnapshot(transaction,event,snapshot,input,now);
+        await transaction.order.create({ data: { id: orderId, type: OrderType.ticket, buyerUserId: anonymous ? null : userId, ...(anonymous ? { guestContact: anonymous.guestContact } : {}), amount: amountDue, currency, checkoutSnapshot: frozen, termsAcceptedAt: now, expiresAt, emailDeliveryAddress: deliveryEmail, emailDeliveryRequestedAt: deliveryEmail ? now : null } });
         const ticketIds: string[] = [];
         for (const seat of seats) {
           const displayLabel = seatAssignments.find(({ seatId }) => seatId === seat.id)!.displayLabel;
-          const ticket = await transaction.ticket.create({ data: { ticketTypeId: seat.ticketType!.id, orderId, ownerUserId: anonymous ? null : userId, qrToken: randomBytes(32).toString("base64url"), seatLabelSnapshot: displayLabel, status: TicketStatus.pending_payment } });
+          const ticket = await transaction.ticket.create({ data: { ticketTypeId: seat.ticketType!.id, orderId, ownerUserId: anonymous ? null : userId, qrToken: randomBytes(32).toString("base64url"), seatLabelSnapshot: frozenSeatLabel(frozen,seat.id,displayLabel), status: TicketStatus.pending_payment } });
           ticketIds.push(ticket.id);
           await transaction.seatAllocation.create({ data: { seatId: seat.id, orderId, ticketId: ticket.id } });
         }
-        if (event.paymentMode === EventPaymentMode.deposit) await transaction.deposit.create({ data: { eventId: event.id, orderId, amount: amountDue, currency, terms: requiredDepositTerms(event.depositTerms) } });
         const result: CheckoutResponse = { orderId, kind: "ticket", paymentMode: snapshot.paymentMode, paymentLabel: snapshot.paymentLabel, amountDue, fullAmount: snapshot.fullAmount, currency, paymentLink: "", expiresAt: expiresAt.toISOString(), ticketIds, bookingId: null, emailDelivery: deliveryEmail ? { address: deliveryEmail, status: "pending_payment" } : null };
         await this.domainEvents.append(transaction, { eventType: "checkout.seats_created", aggregateType: "order", aggregateId: orderId, payload: { userId: anonymous ? null : userId, ...(anonymous ? { anonymousSessionId: userId } : {}), eventId: event.id, seatIds, amountDue } });
         if (!anonymous) await saveResponse(transaction, userId, SEAT_CHECKOUT, key, orderId, result);
@@ -552,8 +542,7 @@ export class BookingService {
       };
       const response = anonymous ? await create(anonymous.transaction) : await this.database.$transaction(create, { timeout: 15_000 });
       if (anonymous) return response;
-      const link = await this.paymentLinks.createLink(userId, response.orderId, `checkout-${key}`);
-      if (response.amountDue === 0) await this.settleSucceeded(response.orderId);
+      const link = await this.checkoutLink(userId, response, `checkout-${key}`);
       const finalResponse = { ...response, paymentLink: link.paymentLink };
       await this.database.idempotencyRecord.update({ where: { userId_operation_key: { userId, operation: SEAT_CHECKOUT, key } }, data: { response: json(finalResponse) } });
       return finalResponse;
@@ -563,6 +552,11 @@ export class BookingService {
     }
   }
 
+  private async checkoutLink(userId:string,checkout:Pick<CheckoutResponse,"orderId"|"amountDue">,key:string):Promise<{paymentLink:string}>{
+    if(checkout.amountDue===0){await this.settleSucceeded(checkout.orderId);return{paymentLink:""};}
+    return this.paymentLinks.createLink(userId,checkout.orderId,key);
+  }
+
   async options(_userId: string, eventId: string): Promise<BookingOptions> {
     const event = await this.database.event.findFirst({
       where: { id: eventId, status: EventStatus.published },
@@ -570,7 +564,8 @@ export class BookingService {
     });
     if (!event) throw new NotFoundException({ code: "EVENT_NOT_FOUND", message: "Event was not found" });
     if (event.venueLayout) await this.tables.expireLayoutHolds(event.venueLayout.id);
-    const parsed = event.venueLayout ? venueLayoutSchemaAny.safeParse(event.venueLayout.layoutJson) : null;
+    const geometry=event.venueLayout&&publishedHallV3Schema.safeParse(event.venueLayout.layoutJson).success?canonicalHallCompatibility(await readCanonicalHall(this.database,event.venueLayout.id,event.venueLayout.layoutJson),event.sourceLocale as EventLocale):event.venueLayout?.layoutJson;
+    const parsed=event.venueLayout?(publishedHallV3Schema.safeParse(event.venueLayout.layoutJson).success?{success:true as const,data:geometry}:venueLayoutSchemaAny.safeParse(geometry)):null;
     return {
       eventId,
       paymentMode: event.paymentMode,
@@ -747,7 +742,8 @@ export class BookingService {
         if (current.status === TicketStatus.used || current.status === TicketStatus.refunded) {
           throw cancellationNotAllowed("TICKET_CANCELLATION_NOT_ALLOWED");
         }
-        const refundPending = current.order.paymentStatus === PaymentStatus.paid;
+        assertAcceptedCancellation(current.order);
+        const refundPending = current.order.paymentStatus === PaymentStatus.paid && current.order.amount > 0;
         if (current.status !== TicketStatus.cancelled) {
           const sold = current.status === TicketStatus.paid || current.status === TicketStatus.active;
           await transaction.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${`ticket-type:${current.ticketTypeId}`}, 0))`;
@@ -789,7 +785,8 @@ export class BookingService {
         await lockOrder(transaction, booking.orderId);
         await lockTable(transaction, booking.tableId);
         if (booking.status === BookingStatus.expired) throw cancellationNotAllowed("BOOKING_CANCELLATION_NOT_ALLOWED");
-        const refundPending = booking.order.paymentStatus === PaymentStatus.paid;
+        assertAcceptedCancellation(booking.order);
+        const refundPending = booking.order.paymentStatus === PaymentStatus.paid && booking.order.amount > 0;
         if (booking.status !== BookingStatus.cancelled) {
           await transaction.booking.update({ where: { id }, data: { status: BookingStatus.cancelled } });
           if (booking.tableHold?.status === TableHoldStatus.active) {
@@ -893,7 +890,7 @@ export class BookingService {
       const prior = await this.replayed(userId, operation, key, fingerprint, requestedEmail);
       if (prior) {
         if (prior.paymentLink) return prior;
-        const linked = await this.paymentLinks.createLink(userId, prior.orderId, `checkout-${key}`);
+        const linked = await this.checkoutLink(userId, prior, `checkout-${key}`);
         const response = { ...prior, paymentLink: linked.paymentLink };
         await this.database.idempotencyRecord.update({ where: { userId_operation_key: { userId, operation, key } }, data: { response: json(response) } });
         return response;
@@ -953,23 +950,10 @@ function presentHoldPreview(order: HoldOrder, now: Date): ManagementHoldPreview 
   return { orderId: order.id, eligible: reason === "active", reason, expiresAt, resourceLabels };
 }
 
-function paymentAmounts(
-  event: { paymentMode: EventPaymentMode; showFullAmountForDeposit: boolean; depositTerms: string | null },
-  unitFullAmount: number,
-  unitDeposit: number,
-  quantity: number,
-): { amountDue: number; fullAmount: number | null } {
-  const full = unitFullAmount * quantity;
-  if (event.paymentMode === EventPaymentMode.full_payment) return { amountDue: full, fullAmount: full };
-  if (unitDeposit <= 0) throw new ConflictException({ code: "DEPOSIT_AMOUNT_REQUIRED", message: "This item has no valid deposit amount" });
-  requiredDepositTerms(event.depositTerms);
-  return { amountDue: unitDeposit * quantity, fullAmount: event.showFullAmountForDeposit ? full : null };
+function paymentAmounts(event:{paymentMode:EventPaymentMode},unitAmount:number,quantity:number):{amountDue:number;fullAmount:number}{
+  assertCurrentSale(event);const amount=unitAmount*quantity;assertChargeTotal(amount);return {amountDue:amount,fullAmount:amount};
 }
-
-function requiredDepositTerms(value: string | null): string {
-  if (!value?.trim()) throw new ConflictException({ code: "DEPOSIT_TERMS_REQUIRED", message: "Deposit terms are not configured" });
-  return value;
-}
+function assertChargeTotal(amount:number){try{checkedOrderTotal([{unitAmount:amount,quantity:1,currency:"XXX"}],"XXX");}catch{throw new BadRequestException({code:"MONEY_TOTAL_OVERFLOW"});}}
 
 async function claim(transaction: Prisma.TransactionClient, userId: string, operation: string, key: string, fingerprint: string, requestedEmail: boolean): Promise<CheckoutResponse | null> {
   const prior = await transaction.idempotencyRecord.findUnique({ where: { userId_operation_key: { userId, operation, key } } });
@@ -1006,6 +990,7 @@ function cancellationTerms(resourceId: string, status: string, order: { amount: 
     resourceId,
     status,
     cancellationTerms: data.cancellationTerms,
+    ...(data.acceptedPolicy?{acceptedPolicy:data.acceptedPolicy}:{}),
     paymentMode: data.paymentMode,
     amountPaid: order.paymentStatus === PaymentStatus.paid ? order.amount : 0,
     currency: order.currency.trim(),
@@ -1014,7 +999,7 @@ function cancellationTerms(resourceId: string, status: string, order: { amount: 
 
 function snapshot(value: Prisma.JsonValue): CheckoutSnapshot {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new ConflictException({ code: "CHECKOUT_SNAPSHOT_INVALID", message: "Checkout snapshot is unavailable" });
-  return value as unknown as CheckoutSnapshot;
+  return readCheckoutSnapshot(value);
 }
 
 function checkoutResponse(value: Prisma.JsonValue): CheckoutResponse { return value as unknown as CheckoutResponse; }
@@ -1104,3 +1089,7 @@ async function ensureAdmissionTicketType(
 function orderNotFound(): NotFoundException { return resourceNotFound("ORDER_NOT_FOUND"); }
 function resourceNotFound(code: string): NotFoundException { return new NotFoundException({ code, message: "Resource was not found" }); }
 function cancellationNotAllowed(code: string): ConflictException { return new ConflictException({ code, message: "Cancellation is not allowed in the current state" }); }
+
+function assertAcceptedCancellation(order:{paymentStatus:PaymentStatus;amount:number;checkoutSnapshot:Prisma.JsonValue}){const parsed=parseHistoricalPurchaseSnapshot(order.checkoutSnapshot);if(parsed.version===2&&order.paymentStatus===PaymentStatus.paid&&order.amount>0&&!parsed.snapshot.refund.available)throw new ConflictException({code:"REFUNDS_NOT_AVAILABLE",message:"The accepted policy does not allow monetary refunds; contact the organizer for an exception"});}
+
+function frozenSeatLabel(value:Prisma.InputJsonValue,id:string,fallback:string){const saved=readCheckoutSnapshot(value),index=saved.seatIds?.indexOf(id)??-1;return saved.acceptedPolicy&&index>=0?saved.seatLabels?.[index]??fallback:fallback;}

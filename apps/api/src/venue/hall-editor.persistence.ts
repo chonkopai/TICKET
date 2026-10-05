@@ -1,16 +1,22 @@
+import { assertCurrentSale } from "../events/current-sale-policy.js";
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@event-platform/database";
 import { effectivePrice, metres, rotatePoint, type HallEditor, type VenueLayoutJsonV2 } from "@event-platform/shared-types";
 import { ConflictException } from "@nestjs/common";
 
 /** Editor metadata and sellable inventory are committed under the caller's layout lock. */
-export async function persistHallEditor(tx: Prisma.TransactionClient, layoutId: string, eventId: string | null, json: VenueLayoutJsonV2): Promise<VenueLayoutJsonV2> {
+export async function persistHallEditor(tx: Prisma.TransactionClient, layoutId: string, eventId: string | null, json: VenueLayoutJsonV2,currencyHint?:string): Promise<VenueLayoutJsonV2> {
+  let currency:string|undefined=currencyHint;
   if(eventId) {
     await tx.$queryRaw`SELECT "id" FROM "Event" WHERE "id" = ${eventId}::uuid FOR UPDATE`;
-    const event=await tx.event.findUniqueOrThrow({where:{id:eventId},select:{status:true}});
+    const event=await tx.event.findUniqueOrThrow({where:{id:eventId},select:{status:true,currency:true,paymentMode:true,creationVersion:true}});
+    assertCurrentSale(event);
+    currency=event.currency?.trim()??currencyHint;
     if(event.status!=="draft") throw new ConflictException({code:"VENUE_STRUCTURE_DRAFT_ONLY",message:"Venue structure can only change while the event is a draft"});
   }
   const editor = json.editor!;
+  if(editor.objects.some(object=>object.deposit>0))throw new ConflictException({code:"LEGACY_DEPOSIT_TEMPLATE_REVIEW_REQUIRED"});
+  if(!currency){const values=[...(await tx.table.findMany({where:{venueLayoutId:layoutId},select:{currency:true}})),...(await tx.venueRow.findMany({where:{venueLayoutId:layoutId},select:{currency:true}})),...(eventId?await tx.ticketType.findMany({where:{eventId},select:{currency:true}}):[])];const codes=[...new Set(values.map(value=>value.currency.trim()))];if(codes.length>1)throw new ConflictException({code:"EVENT_CURRENCY_REVIEW_REQUIRED"});currency=codes[0]??"KZT";}
   const objects = editor.objects;
   const existingSeats = await tx.seat.findMany({ where: { venueLayoutId: layoutId }, select: { id: true, ticketTypeId: true } });
   const existingTables = await tx.table.findMany({ where: { venueLayoutId: layoutId }, select: { id: true } });
@@ -45,11 +51,11 @@ export async function persistHallEditor(tx: Prisma.TransactionClient, layoutId: 
   for (let i = 0; i < existingTables.length; i++) await tx.table.updateMany({ where: { id: existingTables[i]!.id }, data: { number: 1_000_000 + i } });
   for (let i = 0; i < existingRows.length; i++) await tx.venueRow.updateMany({ where: { id: existingRows[i]!.id }, data: { number: 1_000_000 + i } });
   for (const [i, object] of tableObjects.entries()) {
-    const data = { number: i + 1, name: object.name, seats: seatObjects.filter((s) => s.parentId === object.id).length, price: effectivePrice(object, editor) ?? 0, deposit: object.deposit, currency: "KZT", saleMode: object.saleMode, status: !seatObjects.some((s) => s.parentId === object.id) ? "unavailable" as const : "available" as const };
+    const data = { number: i + 1, name: object.name, seats: seatObjects.filter((s) => s.parentId === object.id).length, price: effectivePrice(object, editor) ?? 0, deposit: 0, currency, saleMode: object.saleMode, status: !seatObjects.some((s) => s.parentId === object.id) ? "unavailable" as const : "available" as const };
     await tx.table.upsert({ where: { id: object.id }, create: { id: object.id, venueLayoutId: layoutId, ...data }, update: data });
   }
   for (const [i, object] of rowObjects.entries()) {
-    const data = { number: i + 1, name: object.name, price: effectivePrice(object, editor) ?? 0, deposit: object.deposit, currency: "KZT" };
+    const data = { number: i + 1, name: object.name, price: effectivePrice(object, editor) ?? 0, deposit: 0, currency };
     await tx.venueRow.upsert({ where: { id: object.id }, create: { id: object.id, venueLayoutId: layoutId, ...data }, update: data });
   }
   const activeTypeObjects: string[] = [];
@@ -59,7 +65,7 @@ export async function persistHallEditor(tx: Prisma.TransactionClient, layoutId: 
     if (eventId && (!parent || parent.type === "row" || parent.saleMode === "per_seat")) {
       activeTypeObjects.push(object.id);
       const price = effectivePrice(object, editor) ?? (parent ? effectivePrice(parent, editor) : null) ?? 0;
-      const data = { name: `${object.name || `Место ${object.number}`} · ${object.id}`, price, deposit: object.deposit || parent?.deposit || 0, currency: "KZT", quantityTotal: 1, status: "active" as const };
+      const data = { name: `${object.name || `Место ${object.number}`} · ${object.id}`, price, deposit: 0, currency, quantityTotal: 1, status: "active" as const };
       const type = await tx.ticketType.upsert({ where: { venueObjectId: object.id }, create: { id: randomUUID(), eventId, venueObjectId: object.id, ...data }, update: data });
       if (type.eventId !== eventId) throw new ConflictException({ code: "VENUE_OBJECT_OWNER_MISMATCH", message: "Ticket type belongs to another event" });
       ticketTypeId = type.id;
@@ -69,7 +75,7 @@ export async function persistHallEditor(tx: Prisma.TransactionClient, layoutId: 
   }
   for (const object of objects.filter((o) => o.type === "zone")) if (eventId) {
     activeTypeObjects.push(object.id);
-    const data = { name: `${object.name || "Зона"} · ${object.id}`, price: effectivePrice(object, editor) ?? 0, deposit: object.deposit, currency: "KZT", quantityTotal: object.capacity, status: object.capacity ? "active" as const : "draft" as const };
+    const data = { name: `${object.name || "Зона"} · ${object.id}`, price: effectivePrice(object, editor) ?? 0, deposit: 0, currency, quantityTotal: object.capacity, status: object.capacity ? "active" as const : "draft" as const };
     const type = await tx.ticketType.upsert({ where: { venueObjectId: object.id }, create: { id: randomUUID(), eventId, venueObjectId: object.id, ...data }, update: data });
     if (type.eventId !== eventId) throw new ConflictException({ code: "VENUE_OBJECT_OWNER_MISMATCH", message: "Ticket type belongs to another event" });
   }
@@ -86,5 +92,5 @@ export function projectHallEditor(json: VenueLayoutJsonV2, editor: HallEditor): 
 }
 
 export function assertLegacyLayout(value: Prisma.JsonValue): void {
-  if (value && typeof value === "object" && !Array.isArray(value) && value.editor) throw new ConflictException({ code: "VENUE_EDITOR_REQUIRED", message: "Update this layout through the hall editor with its current revision" });
+  if (value && typeof value === "object" && !Array.isArray(value) && (value.editor||value.version===3)) throw new ConflictException({ code: "VENUE_EDITOR_REQUIRED", message: "Update this layout through the hall editor with its current revision" });
 }

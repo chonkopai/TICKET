@@ -7,6 +7,7 @@ const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:3001";
 const botBaseUrl = process.env.BOT_INTERNAL_URL ?? "http://localhost:3002";
 
 const nextConfig: NextConfig = {
+  distDir: process.env.TICKET_NEXT_DIST_DIR ?? ".next",
   allowedDevOrigins: ["sulphate-shown-subtract.ngrok-free.dev"],
   reactStrictMode: true,
   transpilePackages: ["@event-platform/config", "@event-platform/shared-types"],
@@ -15,6 +16,7 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      { source: "/api/creation-drafts/:path*", destination: `${apiBaseUrl}/creation-drafts/:path*` },
       { source: "/api/quick/:path*", destination: `${apiBaseUrl}/quick/:path*` },
       { source: "/orders/:path*", destination: `${apiBaseUrl}/orders/:path*` },
       {

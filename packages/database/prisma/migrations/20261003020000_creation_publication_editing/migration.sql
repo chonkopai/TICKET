@@ -1,0 +1,10 @@
+BEGIN;
+SET LOCAL lock_timeout = '2s';
+SET LOCAL statement_timeout = '30s';
+ALTER TABLE "Event" ADD COLUMN "creationVersion" integer;
+ALTER TABLE "Event" ADD CONSTRAINT "Event_creation_version_check" CHECK ("creationVersion" IS NULL OR "creationVersion"=2);
+ALTER TABLE "EventCreationDraft" ADD COLUMN "editingEventId" uuid, ADD COLUMN "baseEventRevision" integer;
+ALTER TABLE "EventCreationDraft" ADD CONSTRAINT "EventCreationDraft_editingEventId_fkey" FOREIGN KEY ("editingEventId") REFERENCES "Event"(id) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "EventCreationDraft" ADD CONSTRAINT "EventCreationDraft_editing_check" CHECK (("editingEventId" IS NULL AND "baseEventRevision" IS NULL) OR ("editingEventId" IS NOT NULL AND "ownerId" IS NOT NULL AND "baseEventRevision">0 AND "resultEventId" IS NULL));
+CREATE INDEX "EventCreationDraft_editingEventId_ownerId_idx" ON "EventCreationDraft"("editingEventId","ownerId");
+COMMIT;

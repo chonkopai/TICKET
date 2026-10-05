@@ -91,7 +91,6 @@ describe("numbered seating", () => {
         number: 1,
         seats: 2,
         price: 25_000,
-        deposit: 0,
         typeLabel: "VIP",
         shortDescription: "Лучший обзор сцены",
         saleMode: "per_seat",
@@ -113,7 +112,6 @@ describe("numbered seating", () => {
         typeLabel: "Standard",
         shortDescription: "Центральный ряд",
         price: 10_000,
-        deposit: 0,
         seatCount: 3,
         startSeatNumber: 10,
         geometry: { x: 1, y: 5, width: 5, height: 1, rotation: 0, seatSpacing: 0.15 },
@@ -132,7 +130,7 @@ describe("numbered seating", () => {
   });
 
   it("allocates one seat from twenty concurrent requests", async () => {
-    const table = await tables.create(organizerId, layoutId, { number: 1, seats: 3, price: 12_000, deposit: 0, saleMode: "per_seat", geometry: { x: 20, y: 20, width: 60, height: 60 } });
+    const table = await tables.create(organizerId, layoutId, { number: 1, seats: 3, price: 12_000, saleMode: "per_seat", geometry: { x: 20, y: 20, width: 60, height: 60 } });
     const created = await seats.createForTable(organizerId, table.id, { numbers: [1, 2, 3] });
     await prisma.event.update({ where: { id: eventId }, data: { status: "published" } });
     const seatId = created[0]!.id;
@@ -164,7 +162,7 @@ describe("numbered seating", () => {
     await expect(booking.checkoutSeats(guestId, `seat-mixed-${randomUUID()}`, { seatIds: [perSeat[0]!.id, perSeat[1]!.id], termsAccepted: true })).rejects.toMatchObject({ response: { code: "SEAT_UNAVAILABLE" } });
     await expect(booking.checkoutTable(guestId, `whole-on-per-seat-${randomUUID()}`, { tableId: perSeatTable.id, termsAccepted: true })).rejects.toMatchObject({ response: { code: "TABLE_REQUIRES_SEAT_SELECTION" } });
 
-    const whole = await tables.create(organizerId, layoutId, { number: 2, seats: 4, price: 100_000, deposit: 0, geometry: { x: 120, y: 20, width: 80, height: 60 } });
+    const whole = await tables.create(organizerId, layoutId, { number: 2, seats: 4, price: 100_000, geometry: { x: 120, y: 20, width: 80, height: 60 } });
     const checkout = await booking.checkoutTable(guestId, `whole-${randomUUID()}`, { tableId: whole.id, termsAccepted: true });
     expect(checkout.ticketIds).toHaveLength(4);
     expect(checkout.groupPassId).toBeTruthy();

@@ -12,7 +12,6 @@ export class CreateVenueRowDto {
   @IsOptional() @IsString() @MaxLength(40) typeLabel?: string | null;
   @IsOptional() @IsString() @MaxLength(200) shortDescription?: string | null;
   @IsInt() @Min(0) price!: number;
-  @IsInt() @Min(0) deposit!: number;
   @IsOptional() @IsString() @Matches(/^[A-Za-z]{3}$/) currency?: string;
   @IsInt() @Min(1) @Max(100) seatCount!: number;
   @IsOptional() @IsInt() @Min(1) @Max(1_000_000) startSeatNumber?: number;
@@ -27,7 +26,6 @@ export class UpdateVenueRowDto implements UpdateVenueRowRequest {
   @IsOptional() @IsString() @MaxLength(40) typeLabel?: string | null;
   @IsOptional() @IsString() @MaxLength(200) shortDescription?: string | null;
   @IsOptional() @IsInt() @Min(0) price?: number;
-  @IsOptional() @IsInt() @Min(0) deposit?: number;
   @IsOptional() @IsString() @Matches(/^[A-Za-z]{3}$/) currency?: string;
   @IsOptional() @IsInt() @Min(1) @Max(100) seatCount?: number;
   @IsOptional() @IsInt() @Min(1) @Max(1_000_000) startSeatNumber?: number;

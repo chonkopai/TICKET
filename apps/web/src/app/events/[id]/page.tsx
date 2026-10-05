@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       title: `${event.title}${fallback} | TICKET`,
       description: event.announcement ?? event.description ?? undefined,
       alternates,
-      openGraph: { title: `${event.title}${fallback}`, description: event.announcement ?? undefined, images: event.posterUrl ? [event.posterUrl] : [] },
+      openGraph: { title: `${event.title}${fallback}`, description: event.announcement ?? undefined, images: event.posterUrl ? [new URL(event.posterUrl,API_URL).toString()] : [] },
     };
   } catch {
     return { alternates };

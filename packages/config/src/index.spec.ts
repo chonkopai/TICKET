@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
-import { loadApiEnv, loadBotEnv, loadWebEnv } from "./index.js";
+import { loadApiEnv, loadBotEnv, loadWebEnv,loadTranslationEnv } from "./index.js";
 
 describe("environment loaders", () => {
   it("loads and coerces API configuration", () => {
@@ -86,5 +86,18 @@ describe("environment loaders", () => {
     expect(() => loadApiEnv(base)).toThrow(ZodError);
     expect(() => loadApiEnv({ ...base, RESEND_FROM_EMAIL: "tickets@other.example" })).toThrow(ZodError);
     expect(loadApiEnv({ ...base, RESEND_FROM_EMAIL: "tickets@mail.ticketron.live" }).RESEND_FROM_EMAIL).toBe("tickets@mail.ticketron.live");
+  });
+});
+
+describe("server translation configuration",()=>{
+  it("selects Azure explicitly and validates its server credentials and region",()=>{
+    expect(loadTranslationEnv({}).TRANSLATION_PROVIDER).toBe("google");
+    expect(loadTranslationEnv({TRANSLATION_PROVIDER:"azure",AZURE_TRANSLATOR_KEY:"  key  "})).toMatchObject({TRANSLATION_PROVIDER:"azure",AZURE_TRANSLATOR_KEY:"key",AZURE_TRANSLATOR_REGION:"global"});
+    expect(loadTranslationEnv({AZURE_TRANSLATOR_KEY:" "}).AZURE_TRANSLATOR_KEY).toBeUndefined();
+    for(const value of [{TRANSLATION_PROVIDER:"invalid"},{AZURE_TRANSLATOR_REGION:"eastus?key=secret"}])expect(()=>loadTranslationEnv(value)).toThrow(ZodError);
+  });
+  it("accepts missing credentials and enforces bounded retry, timeout and quotas",()=>{
+    expect(loadTranslationEnv({GOOGLE_TRANSLATE_API_KEY:"  "}).GOOGLE_TRANSLATE_API_KEY).toBeUndefined();expect(loadTranslationEnv({}).TRANSLATION_RETRIES).toBe(1);
+    for(const value of [{TRANSLATION_RETRIES:"3"},{TRANSLATION_TIMEOUT_MS:"0"},{TRANSLATION_DAILY_CHARACTERS:"0"}])expect(()=>loadTranslationEnv(value)).toThrow(ZodError);
   });
 });

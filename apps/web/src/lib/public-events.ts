@@ -12,7 +12,6 @@ export interface PublicEventsQuery {
   countryCode?: string | undefined;
   category?: string | undefined;
   datePreset?: "today" | "weekend" | undefined;
-  paymentMode?: "deposit" | "full_payment" | undefined;
   free?: boolean | undefined;
   minPrice?: number | undefined;
   maxPrice?: number | undefined;
@@ -31,7 +30,6 @@ export async function fetchPublicEvents(query: PublicEventsQuery = {}): Promise<
   if (query.countryCode) params.set("countryCode", query.countryCode);
   if (query.category) params.set("category", query.category);
   if (query.datePreset) params.set("datePreset", query.datePreset);
-  if (query.paymentMode) params.set("paymentMode", query.paymentMode);
   if (query.free !== undefined) params.set("free", String(query.free));
   if (query.minPrice !== undefined) params.set("minPrice", String(query.minPrice));
   if (query.maxPrice !== undefined) params.set("maxPrice", String(query.maxPrice));
@@ -54,7 +52,7 @@ export async function fetchPublicEventSummary(id: string): Promise<PublicEventSu
 }
 
 export async function fetchPublicVenueLayout(id: string): Promise<PublicVenueLayout | null> {
-  const response = await fetch(`/api/events/${encodeURIComponent(id)}/venue-layout`, { cache: "no-store" });
+  const response = await fetch(`/api/events/${encodeURIComponent(id)}/venue-layout?locale=${localeFromBrowser()}`, { cache: "no-store" });
   if (response.status === 404 || response.status === 204) return null;
   if (!response.ok) throw new Error("VENUE_LAYOUT_UNAVAILABLE");
   // Ticket-only events can return an empty 200 response when no layout exists.

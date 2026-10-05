@@ -42,7 +42,6 @@ export interface OrganizerTicketType {
 export interface CreateTicketTypeRequest {
   name: string;
   price: number;
-  deposit?: number;
   currency?: string;
   quantityTotal: number;
   description?: string | null;

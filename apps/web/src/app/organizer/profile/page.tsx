@@ -61,29 +61,29 @@ function ProfileForm() {
   }
 
   return <main className="py-8 sm:py-12">
-    <Link className="text-sm font-semibold text-[#5b21b6] hover:underline" href={localeUrl("/organizer/events", locale)}>← {copy.back}</Link>
+    <Link className="text-sm font-semibold text-[#5b21b6] dark:text-ticket-accent hover:underline" href={localeUrl("/organizer/events", locale)}>← {copy.back}</Link>
     <h1 className="mt-5 text-3xl font-bold">{copy.title}</h1>
-    <p className="mt-2 text-sm text-[#665d70]">{copy.description}</p>
-    {error ? <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800" role="alert">{error}<button className="ml-3 font-semibold underline" onClick={() => { setError(""); void apiRequest<OrganizerProfile>("/me/organizer-profile").then(setProfile).catch((reason: unknown) => setError(message(reason, copy.failed))); }} type="button">{copy.retry}</button></div> : null}
-    {success ? <p className="mt-5 rounded-xl bg-emerald-50 p-4 text-emerald-800" role="status">{success}</p> : null}
-    {!profile ? <p className="mt-8">{copy.loadingProfile}</p> : <form className="mt-6 space-y-5 rounded-2xl border border-[#e2ddea] bg-white p-6 shadow-sm sm:p-8" onSubmit={(event) => void save(event)}>
+    <p className="mt-2 text-sm text-[#665d70] dark:text-ticket-muted">{copy.description}</p>
+    {error ? <div className="mt-5 rounded-xl border border-red-200 dark:border-ticket-danger-border bg-red-50 dark:bg-ticket-danger-soft p-4 text-red-800 dark:text-ticket-danger" role="alert">{error}<button className="ml-3 font-semibold underline" onClick={() => { setError(""); void apiRequest<OrganizerProfile>("/me/organizer-profile").then(setProfile).catch((reason: unknown) => setError(message(reason, copy.failed))); }} type="button">{copy.retry}</button></div> : null}
+    {success ? <p className="mt-5 rounded-xl bg-emerald-50 dark:bg-ticket-success-soft p-4 text-emerald-800 dark:text-ticket-success" role="status">{success}</p> : null}
+    {!profile ? <p className="mt-8">{copy.loadingProfile}</p> : <form className="mt-6 space-y-5 rounded-2xl border border-[#e2ddea] dark:border-ticket-border bg-white dark:bg-ticket-surface p-6 shadow-sm sm:p-8" onSubmit={(event) => void save(event)}>
       <div className="flex flex-wrap items-center gap-5">
-        <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full bg-[#eee5fb] text-3xl font-bold text-[#5b21b6]">{profile.photoUrl ? <img alt={copy.photoAlt} className="h-full w-full object-cover" src={new URL(profile.photoUrl, API_URL).toString()} /> : profile.organizationName.slice(0, 1).toUpperCase()}</div>
-        <label className="cursor-pointer rounded-xl border border-[#cfc3de] px-4 py-2 text-sm font-semibold text-[#5b21b6] hover:bg-[#f7f2ff]">{uploading ? copy.uploading : copy.upload}<input accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={uploading} onChange={(event) => void upload(event.target.files?.[0])} type="file" /></label>
-        <span className="text-xs text-[#665d70]">{copy.photoHint}</span>
+        <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full bg-[#eee5fb] dark:bg-ticket-raised text-3xl font-bold text-[#5b21b6] dark:text-ticket-accent">{profile.photoUrl ? <img alt={copy.photoAlt} className="h-full w-full object-cover" src={new URL(profile.photoUrl, API_URL).toString()} /> : profile.organizationName.slice(0, 1).toUpperCase()}</div>
+        <label className="cursor-pointer rounded-xl border border-[#cfc3de] dark:border-ticket-border px-4 py-2 text-sm font-semibold text-[#5b21b6] dark:text-ticket-accent hover:bg-[#f7f2ff] dark:hover:bg-ticket-hover">{uploading ? copy.uploading : copy.upload}<input accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={uploading} onChange={(event) => void upload(event.target.files?.[0])} type="file" /></label>
+        <span className="text-xs text-[#665d70] dark:text-ticket-muted">{copy.photoHint}</span>
       </div>
       <Field label={copy.organization} required value={profile.organizationName} onChange={(value) => setProfile({ ...profile, organizationName: value })} />
       <Field label={copy.name} required value={profile.name ?? ""} onChange={(value) => setProfile({ ...profile, name: value })} />
       <div className="grid gap-5 sm:grid-cols-2"><Field label={copy.email} type="email" value={profile.email ?? ""} onChange={(value) => setProfile({ ...profile, email: value })} /><Field label={copy.phone} type="tel" value={profile.phone ?? ""} onChange={(value) => setProfile({ ...profile, phone: value })} /></div>
       <Field label={copy.address} value={profile.address ?? ""} onChange={(value) => setProfile({ ...profile, address: value })} />
-      <label className="flex items-start gap-3 rounded-xl bg-[#f7f2ff] p-4"><input checked={profile.showContactInfo} className="mt-1 h-4 w-4 accent-[#5b21b6]" onChange={(event) => setProfile({ ...profile, showContactInfo: event.target.checked })} type="checkbox" /><span><strong className="block">{copy.showContacts}</strong><span className="mt-1 block text-sm text-[#665d70]">{copy.showHint}</span></span></label>
-      <div className="flex flex-wrap gap-3 pt-2"><button className="rounded-xl bg-[#5b21b6] px-6 py-3 font-semibold text-white disabled:opacity-50" disabled={saving} type="submit">{saving ? copy.saving : copy.save}</button><Link className="rounded-xl border border-[#d2cadc] px-6 py-3 font-semibold" href={localeUrl("/organizer/events", locale)}>{copy.cancel}</Link></div>
+      <label className="flex items-start gap-3 rounded-xl bg-[#f7f2ff] dark:bg-ticket-raised p-4"><input checked={profile.showContactInfo} className="mt-1 h-4 w-4 accent-[#5b21b6]" onChange={(event) => setProfile({ ...profile, showContactInfo: event.target.checked })} type="checkbox" /><span><strong className="block">{copy.showContacts}</strong><span className="mt-1 block text-sm text-[#665d70] dark:text-ticket-muted">{copy.showHint}</span></span></label>
+      <div className="flex flex-wrap gap-3 pt-2"><button className="rounded-xl bg-[#5b21b6] dark:bg-ticket-primary px-6 py-3 font-semibold text-white disabled:opacity-50" disabled={saving} type="submit">{saving ? copy.saving : copy.save}</button><Link className="rounded-xl border border-[#d2cadc] dark:border-ticket-border px-6 py-3 font-semibold" href={localeUrl("/organizer/events", locale)}>{copy.cancel}</Link></div>
     </form>}
   </main>;
 }
 
 function Field({ label, value, onChange, type = "text", required = false }: { label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean }) {
-  return <label className="block text-sm font-semibold">{label}<input className="mt-2 block w-full rounded-xl border border-[#d2cadc] px-4 py-3 font-normal outline-none focus:border-[#5b21b6]" maxLength={type === "email" ? 255 : 300} onChange={(event) => onChange(event.target.value)} required={required} type={type} value={value} /></label>;
+  return <label className="block text-sm font-semibold">{label}<input className="mt-2 block w-full rounded-xl border border-[#d2cadc] dark:border-ticket-border px-4 py-3 font-normal outline-none focus:border-[#5b21b6] dark:focus:border-ticket-accent" maxLength={type === "email" ? 255 : 300} onChange={(event) => onChange(event.target.value)} required={required} type={type} value={value} /></label>;
 }
 
 function message(reason: unknown, fallback: string): string { return reason instanceof Error ? reason.message : fallback; }

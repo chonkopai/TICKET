@@ -116,9 +116,9 @@ async function showEvent(ctx: Context, api: BotApiClient, id: string, webOrigin?
     const event = await api.event(id);
     const layout = await api.venueLayout(id).catch(() => null);
     const keyboard = new InlineKeyboard();
-    for (const ticket of event.ticketTypes.filter((item) => item.status === "active" && item.remaining > 0)) keyboard.text(`${ru.bot.ticketOption}: ${ticket.name}`, `buy:ticket:${ticket.id}`).row();
-    for (const table of event.tables.filter((item) => item.saleMode === "whole_table" && item.availability === "available")) keyboard.text(`${ru.bot.tableOption}: ${table.name ?? table.number}`, `buy:table:${table.id}`).row();
-    if (webOrigin && layout?.seats?.length) keyboard.url("Выбрать место на схеме", new URL(`/events/${id}#venue-plan`, webOrigin).toString()).row();
+    for (const ticket of event.ticketTypes.filter((item) => event.paymentMode !== "deposit" && item.status === "active" && item.remaining > 0)) keyboard.text(`${ru.bot.ticketOption}: ${ticket.name}`, `buy:ticket:${ticket.id}`).row();
+    for (const table of event.tables.filter((item) => event.paymentMode !== "deposit" && item.saleMode === "whole_table" && item.availability === "available")) keyboard.text(`${ru.bot.tableOption}: ${table.name ?? table.number}`, `buy:table:${table.id}`).row();
+    if (webOrigin && event.paymentMode !== "deposit" && layout?.seats?.length) keyboard.url("Выбрать место на схеме", new URL(`/events/${id}#venue-plan`, webOrigin).toString()).row();
     keyboard.text(ru.bot.back, "events:back");
     await ctx.reply(formatEventDetails(event, Boolean(layout?.seats?.length)), { reply_markup: keyboard });
   } catch { await ctx.reply(ru.bot.eventNotFound); }

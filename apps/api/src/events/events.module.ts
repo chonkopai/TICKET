@@ -8,7 +8,6 @@ import { DomainEventsService } from "../domain-events/domain-events.service.js";
 import { EVENTS_CONFIG, OBJECT_STORAGE, type EventsConfig } from "./events.constants.js";
 import { EventsController } from "./events.controller.js";
 import { EventsService } from "./events.service.js";
-import { EventTranslationsService } from "./event-translations.service.js";
 import { EventNotificationsController, EventTicketResendController } from "./event-notifications.controller.js";
 import { EventNotificationsService } from "./event-notifications.service.js";
 import { MarketingCampaignController } from "./marketing-campaign.controller.js";
@@ -36,7 +35,6 @@ import { PublicEventsModule } from "../public-events/public-events.module.js";
     { provide: OBJECT_STORAGE, useExisting: LocalObjectStorage },
     DomainEventsService,
     EventsService,
-    EventTranslationsService,
     EventNotificationsService,
     MarketingCampaignService,
     TransactionalNotificationsService,

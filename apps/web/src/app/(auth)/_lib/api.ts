@@ -60,7 +60,7 @@ export async function logoutSession(): Promise<void> {
   if (!response.ok) throw new Error(SESSION_COPY[localeFromBrowser()].logout);
 }
 
-async function refreshSession(session: BrowserSession): Promise<RefreshResponse["tokens"]> {
+export async function refreshSession(session: BrowserSession): Promise<RefreshResponse["tokens"]> {
   if (!refreshInFlight) {
     refreshInFlight = fetch(new URL("/auth/refresh", API_URL), {
       method: "POST",
@@ -102,6 +102,8 @@ async function errorMessage(response: Response): Promise<string> {
       const fields = body.details.missingFields.map(eventFieldName);
       return `${EVENTS_COPY[localeFromBrowser()].errors.publishMissing}: ${fields.join(", ")}.`;
     }
+    if(body.code==="REFUND_POLICY_CHANGED"||body.code==="EVENT_PRESENTATION_CHANGED")return ({ru:"Условия изменились. Обновите страницу и примите текущие условия.",en:"The policy changed. Refresh and accept the current terms.",kk:"Шарттар өзгерді. Парақшаны жаңартып, қазіргі шарттарды қабылдаңыз."})[localeFromBrowser()];
+    if(body.code==="REFUNDS_NOT_AVAILABLE")return ({ru:"По условиям покупки денежный возврат не предусмотрен.",en:"The accepted purchase policy does not offer monetary refunds.",kk:"Қабылданған сатып алу шарттары бойынша ақшалай қайтарым қарастырылмаған."})[localeFromBrowser()];
     const authLocalized = authErrorMessage(body.code);
     if (authLocalized) return authLocalized;
     const localized = eventError(body.code);
@@ -184,22 +186,12 @@ function eventError(code: string | undefined): string | null {
       return EVENTS_COPY[localeFromBrowser()].errors.invalidTransition;
     case "EVENT_DELETE_NOT_ALLOWED":
       return EVENTS_COPY[localeFromBrowser()].errors.deleteNotAllowed;
-    case "EVENT_POSTER_CONFLICT":
-      return EVENTS_COPY[localeFromBrowser()].errors.posterConflict;
     case "POSTER_REQUIRED":
       return EVENTS_COPY[localeFromBrowser()].errors.posterRequired;
     case "POSTER_TOO_LARGE":
       return EVENTS_COPY[localeFromBrowser()].errors.posterTooLarge;
     case "POSTER_TYPE_INVALID":
       return EVENTS_COPY[localeFromBrowser()].errors.posterTypeInvalid;
-    case "EVENT_UPDATE_EMPTY":
-      return EVENTS_COPY[localeFromBrowser()].errors.updateEmpty;
-    case "EVENT_DATE_INVALID":
-      return EVENTS_COPY[localeFromBrowser()].errors.dateInvalid;
-    case "EVENT_TIME_INVALID":
-      return EVENTS_COPY[localeFromBrowser()].errors.timeInvalid;
-    case "EVENT_TIMEZONE_INVALID":
-      return EVENTS_COPY[localeFromBrowser()].errors.timezoneInvalid;
     default:
       return null;
   }

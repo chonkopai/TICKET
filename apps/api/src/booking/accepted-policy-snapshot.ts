@@ -1,0 +1,21 @@
+import { assertCurrentSale } from "../events/current-sale-policy.js";
+import type { Event,Prisma } from "@event-platform/database";
+import { purchaseSnapshotV2Schema,selectContentLocale,type CheckoutSnapshot,type EventLocale } from "@event-platform/shared-types";
+import { ConflictException } from "@nestjs/common";
+import { eventAggregate,normalizedEvent } from "../creation-drafts/event-aggregate.js";
+export async function acceptedSnapshot(tx:Prisma.TransactionClient,event:Event,snapshot:CheckoutSnapshot,input:{contentLocale?:EventLocale|undefined;policyRevision?:number|undefined},now:Date):Promise<Prisma.InputJsonValue>{
+ assertCurrentSale(event);
+ if(!normalizedEvent(event))return JSON.parse(JSON.stringify(snapshot)) as Prisma.InputJsonValue;
+ await tx.$queryRaw`SELECT id FROM "Event" WHERE id=${event.id}::uuid FOR SHARE`;
+ const current=await tx.event.findUniqueOrThrow({where:{id:event.id}});assertCurrentSale(current);if(current.status!=="published")throw new ConflictException({code:"EVENT_NOT_PUBLISHED"});
+ if(current.creationVersion===2&&input.policyRevision!==current.refundPolicyRevision)throw new ConflictException({code:"REFUND_POLICY_CHANGED",message:"Refresh and accept the current policy before purchasing"});
+ const draft=await eventAggregate(tx,current),selection=selectContentLocale(draft,input.contentLocale??draft.sourceLocale),locale=selection.locale,content=draft.content[locale]!;
+ if(current.creationVersion===2&&input.contentLocale&&locale!==input.contentLocale)throw new ConflictException({code:"EVENT_PRESENTATION_CHANGED",message:"Refresh the event and accept its displayed language before purchasing"});
+ const oldItems=snapshot.items??[{id:snapshot.itemId,kind:snapshot.itemKind==="table"?"table" as const:"ticket" as const,name:snapshot.itemName,quantity:snapshot.quantity,amountDue:snapshot.amountDue}];
+ const items=await Promise.all(oldItems.map(async item=>{let name=item.name;if(item.kind==="ticket"){const text=await tx.ticketTypeContent.findUnique({where:{ticketTypeId_locale:{ticketTypeId:item.id,locale}}});if(text?.name)name=text.name;}else if(item.kind==="table"){const text=await tx.tableContent.findUnique({where:{tableId_locale:{tableId:item.id,locale}}});if(text?.name)name=text.name;}else{const seat=await tx.seat.findUnique({where:{id:item.id},include:{ticketType:{include:{contents:{where:{locale}}}}}});name=[seat?.ticketType?.contents[0]?.name,seat?`${({ru:"Место",en:"Seat",kk:"Орын"})[locale]} ${seat.number}`:undefined].filter(Boolean).join(" · ")||name;}
+  const unitAmount=item.amountDue/item.quantity;if(!Number.isInteger(unitAmount))throw new ConflictException({code:"SNAPSHOT_AMOUNT_INVALID"});return {resourceId:item.id,kind:item.kind,name,quantity:item.quantity,unitAmount};}));
+ const selectedSeats=snapshot.seatIds?.length?await tx.seat.findMany({where:{id:{in:snapshot.seatIds}},include:{table:{select:{number:true}},row:{select:{number:true}}}}):[];
+ const seatLabels=snapshot.seatIds?.map(id=>{const seat=selectedSeats.find(item=>item.id===id);if(!seat)return "";const c=({ru:{table:"Стол",row:"Ряд",seat:"Место"},en:{table:"Table",row:"Row",seat:"Seat"},kk:{table:"Үстел",row:"Қатар",seat:"Орын"}})[locale];return [seat.table?`${c.table} ${seat.table.number}`:seat.row?`${c.row} ${seat.row.number}`:null,`${c.seat} ${seat.number}`].filter(Boolean).join(" · ");});
+ const result=purchaseSnapshotV2Schema.parse({version:2,eventId:current.id,sourceLocale:draft.sourceLocale,contentLocale:locale,title:content.title,venueName:content.venueName,address:content.address,startsAt:current.startsAt!.toISOString(),endsAt:current.endsAt?.toISOString()??null,timezone:current.timezone,saleMode:current.saleMode,amount:snapshot.amountDue,currency:current.currency!.trim(),acceptedAt:now.toISOString(),refund:{available:current.refundsAvailable!,conditions:current.refundsAvailable?content.refundConditions??null:null,revision:current.refundPolicyRevision,locale,freeCancellation:current.saleMode==="free"},items,selection:{kind:snapshot.itemKind,...(snapshot.seatIds?{seatIds:snapshot.seatIds}:{}),...(seatLabels?{seatLabels}:{}),...(snapshot.groupPass!==undefined?{groupPass:snapshot.groupPass}:{})}});
+ return JSON.parse(JSON.stringify(result)) as Prisma.InputJsonValue;
+}

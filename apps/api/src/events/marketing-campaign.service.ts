@@ -4,7 +4,7 @@ import { zonedInputToIso } from "@event-platform/shared-types";
 import { DATABASE_CLIENT } from "../auth/auth.constants.js";
 import { OBJECT_STORAGE } from "./events.constants.js";
 import type { ObjectStorage, UploadedPoster } from "./object-storage.js";
-import { validatePoster } from "./events.service.js";
+import { validatePoster } from "./image-upload.js";
 import { EventNotificationsService } from "./event-notifications.service.js";
 
 const MAX_RECIPIENTS = 5_000;

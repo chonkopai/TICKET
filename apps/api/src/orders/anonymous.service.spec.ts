@@ -29,7 +29,7 @@ const tickets = new TicketsService(prisma, events, { isConfigured: () => false, 
 
 beforeAll(async () => {
   await prisma.user.createMany({ data: [{ id: organizerId, role: "organizer", telegramId: telegramId + 1n }, { id: userId, telegramId }, { id: otherId, telegramId: telegramId + 2n }] });
-  await prisma.event.create({ data: { id: eventId, organizerId, title: "Anonymous acceptance", date: new Date("2035-02-01T00:00:00Z"), time: new Date("1970-01-01T18:00:00Z"), timezone: "Asia/Almaty", venueName: "Venue", address: "Almaty", status: "published", paymentMode: "deposit", depositTerms: "Deposit terms", cancellationTerms: "Cancellation terms", showFullAmountForDeposit: false } });
+  await prisma.event.create({ data: { id: eventId, organizerId, title: "Anonymous acceptance", date: new Date("2035-02-01T00:00:00Z"), time: new Date("1970-01-01T18:00:00Z"), timezone: "Asia/Almaty", venueName: "Venue", address: "Almaty", status: "published", paymentMode: "full_payment", depositTerms: "Deposit terms", cancellationTerms: "Cancellation terms", showFullAmountForDeposit: false } });
   await prisma.venueLayout.create({ data: { id: layoutId, eventId, templateName: "Quick test", layoutJson: { version: 1, canvas: { width: 800, height: 600 }, tables: [] } } });
 });
 afterAll(async () => {
@@ -48,7 +48,7 @@ async function session(verified = true) {
   if (verified) await quick.verify({ token: new URL(result.telegramUrl).searchParams.get("start")!.slice(2), telegramId: telegramId.toString(), chatId: telegramId.toString(), messageId: 11 });
   return { ...result, id: row.id };
 }
-async function type(quantityTotal = 10) { return types.create(organizerId, eventId, { name: randomUUID(), price: 100000, deposit: 25000, quantityTotal, status: "active" }); }
+async function type(quantityTotal = 10) { return types.create(organizerId, eventId, { name: randomUUID(), price: 100000, quantityTotal, status: "active" }); }
 async function buy() {
   const s = await session(), t = await type();
   const input = { ticketTypeId: t.id, quantity: 1, termsAccepted: true as const };
@@ -65,7 +65,7 @@ async function pay(orderId: string) {
 }
 
 describe("anonymous checkout and claims (PostgreSQL)", () => {
-  it("settles an email-only deposit purchase once and claims it only for its verified email identity", async () => {
+  it("settles an email-only full-price purchase once and claims it only for its verified email identity", async () => {
     const s = await session(false), t = await type();
     const email = `quick-${randomUUID()}@example.test`;
     await prisma.anonymousCheckoutSession.update({ where: { id: s.id }, data: { verifiedEmail: email } });
@@ -104,18 +104,18 @@ describe("anonymous checkout and claims (PostgreSQL)", () => {
     for (const field of ["price", "currency", "paymentMode", "buyerUserId", "telegramId"]) expect(quickTicketSchema.safeParse({ ...input, [field]: "forged" }).success).toBe(false);
     expect(quickTableSchema.safeParse({ tableId: randomUUID(), termsAccepted: false }).success).toBe(false);
   });
-  it("completes a signed deposit ticket purchase and preserves hidden prices and idempotency", async () => {
+  it("completes a signed full-price ticket purchase and preserves accepted prices and idempotency", async () => {
     const { s, result, input, key } = await buy();
-    expect(result).toMatchObject({ amountDue: 25000, fullAmount: null, paymentMode: "deposit" });
+    expect(result).toMatchObject({ amountDue: 100000, fullAmount: 100000, paymentMode: "full_payment" });
     expect(result.paymentLink).toContain("/quick/status");
     const order = await prisma.order.findUniqueOrThrow({ where: { id: result.orderId }, include: { tickets: true, deposit: true } });
-    expect(order.buyerUserId).toBeNull(); expect(order.tickets[0]?.ownerUserId).toBeNull(); expect(order.deposit?.amount).toBe(25000);
+    expect(order.buyerUserId).toBeNull(); expect(order.tickets[0]?.ownerUserId).toBeNull(); expect(order.deposit).toBeNull();
     expect((await quick.checkout(s.sessionToken, key, "ticket", input)).orderId).toBe(result.orderId);
     await expect(quick.checkout(s.sessionToken, key, "ticket", { ...input, quantity: 2 })).rejects.toThrow();
     const event = await pay(result.orderId);
     await booking.handlePaymentWebhook(event);
     const status = await quick.status(s.accessToken);
-    expect(status).toMatchObject({ status: "paid", fullAmount: null, deliveryStatus: "pending", event: { date: "2035-02-01", time: "18:00", timezone: "Asia/Almaty", venueName: "Venue" }, tickets: [{ status: "active", seatLabel: null }] });
+    expect(status).toMatchObject({ status: "paid", fullAmount: 100000, deliveryStatus: "pending", event: { date: "2035-02-01", time: "18:00", timezone: "Asia/Almaty", venueName: "Venue" }, tickets: [{ status: "active", seatLabel: null }] });
     expect(JSON.stringify(status)).not.toMatch(/qrToken|chatId|telegramId|guestContact|unitFullAmount|holdToken/);
     expect(await prisma.outboxEvent.count({ where: { aggregateId: result.orderId, eventType: "checkout.paid" } })).toBe(1);
   });
@@ -145,7 +145,7 @@ describe("anonymous checkout and claims (PostgreSQL)", () => {
     expect(await prisma.outboxEvent.count({ where: { aggregateId: p.id, eventType: "payment.link_created" } })).toBe(1);
   });
   it("table checkout holds and confirms using the same signed payment boundary", async () => {
-    const table = await tables.create(organizerId, layoutId, { number: 91, seats: 4, price: 400000, deposit: 100000, geometry: { x: 50, y: 50, width: 100, height: 100 } });
+    const table = await tables.create(organizerId, layoutId, { number: 91, seats: 4, price: 400000, geometry: { x: 50, y: 50, width: 100, height: 100 } });
     const ss = await Promise.all([session(), session()]);
     const results = await Promise.allSettled(ss.map(s => quick.checkout(s.sessionToken, randomUUID(), "table", { tableId: table.id, termsAccepted: true })));
     const wins = results.filter(r => r.status === "fulfilled"); expect(wins).toHaveLength(1);
@@ -157,11 +157,11 @@ describe("anonymous checkout and claims (PostgreSQL)", () => {
   it("pays for multiple zones and a whole table in one anonymous order", async () => {
     const s = await session();
     const first = await type(), second = await type();
-    const table = await tables.create(organizerId, layoutId, { number: 92, seats: 2, price: 200000, deposit: 50000, geometry: { x: 200, y: 50, width: 100, height: 100 } });
+    const table = await tables.create(organizerId, layoutId, { number: 92, seats: 2, price: 200000, geometry: { x: 200, y: 50, width: 100, height: 100 } });
     const input = { eventId, tickets: [{ ticketTypeId: first.id, quantity: 1 }, { ticketTypeId: second.id, quantity: 2 }], tableId: table.id, seatIds: [], termsAccepted: true as const };
     expect(quickCartSchema.safeParse(input).success).toBe(true);
     const result = await quick.checkout(s.sessionToken, randomUUID(), "cart", input); orders.push(result.orderId);
-    expect(result).toMatchObject({ kind: "cart", amountDue: 125000 });
+    expect(result).toMatchObject({ kind: "cart", amountDue: 500000 });
     await pay(result.orderId);
     expect(await quick.status(s.accessToken)).toMatchObject({ status: "paid", booking: { status: "confirmed" } });
     expect(await prisma.payment.count({ where: { orderId: result.orderId } })).toBe(1);
@@ -234,7 +234,7 @@ describe("anonymous checkout and claims (PostgreSQL)", () => {
     const result = await quick.checkout(s.sessionToken, randomUUID(), "ticket", { ticketTypeId: t.id, quantity: 1, termsAccepted: true });
     expect(await quick.status(s.accessToken)).toMatchObject({ status: "paid", amountDue: 0, deposit: null });
     expect(await prisma.payment.count({ where: { orderId: result.orderId } })).toBe(0);
-    await prisma.event.update({ where: { id: eventId }, data: { paymentMode: "deposit" } });
+    await prisma.event.update({ where: { id: eventId }, data: { paymentMode: "full_payment" } });
   });
   it("expires pending anonymous inventory on access and rejects expired verification", async () => {
     const { s, result, t } = await buy();
@@ -251,7 +251,7 @@ describe("anonymous checkout and claims (PostgreSQL)", () => {
     expect(result).toMatchObject({ amountDue: 100000, paymentMode: "full_payment", fullAmount: 100000 });
     await pay(result.orderId);
     expect(await quick.status(s.accessToken)).toMatchObject({ status: "paid", deposit: null });
-    await prisma.event.update({ where: { id: eventId }, data: { paymentMode: "deposit" } });
+    await prisma.event.update({ where: { id: eventId }, data: { paymentMode: "full_payment" } });
   });
   it("retries the same delivery after send success followed by a database failure", async () => {
     const { s, result } = await buy(); await pay(result.orderId);

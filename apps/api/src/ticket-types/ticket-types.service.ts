@@ -1,3 +1,5 @@
+import { historicalPaymentOption } from "../events/historical-deposit.js";
+import { assertCurrentResourceWrite,rejectDepositInput } from "../events/current-sale-policy.js";
 import { randomBytes } from "node:crypto";
 
 import {
@@ -45,17 +47,18 @@ export class TicketTypesService {
     eventId: string,
     input: CreateTicketTypeRequest,
   ): Promise<OrganizerTicketType> {
+    rejectDepositInput(input);
     validateSalesWindow(input.salesStartAt, input.salesEndAt);
     try {
       const created = await this.database.$transaction(async (transaction) => {
         const event = await this.requireOwnedEvent(transaction, organizerId, eventId);
-        assertDeposit(event, input.deposit ?? 0, input.price);
+        assertCurrentResourceWrite(event);
         const ticketType = await transaction.ticketType.create({
           data: {
             eventId,
             name: requiredName(input.name),
             price: input.price,
-            deposit: input.deposit ?? 0,
+            deposit: 0,
             currency: normalizeCurrency(input.currency),
             quantityTotal: input.quantityTotal,
             description: nullableText(input.description),
@@ -68,7 +71,6 @@ export class TicketTypesService {
         await this.recordMutation(transaction, organizerId, ticketType, "ticket_type.created", [
           "name",
           "price",
-          "deposit",
           "currency",
           "quantityTotal",
           "description",
@@ -149,7 +151,7 @@ export class TicketTypesService {
         salesEndAt: type.salesEndAt?.toISOString() ?? null,
         remaining: inWindow ? current.remaining : 0,
         status: current.remaining > 0 && inWindow ? "active" : "sold_out",
-        payment: paymentOption(type.event, type.price, type.deposit, type.currency.trim()),
+        payment: historicalPaymentOption(type.event, type.price, type.deposit, type.currency.trim()),
       };
     });
   }
@@ -159,6 +161,7 @@ export class TicketTypesService {
     id: string,
     input: UpdateTicketTypeRequest,
   ): Promise<OrganizerTicketType> {
+    rejectDepositInput(input);
     if (Object.keys(input).length === 0) {
       throw new BadRequestException({
         code: "TICKET_TYPE_UPDATE_EMPTY",
@@ -172,7 +175,7 @@ export class TicketTypesService {
         const current = await this.findOwned(transaction, organizerId, id);
         const data = updateData(input);
         const event = await transaction.event.findUniqueOrThrow({ where: { id: current.eventId } });
-        assertDeposit(event, data.deposit ?? current.deposit, data.price ?? current.price);
+        assertCurrentResourceWrite(event);
         const nextStart = data.salesStartAt === undefined ? current.salesStartAt : data.salesStartAt;
         const nextEnd = data.salesEndAt === undefined ? current.salesEndAt : data.salesEndAt;
         validateDateWindow(nextStart, nextEnd);
@@ -209,6 +212,7 @@ export class TicketTypesService {
     await this.database.$transaction(async (transaction) => {
       await lockTicketType(transaction, id);
       const ticketType = await this.findOwned(transaction, organizerId, id);
+      assertCurrentResourceWrite(await transaction.event.findUniqueOrThrow({where:{id:ticketType.eventId}}));
       const tickets = await transaction.ticket.count({ where: { ticketTypeId: id } });
       const reservations = await transaction.ticketReservation.count({ where: { ticketTypeId: id } });
       if (tickets + reservations > 0) {
@@ -432,7 +436,6 @@ async function authoritativeInventory(
 type TicketTypeUpdates = {
   name?: string;
   price?: number;
-  deposit?: number;
   currency?: string;
   quantityTotal?: number;
   description?: string | null;
@@ -446,7 +449,6 @@ function updateData(input: UpdateTicketTypeRequest): TicketTypeUpdates {
   const data: TicketTypeUpdates = {};
   if (input.name !== undefined) data.name = requiredName(input.name);
   if (input.price !== undefined) data.price = input.price;
-  if (input.deposit !== undefined) data.deposit = input.deposit;
   if (input.currency !== undefined) data.currency = normalizeCurrency(input.currency);
   if (input.quantityTotal !== undefined) data.quantityTotal = input.quantityTotal;
   if (input.description !== undefined) data.description = nullableText(input.description);
@@ -455,40 +457,6 @@ function updateData(input: UpdateTicketTypeRequest): TicketTypeUpdates {
   if (input.restrictions !== undefined) data.restrictions = nullableText(input.restrictions);
   if (input.status !== undefined) data.status = input.status;
   return data;
-}
-
-function assertDeposit(
-  event: { paymentMode: EventPaymentMode; showFullAmountForDeposit: boolean },
-  deposit: number,
-  price: number,
-): void {
-  if (event.paymentMode === EventPaymentMode.deposit && deposit <= 0) {
-    throw new BadRequestException({
-      code: "DEPOSIT_AMOUNT_REQUIRED",
-      message: "A positive ticket deposit is required for deposit events",
-    });
-  }
-  if (event.paymentMode === EventPaymentMode.deposit && event.showFullAmountForDeposit && price < deposit) {
-    throw new BadRequestException({ code: "DEPOSIT_EXCEEDS_FULL_AMOUNT", message: "Deposit cannot exceed the displayed full ticket amount" });
-  }
-}
-
-function paymentOption(
-  event: { paymentMode: EventPaymentMode; showFullAmountForDeposit: boolean; depositTerms: string | null; cancellationTerms: string | null },
-  price: number,
-  deposit: number,
-  currency: string,
-) {
-  const isDeposit = event.paymentMode === EventPaymentMode.deposit;
-  return {
-    mode: event.paymentMode,
-    label: event.paymentMode,
-    amountDue: isDeposit ? deposit : price,
-    fullAmount: !isDeposit || event.showFullAmountForDeposit ? price : null,
-    currency,
-    depositTerms: event.depositTerms,
-    cancellationTerms: event.cancellationTerms,
-  };
 }
 
 function emptyCounters(total: number): TicketTypeCounters {

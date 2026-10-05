@@ -30,11 +30,6 @@ export class CreateTicketTypeDto implements CreateTicketTypeRequest {
   price!: number;
 
   @IsOptional()
-  @IsInt()
-  @Min(0)
-  deposit?: number;
-
-  @IsOptional()
   @IsString()
   @Matches(/^[A-Za-z]{3}$/)
   currency?: string;
@@ -78,11 +73,6 @@ export class UpdateTicketTypeDto implements UpdateTicketTypeRequest {
   @IsInt()
   @Min(0)
   price?: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  deposit?: number;
 
   @IsOptional()
   @IsString()

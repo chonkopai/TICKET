@@ -4,11 +4,12 @@ const metre = z.number().finite().min(-1000).max(1000).refine((n) => Math.abs(n 
 const size = z.number().finite().min(0.1).max(200).refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 0.000001, "Use at most two decimal places");
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const money = z.number().int().min(0).max(2_000_000_000);
+const draftTariffText=z.object({name:z.string().max(3840).optional(),description:z.string().max(19200).optional()}).strict();
 export const hallObjectSchema = z.object({
   id: z.string().uuid(), type: z.enum(["table_rect", "table_round", "seat", "row", "zone", "prop", "entrance"]),
   name: z.string().max(120), x: metre, y: metre, width: size, height: size,
   rotation: z.number().finite().min(-180).max(180), color, colorOverride: z.boolean().default(false), locked: z.boolean(), zIndex: z.number().int().min(-1000).max(1000),
-  tariffId: z.string().uuid().nullable(), price: money.nullable(), deposit: money,
+  tariffId: z.string().uuid().nullable(), price: money.nullable(), deposit: money.default(0),
   parentId: z.string().uuid().nullable(), side: z.enum(["top", "right", "bottom", "left"]).nullable(),
   // Relative to the round table; absent on older layouts and automatically arranged seats.
   orbitAngle: z.number().finite().min(-180).max(180).optional(),
@@ -22,7 +23,7 @@ export const hallObjectSchema = z.object({
 export const hallEditorSchema = z.object({
   version: z.literal(1),
   objects: z.array(hallObjectSchema).max(3000),
-  tariffs: z.array(z.object({ id: z.string().uuid(), name: z.string().min(1).max(120), color, price: money }).strict()).max(100),
+  tariffs: z.array(z.object({ id: z.string().uuid(), name: z.string().min(1).max(120), color, price: money,description:z.string().max(19200).optional(),draftAmount:z.number().int().min(0).max(2147483647).nullable().optional(),localized:z.object({ru:draftTariffText.optional(),en:draftTariffText.optional(),kk:draftTariffText.optional()}).strict().optional() }).strict()).max(100),
 }).strict().superRefine((editor, ctx) => {
   if (editor.objects.filter((o) => o.type.startsWith("table_")).length > 500 || editor.objects.filter((o) => o.type === "row").length > 100) ctx.addIssue({ code: "custom", message: "Maximum 500 tables and 100 rows" });
   const ids = new Set<string>();

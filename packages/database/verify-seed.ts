@@ -35,6 +35,7 @@ try {
       throw new Error(`Demo venue layout is invalid: ${demo.id}`);
     }
   }
+  if ([event,...demos].some(row=>row.paymentMode!=="full_payment" || row.ticketTypes.some(type=>type.deposit!==0) || row.venueLayout?.tables.some(table=>table.deposit!==0))) throw new Error("Current seeded catalog must use full-price sales without deposits");
   const byId = new Map(demos.map((demo) => [demo.id, demo]));
   const requireDemo = (suffix: number) => byId.get(`00000000-0000-4000-8000-${String(suffix).padStart(12, "0")}`) ?? (() => { throw new Error(`Missing demo event ${suffix}`); })();
   const wholeTables = requireDemo(217);

@@ -10,10 +10,8 @@ import type {
   ManagementOrderFilterOptions,
   ManagementOrderList,
 } from "@event-platform/shared-types";
-import { EVENT_LOCALES, type EventLocale } from "@event-platform/shared-types";
 import {
-  BadRequestException,
-  Body,
+  GoneException,
   Controller,
   Delete,
   Get,
@@ -25,22 +23,16 @@ import {
   Post,
   Query,
   Res,
-  UploadedFile,
   UseGuards,
-  UseInterceptors,
 } from "@nestjs/common";
-import { FileInterceptor } from "@nestjs/platform-express";
 
 import { CurrentUser, Roles } from "../auth/auth.decorators.js";
 import { JwtAuthGuard, RolesGuard } from "../auth/auth.guards.js";
 import type { AuthenticatedPrincipal } from "../auth/auth.constants.js";
-import { CreateEventDto, EventListQueryDto, ManagementAnalyticsQueryDto, ManagementOrdersQueryDto, UpdateEventDto } from "./events.dto.js";
-import { MAX_POSTER_BYTES } from "./events.constants.js";
+import { EventListQueryDto, ManagementAnalyticsQueryDto, ManagementOrdersQueryDto } from "./events.dto.js";
 import { EventsService } from "./events.service.js";
-import { EventTranslationsService } from "./event-translations.service.js";
 import { ExplicitDtoPipe } from "./explicit-dto.pipe.js";
 import { PublicEventsService } from "../public-events/public-events.service.js";
-import type { UploadedPoster } from "./object-storage.js";
 
 @Controller("organizer/events")
 @Roles("organizer", "admin")
@@ -49,16 +41,29 @@ export class EventsController {
   constructor(
     @Inject(EventsService) private readonly events: EventsService,
     @Inject(PublicEventsService) private readonly publicEvents: PublicEventsService,
-    @Inject(EventTranslationsService) private readonly translations: EventTranslationsService,
   ) {}
 
+  // Explicit tombstones prevent older clients from silently creating legacy records.
   @Post()
-  create(
-    @CurrentUser() principal: AuthenticatedPrincipal,
-    @Body(new ExplicitDtoPipe(CreateEventDto)) body: CreateEventDto,
-  ): Promise<OrganizerEvent> {
-    return this.events.create(principal.userId, body);
-  }
+  retiredCreate(): never { throw retiredEventWrite(); }
+
+  @Patch(":id")
+  retiredEdit(): never { throw retiredEventWrite(); }
+
+  @Post(":id/publish")
+  retiredPublish(): never { throw retiredEventWrite(); }
+
+  @Post(":id/poster")
+  retiredPosterUpload(): never { throw retiredEventWrite(); }
+
+  @Delete(":id/poster")
+  retiredPosterDelete(): never { throw retiredEventWrite(); }
+
+  @Patch(":id/translations/:locale")
+  retiredTranslationSave(): never { throw retiredEventWrite(); }
+
+  @Post(":id/translations/translate")
+  retiredTranslation(): never { throw retiredEventWrite(); }
 
   @Get()
   list(
@@ -161,56 +166,6 @@ export class EventsController {
     return this.events.get(principal.userId, id);
   }
 
-  @Get(":id/translations")
-  listTranslations(
-    @CurrentUser() principal: AuthenticatedPrincipal,
-    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
-  ) {
-    return this.translations.list(id, principal.userId, principal.role === "admin");
-  }
-
-  @Patch(":id/translations/:locale")
-  saveTranslation(
-    @CurrentUser() principal: AuthenticatedPrincipal,
-    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
-    @Param("locale") locale: string,
-    @Body() content: unknown,
-  ) {
-    return this.translations.save(id, principal.userId, locale, content, principal.role === "admin");
-  }
-
-  @Post(":id/translations/translate")
-  translate(
-    @CurrentUser() principal: AuthenticatedPrincipal,
-    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
-    @Body() body: { overwriteManual?: boolean; targetLocale?: EventLocale },
-  ) {
-    if (body?.overwriteManual !== undefined && typeof body.overwriteManual !== "boolean") {
-      throw new BadRequestException("overwriteManual must be a boolean");
-    }
-    if (body?.targetLocale !== undefined && !EVENT_LOCALES.some((locale) => locale === body.targetLocale)) {
-      throw new BadRequestException("Unsupported target language");
-    }
-    return this.translations.translate(id, principal.userId, body?.overwriteManual === true, principal.role === "admin", body?.targetLocale);
-  }
-
-  @Patch(":id")
-  update(
-    @CurrentUser() principal: AuthenticatedPrincipal,
-    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
-    @Body(new ExplicitDtoPipe(UpdateEventDto)) body: UpdateEventDto,
-  ): Promise<OrganizerEvent> {
-    return this.events.update(principal.userId, id, body);
-  }
-
-  @Post(":id/publish")
-  publish(
-    @CurrentUser() principal: AuthenticatedPrincipal,
-    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
-  ): Promise<OrganizerEvent> {
-    return this.events.publish(principal.userId, id);
-  }
-
   @Post(":id/reopen")
   reopen(
     @CurrentUser() principal: AuthenticatedPrincipal,
@@ -235,24 +190,6 @@ export class EventsController {
     return this.events.complete(principal.userId, id);
   }
 
-  @Post(":id/poster")
-  @UseInterceptors(FileInterceptor("poster", { limits: { fileSize: MAX_POSTER_BYTES, files: 1 } }))
-  replacePoster(
-    @CurrentUser() principal: AuthenticatedPrincipal,
-    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
-    @UploadedFile() file: UploadedPoster | undefined,
-  ): Promise<OrganizerEvent> {
-    return this.events.replacePoster(principal.userId, id, file);
-  }
-
-  @Delete(":id/poster")
-  removePoster(
-    @CurrentUser() principal: AuthenticatedPrincipal,
-    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
-  ): Promise<OrganizerEvent> {
-    return this.events.removePoster(principal.userId, id);
-  }
-
   @Delete(":id")
   deleteDraft(
     @CurrentUser() principal: AuthenticatedPrincipal,
@@ -261,3 +198,5 @@ export class EventsController {
     return this.events.deleteDraft(principal.userId, id);
   }
 }
+
+function retiredEventWrite(){return new GoneException({code:"EVENT_CREATION_V2_REQUIRED",message:"Use /events/create and the revisioned creation draft API. Legacy events require review before editing."});}

@@ -2,6 +2,7 @@
 node_modules/
 .pnpm-store/
 .next/
+.next-v2-*/
 dist/
 coverage/
 .turbo/

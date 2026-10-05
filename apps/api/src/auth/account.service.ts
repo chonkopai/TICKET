@@ -1,3 +1,4 @@
+import { readCheckoutSnapshot } from "@event-platform/shared-types";
 import type { Prisma, PrismaClient } from "@event-platform/database";
 import type {
   AccountDashboard,
@@ -148,7 +149,7 @@ function presentPreferences(row: NotificationPreferences): NotificationPreferenc
 }
 
 function presentOrder(order: { id: string; type: "ticket" | "table" | "deposit"; paymentStatus: AccountOrder["status"]; amount: number; currency: string; createdAt: Date; checkoutSnapshot: Prisma.JsonValue }): AccountOrder {
-  const snapshot = object(order.checkoutSnapshot);
+  const snapshot = readCheckoutSnapshot(order.checkoutSnapshot);
   const quantity = typeof snapshot.quantity === "number" ? snapshot.quantity : null;
   const name = typeof snapshot.itemName === "string" ? snapshot.itemName : order.type === "table" ? "Стол" : "Билет";
   return {
@@ -163,10 +164,6 @@ function presentOrder(order: { id: string; type: "ticket" | "table" | "deposit";
     itemSummary: quantity && quantity > 1 ? `${name} × ${quantity}` : name,
     receiptUrl: null,
   };
-}
-
-function object(value: Prisma.JsonValue): Record<string, Prisma.JsonValue> {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, Prisma.JsonValue> : {};
 }
 
 async function recordAccountMutation(transaction: Prisma.TransactionClient, userId: string, action: string, changedFields: string[]): Promise<void> {

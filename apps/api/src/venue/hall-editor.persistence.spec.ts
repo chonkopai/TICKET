@@ -25,7 +25,7 @@ beforeAll(async()=>{
 afterAll(async()=>{await prisma.event.deleteMany({where:{organizerId:{in:[owner,other]}}});await prisma.venueLayout.deleteMany({where:{organizerId:owner}});await prisma.auditLog.deleteMany({where:{actorId:{in:[owner,other]}}});await prisma.user.deleteMany({where:{id:{in:[owner,other]}}});await prisma.$disconnect();});
 describe("Atomic hall editor persistence",()=>{
  it("round trips metadata and materializes canonical prices, free seats and zones",async()=>{
-  const l=await service.update(owner,layoutId,{revision,layoutJson:json});revision=l.revision;
+  const l=await writeUpdate(owner,layoutId,{revision,layoutJson:json});revision=l.revision;
   expect((l.layoutJson as VenueLayoutJsonV2).editor).toEqual(json.editor);
   expect((await service.get(owner,layoutId)).layoutJson).toEqual(l.layoutJson);
   expect(await prisma.seat.findUnique({where:{id:free.id}})).toMatchObject({tableId:null,rowId:null,label:free.name});
@@ -33,12 +33,12 @@ describe("Atomic hall editor persistence",()=>{
   expect(await prisma.ticketType.findUnique({where:{venueObjectId:zone.id}})).toMatchObject({price:100000,quantityTotal:20});
  });
  it("rejects another owner, missing revision and stale writes",async()=>{
-  await expect(service.update(other,layoutId,{revision,layoutJson:json})).rejects.toThrow();
-  await expect(service.update(owner,layoutId,{layoutJson:json})).rejects.toThrow("revision");
-  await expect(service.update(owner,layoutId,{revision:revision-1,layoutJson:json})).rejects.toThrow("Reload");
+  await expect(writeUpdate(other,layoutId,{revision,layoutJson:json})).rejects.toThrow();
+  await expect(writeUpdate(owner,layoutId,{layoutJson:json})).rejects.toThrow("revision");
+  await expect(writeUpdate(owner,layoutId,{revision:revision-1,layoutJson:json})).rejects.toThrow("Reload");
  });
  it("preserves objects outside a shrunken room and emits audit",async()=>{
-  const l=await service.update(owner,layoutId,{revision,layoutJson:{...json,room:{widthM:2,heightM:2}}});revision=l.revision;
+  const l=await writeUpdate(owner,layoutId,{revision,layoutJson:{...json,room:{widthM:2,heightM:2}}});revision=l.revision;
   expect((l.layoutJson as VenueLayoutJsonV2).editor).toEqual(json.editor);
   expect(await prisma.auditLog.count({where:{entityId:layoutId,action:"venue_layout.updated"}})).toBeGreaterThan(0);
  });
@@ -63,14 +63,14 @@ describe("Atomic hall editor persistence",()=>{
   await prisma.event.create({data:{id:largeEvent,organizerId:owner,title:"Large hall",date:new Date("2027-07-01"),time:new Date("1970-01-01T20:00:00Z"),timezone:"Asia/Almaty",venueName:"Hall",address:"Address",status:"draft"}});
   const empty=await service.createForEvent(owner,largeEvent,{layoutJson:{version:2,room:{widthM:30,heightM:30},tables:[],rows:[]}});
   const editor={version:1 as const,tariffs:[],objects:Array.from({length:2000},(_,i)=>({...newHallObject(randomUUID(),"seat",1+(i%50)*.5,1+Math.floor(i/50)*.5),number:i+1,price:100000}))};
-  const saved=await service.update(owner,empty.id,{revision:empty.revision,layoutJson:{version:2,room:{widthM:30,heightM:30},tables:[],rows:[],editor}});
+  const saved=await writeUpdate(owner,empty.id,{revision:empty.revision,layoutJson:{version:2,room:{widthM:30,heightM:30},tables:[],rows:[],editor}});
   expect((saved.layoutJson as VenueLayoutJsonV2).editor).toEqual(editor);
   expect(await prisma.seat.count({where:{venueLayoutId:empty.id}})).toBe(2000);
   expect((await service.get(owner,empty.id)).layoutJson).toEqual(saved.layoutJson);
  },60000);
  it("rejects published structural edits",async()=>{
   await prisma.event.update({where:{id:eventId},data:{status:"published"}});
-  await expect(service.update(owner,layoutId,{revision,layoutJson:json})).rejects.toThrow("draft");
+  await expect(writeUpdate(owner,layoutId,{revision,layoutJson:json})).rejects.toThrow("draft");
  });
  it("returns canonical free/per-seat prices and redacts hidden full amounts",async()=>{
   const seatsService=new SeatsService(prisma,domain,tablesService);
@@ -84,3 +84,8 @@ describe("Atomic hall editor persistence",()=>{
  });
 
 });
+
+// Current wire payload excludes legacy read-only deposit properties.
+function writeUpdate(...args: Parameters<typeof service.update>) {
+ const [owner,id,input]=args; const wire=JSON.parse(JSON.stringify(input, (key,value)=>key==="deposit"?undefined:value)); return service.update(owner,id,wire);
+}

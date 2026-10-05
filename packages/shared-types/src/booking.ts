@@ -2,12 +2,14 @@ import type { EventPaymentMode, PaymentLabel } from "./events.js";
 import type { VenueLayoutAny } from "./venue.js";
 
 export interface CheckoutSnapshot {
+  acceptedPolicy?:import("./event-creation-v2.js").PurchaseSnapshotV2["refund"];contentLocale?:import("./events.js").EventLocale;
   eventId: string;
   eventTitle: string;
   eventDate?: string;
   eventTime?: string;
   eventTimezone?: string;
   venueName?: string;
+  address?: string;
   itemId: string;
   itemName: string;
   itemKind: "ticket" | "table" | "cart";
@@ -25,7 +27,7 @@ export interface CheckoutSnapshot {
   seatAssignments?: Array<{
     seatId: string;
     seatNumber: number;
-    parentKind: "table" | "row";
+    parentKind: "table" | "row" | "standalone";
     parentNumber: number;
     displayLabel: string;
   }>;
@@ -51,15 +53,15 @@ export interface CheckoutResponse {
 }
 
 export interface CheckoutEmailChoice { address: string; grant?: string | undefined }
-export interface CreateTicketCheckoutRequest { ticketTypeId: string; quantity: number; termsAccepted: true; emailDelivery?: CheckoutEmailChoice | undefined }
-export interface CreateTableCheckoutRequest { tableId: string; termsAccepted: true; emailDelivery?: CheckoutEmailChoice | undefined }
-export interface CreateSeatCheckoutRequest { seatIds: string[]; termsAccepted: true; emailDelivery?: CheckoutEmailChoice | undefined }
+export interface CreateTicketCheckoutRequest { ticketTypeId: string; quantity: number; termsAccepted: true; contentLocale?:import("./events.js").EventLocale|undefined;policyRevision?:number|undefined; emailDelivery?: CheckoutEmailChoice | undefined }
+export interface CreateTableCheckoutRequest { tableId: string; termsAccepted: true; contentLocale?:import("./events.js").EventLocale|undefined;policyRevision?:number|undefined; emailDelivery?: CheckoutEmailChoice | undefined }
+export interface CreateSeatCheckoutRequest { seatIds: string[]; termsAccepted: true; contentLocale?:import("./events.js").EventLocale|undefined;policyRevision?:number|undefined; emailDelivery?: CheckoutEmailChoice | undefined }
 export interface CreateCartCheckoutRequest {
   eventId: string;
   tickets: Array<{ ticketTypeId: string; quantity: number }>;
   tableId?: string | undefined;
   seatIds: string[];
-  termsAccepted: true;
+  termsAccepted: true; contentLocale?:import("./events.js").EventLocale|undefined;policyRevision?:number|undefined;
   emailDelivery?: CheckoutEmailChoice | undefined;
 }
 
@@ -73,6 +75,7 @@ export interface BookingOptions {
 }
 
 export interface CancellationTermsResponse {
+  acceptedPolicy?:import("./event-creation-v2.js").PurchaseSnapshotV2["refund"];
   resourceId: string;
   status: string;
   cancellationTerms: string | null;

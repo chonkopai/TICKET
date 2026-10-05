@@ -34,6 +34,19 @@ const providerSchema = z.object({
   APPLE_WALLET_ICON_PATH: z.string().optional(),
 });
 
+export const translationEnvSchema = z.object({
+  TRANSLATION_PROVIDER: z.enum(["google", "azure"]).default("google"),
+  AZURE_TRANSLATOR_KEY: z.preprocess(value => typeof value === "string" && !value.trim() ? undefined : value, z.string().trim().min(1).max(512).optional()),
+  AZURE_TRANSLATOR_REGION: z.string().trim().regex(/^[a-z0-9-]+$/).default("global"),
+  GOOGLE_TRANSLATE_API_KEY: z.preprocess(value => typeof value === "string" && !value.trim() ? undefined : value, z.string().trim().min(1).max(512).optional()),
+  TRANSLATION_TIMEOUT_MS: z.coerce.number().int().min(1000).max(30000).default(10000),
+  TRANSLATION_RETRIES: z.coerce.number().int().min(0).max(2).default(1),
+  TRANSLATION_HOURLY_REQUESTS: z.coerce.number().int().min(1).max(100).default(20),
+  TRANSLATION_DAILY_CHARACTERS: z.coerce.number().int().min(1).max(1000000).default(100000),
+  TRANSLATION_CACHE_SECONDS: z.coerce.number().int().min(60).max(604800).default(604800),
+});
+export function loadTranslationEnv(source:NodeJS.ProcessEnv=process.env){return translationEnvSchema.parse(source);}
+
 export const apiEnvSchema = z.object({
   NODE_ENV: nodeEnvironmentSchema,
   DEMO_MODE: booleanSchema,
@@ -48,8 +61,16 @@ export const apiEnvSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().endsWith(".apps.googleusercontent.com").optional(),
   WEB_ORIGIN: z.url().default("http://localhost:3000"),
   ORGANIZER_REQUIRES_APPROVAL: booleanSchema,
+  EVENT_CONTENT_V2_ENABLED: booleanSchema,
   TRANSACTIONAL_NOTIFICATIONS_ENABLED: booleanSchema,
   POSTER_STORAGE_DIR: z.string().min(1).default("var/posters"),
+  DRAFT_MEDIA_STORAGE_DIR: z.string().min(1).default("var/draft-media"),
+  MEDIA_FFMPEG_PATH: z.string().min(1).default("ffmpeg"),
+  MEDIA_FFPROBE_PATH: z.string().min(1).default("ffprobe"),
+  MEDIA_IMAGE_MAX_BYTES: z.coerce.number().int().positive().max(104857600).default(10485760),
+  MEDIA_VIDEO_MAX_BYTES: z.coerce.number().int().positive().max(1073741824).default(104857600),
+  MEDIA_VIDEO_MAX_SECONDS: z.coerce.number().positive().max(600).default(60),
+  MEDIA_DRAFT_MAX_BYTES: z.coerce.number().int().positive().max(2147483647).default(262144000),
   TABLE_HOLD_TTL_SECONDS: z.coerce.number().int().min(30).max(86_400).default(600),
   TABLE_HOLD_CLEANUP_INTERVAL_SECONDS: z.coerce.number().int().min(5).max(3_600).default(60),
   CHECKOUT_TTL_SECONDS: z.coerce.number().int().min(60).max(86_400).default(900),
@@ -59,6 +80,7 @@ export const apiEnvSchema = z.object({
   QUICK_ACCESS_TTL_SECONDS: z.coerce.number().int().min(3600).max(31_536_000).default(2_592_000),
   QUICK_CLAIM_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(600),
   ...providerSchema.shape,
+  ...translationEnvSchema.shape,
 }).superRefine((env, context) => {
   if (env.RESEND_API_KEY && !env.RESEND_FROM_EMAIL) context.addIssue({ code: "custom", path: ["RESEND_FROM_EMAIL"], message: "Resend sender is required with an API key" });
   if (env.RESEND_FROM_EMAIL && !env.RESEND_FROM_EMAIL.toLowerCase().endsWith("@mail.ticketron.live")) context.addIssue({ code: "custom", path: ["RESEND_FROM_EMAIL"], message: "Sender must use the verified mail.ticketron.live domain" });
@@ -67,6 +89,7 @@ export const apiEnvSchema = z.object({
   if (env.NODE_ENV !== "production") return;
   if (!env.WEB_ORIGIN.startsWith("https://")) context.addIssue({ code: "custom", path: ["WEB_ORIGIN"], message: "Production web origin must use HTTPS" });
   if (!isAbsolute(env.POSTER_STORAGE_DIR)) context.addIssue({ code: "custom", path: ["POSTER_STORAGE_DIR"], message: "Production media directory must be an absolute mounted path" });
+  if (!isAbsolute(env.DRAFT_MEDIA_STORAGE_DIR)) context.addIssue({ code: "custom", path: ["DRAFT_MEDIA_STORAGE_DIR"], message: "Production draft media directory must be an absolute private mounted path" });
   if (new Set([env.JWT_SECRET, env.JWT_REFRESH_SECRET, env.BOT_API_SECRET]).size !== 3) context.addIssue({ code: "custom", path: ["JWT_SECRET"], message: "Production authentication secrets must be distinct" });
 });
 

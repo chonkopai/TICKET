@@ -55,7 +55,7 @@ function editorObject(id: string, type: EditorObject["type"], name: string, x: n
   };
 }
 
-async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode: "deposit" | "full_payment", currency = "KZT"): Promise<void> {
+async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, currency = "KZT"): Promise<void> {
   const layoutId = fixtureId(4, eventId, 1);
   if (kind === "mini_stadium") {
     await prisma.$transaction(async (transaction) => {
@@ -93,7 +93,7 @@ async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode
   const addTable = (name: string, x: number, y: number, shape: "rect" | "round", saleMode: "whole_table" | "per_seat", count: number, tariff = 0) => {
     const table = editorObject(fixtureId(5, eventId, objectIndex++), shape === "round" ? "table_round" : "table_rect", name, x, y, {
       width: shape === "round" ? 1.8 : 2.4, height: shape === "round" ? 1.8 : 1.2,
-      saleMode, tariffId: tariffs[tariff]!.id, deposit: paymentMode === "deposit" ? Math.round(500_000 * multiplier) : 0,
+      saleMode, tariffId: tariffs[tariff]!.id, deposit: 0,
     });
     const seats: EditorObject[] = [];
     for (let i = 0; i < count; i += 1) {
@@ -113,7 +113,7 @@ async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode
       }
       seats.push(editorObject(fixtureId(7, eventId, seatIndex++), "seat", `Место ${i + 1}`, sx, sy, {
         parentId: table.id, side, number: i + 1, attachedOrder: i + 1, rotation,
-        tariffId: tariffs[tariff]!.id, deposit: paymentMode === "deposit" ? Math.round(150_000 * multiplier) : 0,
+        tariffId: tariffs[tariff]!.id, deposit: 0,
       }));
     }
     objects.push(table, ...seats); tables.push({ object: table, seats });
@@ -134,7 +134,7 @@ async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode
   const addZone = (name: string, x: number, y: number, width: number, height: number, capacity: number, tariff: number) => {
     const zone = editorObject(fixtureId(8, eventId, objectIndex++), "zone", name, x, y, {
       width, height, capacity, tariffId: tariffs[tariff]!.id, color: tariffs[tariff]!.color, opacity: 0.18,
-      deposit: paymentMode === "deposit" ? Math.round(250_000 * multiplier) : 0,
+      deposit: 0,
       points: [{ x: -width / 2, y: -height / 2 }, { x: width / 2, y: -height / 2 }, { x: width / 2, y: height / 2 }, { x: -width / 2, y: height / 2 }],
     });
     objects.push(zone);
@@ -250,8 +250,8 @@ async function seedDemoLayout(eventId: string, kind: DemoLayoutKind, paymentMode
       const tariff = tariffs.find((item) => item.id === seat.tariffId)!;
       await prisma.ticketType.upsert({
         where: { venueObjectId: seat.id },
-        create: { id: ticketTypeId, eventId, venueObjectId: seat.id, name: `${seat.name} · ${seat.id}`, price: tariff.price, deposit: seat.deposit || parent?.deposit || 0, currency, quantityTotal: 1, status: TicketTypeStatus.active },
-        update: { eventId, name: `${seat.name} · ${seat.id}`, price: tariff.price, deposit: seat.deposit || parent?.deposit || 0, currency, quantityTotal: 1, status: TicketTypeStatus.active },
+        create: { id: ticketTypeId, eventId, venueObjectId: seat.id, name: `${seat.name} · ${seat.id}`, price: tariff.price, deposit: 0, currency, quantityTotal: 1, status: TicketTypeStatus.active },
+        update: { eventId, name: `${seat.name} · ${seat.id}`, price: tariff.price, deposit: 0, currency, quantityTotal: 1, status: TicketTypeStatus.active },
       });
       sellableSeats.push({ object: seat, ticketTypeId, price: tariff.price });
     }
@@ -359,9 +359,9 @@ async function seed(): Promise<void> {
       rules: "Вход по действующему QR-билету.",
       visitTerms: "Гостям необходимо иметь документ, удостоверяющий личность.",
       cancellationTerms: "Возврат возможен не позднее чем за 48 часов до начала.",
-      paymentMode: "deposit",
-      showFullAmountForDeposit: true,
-      depositTerms: "Депозит полностью засчитывается в счёт заказа на площадке.",
+      paymentMode: "full_payment",
+      showFullAmountForDeposit: false,
+      depositTerms: null,
       extraConditions: "Мероприятие предназначено для гостей старше 18 лет.",
       date: eventDate,
       time: eventTime,
@@ -390,9 +390,9 @@ async function seed(): Promise<void> {
       time: eventTime,
       timezone: "Asia/Almaty",
       ageRestriction: 18,
-      paymentMode: "deposit",
-      showFullAmountForDeposit: true,
-      depositTerms: "Депозит полностью засчитывается в счёт заказа на площадке.",
+      paymentMode: "full_payment",
+      showFullAmountForDeposit: false,
+      depositTerms: null,
       extraConditions: "Мероприятие предназначено для гостей старше 18 лет.",
       venueName: "Event Hall Almaty",
       address: "проспект Абая, 1, Алматы",
@@ -402,7 +402,7 @@ async function seed(): Promise<void> {
 
   for (const locale of ["kk", "en"] as const) {
     const translation = localizedDemoContent("seed", locale, {
-      paymentMode: "deposit",
+      paymentMode: "full_payment",
       venueName: "Event Hall Almaty",
       address: "проспект Абая, 1, Алматы",
     });
@@ -421,7 +421,7 @@ async function seed(): Promise<void> {
         eventId: event.id,
         name: "Стандарт",
         price: 1_500_000,
-        deposit: 300_000,
+        deposit: 0,
         currency: "KZT",
         quantityTotal: 200,
         description: "Общий вход на мероприятие.",
@@ -430,7 +430,7 @@ async function seed(): Promise<void> {
       },
       update: {
         price: 1_500_000,
-        deposit: 300_000,
+        deposit: 0,
         currency: "KZT",
         quantityTotal: 200,
         status: TicketTypeStatus.active,
@@ -443,7 +443,7 @@ async function seed(): Promise<void> {
         eventId: event.id,
         name: "VIP",
         price: 3_000_000,
-        deposit: 500_000,
+        deposit: 0,
         currency: "KZT",
         quantityTotal: 50,
         description: "Приоритетный вход и доступ в VIP-зону.",
@@ -452,7 +452,7 @@ async function seed(): Promise<void> {
       },
       update: {
         price: 3_000_000,
-        deposit: 500_000,
+        deposit: 0,
         currency: "KZT",
         quantityTotal: 50,
         status: TicketTypeStatus.active,
@@ -498,7 +498,7 @@ async function seed(): Promise<void> {
           name: `Стол ${number}`,
           seats: number === 5 ? 8 : 6,
           price: number === 5 ? 60_000_000 : 50_000_000,
-          deposit: number === 5 ? 20_000_000 : 15_000_000,
+          deposit: 0,
           currency: "KZT",
           description: "Стол в основном зале.",
         },
@@ -506,7 +506,7 @@ async function seed(): Promise<void> {
           name: `Стол ${number}`,
           seats: number === 5 ? 8 : 6,
           price: number === 5 ? 60_000_000 : 50_000_000,
-          deposit: number === 5 ? 20_000_000 : 15_000_000,
+          deposit: 0,
           currency: "KZT",
         },
       });
@@ -627,7 +627,7 @@ async function seed(): Promise<void> {
         update: { ...translation, origin: "manual", translatedFrom: null, sourceHash: null },
       });
     }
-    if ("layout" in demo) await seedDemoLayout(event.id, demo.layout, demo.paymentMode, currency);
+    if ("layout" in demo) await seedDemoLayout(event.id, demo.layout, currency);
   }
 
   console.log(

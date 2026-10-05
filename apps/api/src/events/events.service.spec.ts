@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 
 import { prisma } from "@event-platform/database";
-import type { CreateEventRequest } from "@event-platform/shared-types";
+import { presentEvent } from "./events.presenter.js";
+import { validatePoster } from "./image-upload.js";
 import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -66,7 +67,7 @@ afterAll(async () => {
 describe("EventsService", () => {
   it("groups individually priced row seats into one row with sold-seat totals", async () => {
     const service = new EventsService(prisma, new MemoryStorage(), new DomainEventsService());
-    const event = await service.create(organizerA, completeInput());
+    const event = await createLegacyFixture(organizerA, completeInput());
     eventIds.push(event.id);
     const layout = await prisma.venueLayout.create({ data: { eventId: event.id, templateName: "Ряды", layoutJson: {} } });
     const row = await prisma.venueRow.create({ data: { venueLayoutId: layout.id, number: 1, name: "Партер A", price: 20_000, currency: "KZT" } });
@@ -84,171 +85,46 @@ describe("EventsService", () => {
     await prisma.event.delete({ where: { id: event.id } });
   });
 
-  it("covers owned CRUD, pagination, posters, and one audit/outbox pair per mutation", async () => {
-    const storage = new MemoryStorage();
-    const serviceA = new EventsService(prisma, storage, new DomainEventsService());
-    const serviceB = new EventsService(prisma, storage, new DomainEventsService());
-    const created = await serviceA.create(organizerA, completeInput());
-    eventIds.push(created.id);
-
-    expect(created).toMatchObject({
-      organizerId: organizerA,
-      date: "2027-03-21",
-      time: "19:30",
-      timezone: "Asia/Almaty",
-      status: "draft",
-    });
-    await expect(serviceA.get(organizerA, created.id)).resolves.toEqual(created);
-    await expect(serviceA.list(organizerA, { page: 1, limit: 1 })).resolves.toMatchObject({
-      page: 1,
-      limit: 1,
-      total: 1,
-      hasNext: false,
-      items: [{ id: created.id }],
-    });
-
-    await serviceA.update(organizerA, created.id, {
-      announcement: "Обновлённый анонс",
-      time: "20:15",
-    });
-    await expect(serviceB.get(organizerB, created.id)).rejects.toBeInstanceOf(NotFoundException);
-    await expect(
-      serviceB.update(organizerB, created.id, { title: "Чужое изменение" }),
-    ).rejects.toBeInstanceOf(NotFoundException);
-    await expect(serviceB.deleteDraft(organizerB, created.id)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-
-    const firstPoster = await serviceA.replacePoster(organizerA, created.id, pngPoster());
-    const firstKey = storage.stored[0];
-    expect(firstPoster.posterUrl).toBe(`/media/posters/${firstKey}`);
-    const secondPoster = await serviceA.replacePoster(organizerA, created.id, pngPoster());
-    expect(secondPoster.posterUrl).toBe(`/media/posters/${storage.stored[1]}`);
-    expect(storage.deleted).toContain(firstKey);
-    await expect(serviceA.removePoster(organizerA, created.id)).resolves.toMatchObject({
-      posterUrl: null,
-    });
-    expect(storage.deleted).toContain(storage.stored[1]);
-
-    await expect(serviceA.deleteDraft(organizerA, created.id)).resolves.toEqual({
-      deleted: true,
-      id: created.id,
-    });
-    await expect(serviceA.get(organizerA, created.id)).rejects.toBeInstanceOf(NotFoundException);
-    await expect(mutationCounts(created.id)).resolves.toEqual({ outbox: 6, audit: 6 });
-  });
-
-  it("validates publication and restores completed events without reopening cancelled ones", async () => {
+  it("preserves owner-scoped historical reads, pagination and draft deletion", async () => {
     const service = new EventsService(prisma, new MemoryStorage(), new DomainEventsService());
-    const incomplete = await service.create(organizerA, {
-      ...completeInput(),
-      description: null,
-      cancellationTerms: null,
-    });
-    eventIds.push(incomplete.id);
-
-    await expect(service.publish(organizerA, incomplete.id)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-    await expect(mutationCounts(incomplete.id)).resolves.toEqual({ outbox: 1, audit: 1 });
-    await service.update(organizerA, incomplete.id, {
-      description: "Полное описание",
-      cancellationTerms: "Возврат до начала мероприятия.",
-    });
-    await expect(service.publish(organizerA, incomplete.id)).resolves.toMatchObject({
-      status: "published",
-    });
-    await expect(service.publish(organizerA, incomplete.id)).resolves.toMatchObject({
-      status: "published",
-    });
-    await expect(service.update(organizerA, incomplete.id, { paymentMode: "full_payment" })).rejects.toBeInstanceOf(ConflictException);
-    await expect(service.deleteDraft(organizerA, incomplete.id)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
-    await expect(service.cancel(organizerA, incomplete.id)).resolves.toMatchObject({
-      status: "cancelled",
-    });
-    await expect(service.complete(organizerA, incomplete.id)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
-    await expect(service.reopen(organizerA, incomplete.id)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
-    await expect(mutationCounts(incomplete.id)).resolves.toEqual({ outbox: 4, audit: 4 });
-
-    const completable = await service.create(organizerA, completeInput());
-    eventIds.push(completable.id);
-    await service.publish(organizerA, completable.id);
-    await expect(service.complete(organizerA, completable.id)).resolves.toMatchObject({
-      status: "completed",
-    });
-    await expect(service.cancel(organizerA, completable.id)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
-    await expect(service.reopen(organizerA, completable.id)).resolves.toMatchObject({
-      status: "published",
-    });
-    await expect(service.reopen(organizerA, completable.id)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
-    await expect(mutationCounts(completable.id)).resolves.toEqual({ outbox: 4, audit: 4 });
+    const created = await createLegacyFixture(organizerA, completeInput()); eventIds.push(created.id);
+    await expect(service.get(organizerA, created.id)).resolves.toEqual(created);
+    await expect(service.get(organizerB, created.id)).rejects.toBeInstanceOf(NotFoundException);
+    expect((await service.list(organizerA, {page:1,limit:50})).items.map(row=>row.id)).toContain(created.id);
+    await expect(service.deleteDraft(organizerB, created.id)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.deleteDraft(organizerA, created.id)).resolves.toEqual({deleted:true,id:created.id});
+    await expect(mutationCounts(created.id)).resolves.toEqual({outbox:1,audit:1});
   });
 
-  it("normalizes city and records category/city edits", async () => {
+  it("preserves completion/reopening and never reopens a cancelled historical event", async () => {
     const service = new EventsService(prisma, new MemoryStorage(), new DomainEventsService());
-    const created = await service.create(organizerA, { ...completeInput(), category: "music", city: "  Астана  " });
-    eventIds.push(created.id);
-    expect(created).toMatchObject({ category: "music", city: "Астана" });
-    const updated = await service.update(organizerA, created.id, { category: "business", city: "  Алматы  " });
-    expect(updated).toMatchObject({ category: "business", city: "Алматы" });
-    await expect(mutationCounts(created.id)).resolves.toEqual({ outbox: 2, audit: 2 });
+    const cancelled = await createLegacyFixture(organizerA, completeInput()); eventIds.push(cancelled.id);
+    await prisma.event.update({where:{id:cancelled.id},data:{status:"published"}});
+    await service.cancel(organizerA,cancelled.id);
+    await expect(service.reopen(organizerA,cancelled.id)).rejects.toBeInstanceOf(ConflictException);
+    const completed = await createLegacyFixture(organizerA, completeInput()); eventIds.push(completed.id);
+    await prisma.event.update({where:{id:completed.id},data:{status:"published"}});
+    await service.complete(organizerA,completed.id);
+    await expect(service.reopen(organizerA,completed.id)).resolves.toMatchObject({status:"published"});
+    await expect(mutationCounts(completed.id)).resolves.toEqual({outbox:2,audit:2});
   });
 
-  it("rolls back the poster URL and preserves the old object when outbox persistence fails", async () => {
-    const storage = new MemoryStorage();
-    const domainEvents = new ToggleDomainEvents();
-    const service = new EventsService(prisma, storage, domainEvents);
-    const event = await service.create(organizerA, completeInput());
-    eventIds.push(event.id);
-    const first = await service.replacePoster(organizerA, event.id, pngPoster());
-    const firstKey = storage.stored[0];
-
-    domainEvents.fail = true;
-    await expect(service.replacePoster(organizerA, event.id, pngPoster())).rejects.toThrow(
-      "simulated outbox failure",
-    );
-    expect(storage.deleted).toContain(storage.stored[1]);
-    expect(storage.deleted).not.toContain(firstKey);
-    await expect(service.get(organizerA, event.id)).resolves.toMatchObject({
-      posterUrl: first.posterUrl,
-    });
-    await expect(mutationCounts(event.id)).resolves.toEqual({ outbox: 2, audit: 2 });
+  it("rolls back a lifecycle change when outbox persistence fails", async () => {
+    const domain = new ToggleDomainEvents(); const service = new EventsService(prisma,new MemoryStorage(),domain);
+    const event = await createLegacyFixture(organizerA,completeInput()); eventIds.push(event.id);
+    await prisma.event.update({where:{id:event.id},data:{status:"published"}}); domain.fail=true;
+    await expect(service.cancel(organizerA,event.id)).rejects.toThrow("simulated outbox failure");
+    expect((await service.get(organizerA,event.id)).status).toBe("published");
+    await expect(mutationCounts(event.id)).resolves.toEqual({outbox:0,audit:0});
   });
 
-  it("rejects a file whose declared MIME type does not match its content", async () => {
-    const storage = new MemoryStorage();
-    const service = new EventsService(prisma, storage, new DomainEventsService());
-    const event = await service.create(organizerA, completeInput());
-    eventIds.push(event.id);
-    const mismatch = { ...pngPoster(), mimetype: "image/jpeg" };
-
-    await expect(service.replacePoster(organizerA, event.id, mismatch)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-    expect(storage.stored).toHaveLength(0);
-    await expect(mutationCounts(event.id)).resolves.toEqual({ outbox: 1, audit: 1 });
-  });
-
-  it("rejects an impossible venue-local calendar date before persistence", async () => {
-    const service = new EventsService(prisma, new MemoryStorage(), new DomainEventsService());
-    await expect(
-      service.create(organizerA, { ...completeInput(), date: "2027-02-31" }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+  it("retains MIME validation for campaign and organizer-photo uploads", () => {
+    expect(()=>validatePoster({...pngPoster(),mimetype:"image/jpeg"})).toThrow(BadRequestException);
   });
 
   it("returns server-side inventory and paid revenue metrics for organizer workspaces", async () => {
     const service = new EventsService(prisma, new MemoryStorage(), new DomainEventsService());
-    const event = await service.create(organizerA, completeInput());
+    const event = await createLegacyFixture(organizerA, completeInput());
     eventIds.push(event.id);
     const ticketType = await prisma.ticketType.create({ data: { eventId: event.id, name: "Workspace", price: 250_000, currency: "KZT", quantityTotal: 10, quantitySold: 2, status: "active" } });
     const order = await prisma.order.create({ data: { type: "ticket", buyerUserId: organizerA, amount: 500_000, currency: "KZT", paymentStatus: "paid", checkoutSnapshot: { eventId: event.id, eventTitle: event.title, itemName: ticketType.name, quantity: 2 } } });
@@ -269,7 +145,7 @@ describe("EventsService", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-09-23T10:30:00.000Z"));
     const service = new EventsService(prisma, new MemoryStorage(), new DomainEventsService());
-    const event = await service.create(organizerA, completeInput());
+    const event = await createLegacyFixture(organizerA, completeInput());
     eventIds.push(event.id);
     const future = new Date(Date.now() + 60_000);
     const orderIds: string[] = [];
@@ -371,7 +247,7 @@ describe("EventsService", () => {
       expect(analyticsCsv).toContain("unavailable=settlement_time");
       expect(csvMetricTotal(analyticsCsv, "Итого", "KZT", 4)).toBe(analytics.totals.grossReceived?.[0]?.amount);
       expect(csvMetricTotal(analyticsCsv, "Объём продаж", "", 8)).toBe(analytics.buckets.reduce((sum, bucket) => sum + (bucket.soldAdmissions ?? 0), 0));
-      const otherEvent = await service.create(organizerA, { ...completeInput(), title: "Другое событие" });
+      const otherEvent = await createLegacyFixture(organizerA, { ...completeInput(), title: "Другое событие" });
       eventIds.push(otherEvent.id);
       const otherType = await prisma.ticketType.create({ data: { eventId: otherEvent.id, name: "Другая категория", price: 1_000, currency: "KZT", quantityTotal: 1, quantitySold: 1, status: "active" } });
       const otherOrder = await prisma.order.create({ data: { type: "ticket", amount: 1_000, currency: "KZT", paymentStatus: "paid" } });
@@ -395,7 +271,7 @@ describe("EventsService", () => {
 
   it("keeps analytics inside its exact range and retains provable sales after a refund", async () => {
     const service = new EventsService(prisma, new MemoryStorage(), new DomainEventsService());
-    const event = await service.create(organizerA, completeInput());
+    const event = await createLegacyFixture(organizerA, completeInput());
     eventIds.push(event.id);
     const ticketType = await prisma.ticketType.create({ data: { eventId: event.id, name: "Диапазон", price: 10_000, currency: "KZT", quantityTotal: 10, status: "active" } });
     const dollarType = await prisma.ticketType.create({ data: { eventId: event.id, name: "USD", price: 50, currency: "USD", quantityTotal: 10, status: "active" } });
@@ -432,7 +308,7 @@ describe("EventsService", () => {
 
   it("filters individual table seats, paginates rows, and exports every matching order", async () => {
     const service = new EventsService(prisma, new MemoryStorage(), new DomainEventsService());
-    const event = await service.create(organizerA, completeInput());
+    const event = await createLegacyFixture(organizerA, completeInput());
     eventIds.push(event.id);
     const layout = await prisma.venueLayout.create({ data: { eventId: event.id, templateName: "test", layoutJson: {} } });
     const table = await prisma.table.create({ data: { venueLayoutId: layout.id, number: 8, name: "Балкон", seats: 3, price: 8_000, deposit: 0, currency: "KZT", saleMode: "per_seat" } });
@@ -460,7 +336,7 @@ describe("EventsService", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2027-03-14T12:00:00.000Z"));
     const service = new EventsService(prisma, new MemoryStorage(), new DomainEventsService());
-    const event = await service.create(organizerA, {
+    const event = await createLegacyFixture(organizerA, {
       ...completeInput(),
       title: "Пустое событие",
       timezone: "America/New_York",
@@ -514,10 +390,10 @@ function csvMetricTotal(csv: string, type: string, currency: string, column: num
   }, 0);
 }
 
-function completeInput(): CreateEventRequest {
+function completeInput() {
   return {
     title: "Весенний фестиваль",
-    category: "festival",
+    category: "festival" as const,
     city: "Алматы",
     date: "2027-03-21",
     time: "19:30",
@@ -530,9 +406,9 @@ function completeInput(): CreateEventRequest {
     rules: "Вход по билету.",
     visitTerms: "Необходимо иметь документ.",
     cancellationTerms: "Возврат доступен до начала мероприятия.",
-    paymentMode: "deposit",
-    showFullAmountForDeposit: true,
-    depositTerms: "Депозит засчитывается в счёт заказа.",
+    paymentMode: "full_payment" as const,
+    showFullAmountForDeposit: false,
+    depositTerms: null,
     extraConditions: "18+",
   };
 }
@@ -553,4 +429,9 @@ async function mutationCounts(id: string): Promise<{ outbox: number; audit: numb
     prisma.auditLog.count({ where: { entityId: id, entityType: "event" } }),
   ]);
   return { outbox, audit };
+}
+
+// Historical read fixtures are explicitly stored outside every current write endpoint.
+async function createLegacyFixture(organizerId: string, input: ReturnType<typeof completeInput>) {
+ const {date,time,...content}=input; return presentEvent(await prisma.event.create({data:{...content,organizerId,date:new Date(date+"T00:00:00Z"),time:new Date("1970-01-01T"+time+":00Z")}}));
 }

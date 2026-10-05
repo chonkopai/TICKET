@@ -1,5 +1,5 @@
 import { Transform, Type } from "class-transformer";
-import { COUNTRY_CODES, EVENT_CATEGORIES, EVENT_LOCALES, type EventCategory, type EventLocale, type EventPaymentMode } from "@event-platform/shared-types";
+import { COUNTRY_CODES, EVENT_CATEGORIES, EVENT_LOCALES, type EventCategory, type EventLocale } from "@event-platform/shared-types";
 import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Matches, Max, Min, MaxLength } from "class-validator";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -46,10 +46,6 @@ export class PublicEventsQueryDto {
   @IsOptional()
   @IsIn(EVENT_CATEGORIES)
   category?: EventCategory;
-
-  @IsOptional()
-  @IsIn(["deposit", "full_payment"])
-  paymentMode?: EventPaymentMode;
 
   @IsOptional()
   @IsIn(["today", "weekend"])

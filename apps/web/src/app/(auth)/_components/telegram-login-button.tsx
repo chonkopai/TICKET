@@ -63,7 +63,7 @@ export function TelegramLoginButton({ onAuthenticated }: { onAuthenticated?: () 
   return (
     <div>
       <div ref={container} />
-      {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="mt-4 text-sm text-red-700 dark:text-ticket-danger">{error}</p> : null}
     </div>
   );
 }

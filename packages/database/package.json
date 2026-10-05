@@ -19,15 +19,15 @@
     "db:seed": "prisma db seed",
     "db:verify": "node --env-file=../../.env --import tsx verify-seed.ts",
     "prisma:validate": "prisma validate",
-    "test": "vitest run",
+    "test": "vitest run && node --test tools/event-v2-backfill-plan.test.mjs",
     "typecheck": "tsc -p tsconfig.typecheck.json"
   },
   "dependencies": {
+    "@event-platform/shared-types": "workspace:*",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0"
   },
   "devDependencies": {
-    "@event-platform/shared-types": "workspace:*",
     "@types/node": "^26.4.1",
     "dotenv": "^17.4.2",
     "prisma": "7.10.0",

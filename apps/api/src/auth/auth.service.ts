@@ -8,7 +8,6 @@ import type {
   TelegramLoginPayload,
 } from "@event-platform/shared-types";
 import {
-  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -16,6 +15,7 @@ import {
 } from "@nestjs/common";
 
 import { AUTH_CONFIG, DATABASE_CLIENT, type AuthConfig, type AuthenticatedPrincipal } from "./auth.constants.js";
+import { ensureOrganizer } from "./organizer-policy.js";
 import { presentUser } from "./auth.presenter.js";
 import type { UpdateMeDto } from "./dto.js";
 import { TelegramLinkService } from "./telegram-link.service.js";
@@ -96,20 +96,7 @@ export class AuthService {
   }
 
   async becomeOrganizer(userId: string): Promise<AuthUser> {
-    const current = await this.findUser(userId);
-    if (current.role === "organizer" || current.role === "admin") {
-      return presentUser(current);
-    }
-    if (this.config.organizerRequiresApproval) {
-      throw new ConflictException("Organizer approval is required by the current policy");
-    }
-
-    return presentUser(
-      await this.database.user.update({
-        where: { id: userId },
-        data: { role: "organizer" },
-      }),
-    );
+    return ensureOrganizer(this.database,userId,this.config.organizerRequiresApproval).then(presentUser);
   }
 
   async issueTelegramLinkToken(principal: AuthenticatedPrincipal): Promise<TelegramLinkTokenResponse> {

@@ -14,10 +14,12 @@
     "@event-platform/config": "workspace:*",
     "@event-platform/shared-types": "workspace:*",
     "express": "^5.2.1",
-    "grammy": "^1.46.0"
+    "grammy": "^1.46.0",
+    "html-to-text": "^10.0.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/html-to-text": "^9.0.4",
     "@types/node": "^26.4.1",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",

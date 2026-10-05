@@ -12,7 +12,7 @@ export function BackLink({ href, label = ru.common.back, className = "" }: BackL
   return (
     <Link
       aria-label={label}
-      className={`inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm font-semibold text-zinc-700 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 ${className}`}
+      className={`inline-flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-ticket-border bg-white dark:bg-ticket-surface px-3.5 py-2 text-sm font-semibold text-zinc-700 dark:text-ticket-muted shadow-sm transition-colors hover:border-indigo-300 dark:hover:border-ticket-accent hover:bg-indigo-50 dark:hover:bg-ticket-accent-soft hover:text-indigo-700 dark:hover:text-ticket-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-ticket-accent focus-visible:ring-offset-2 ${className}`}
       href={href}
     >
       <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 20 20">

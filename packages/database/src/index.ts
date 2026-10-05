@@ -25,3 +25,4 @@ export const prisma = globalForPrisma.eventPlatformPrisma ?? createPrismaClient(
 if (process.env.NODE_ENV !== "production") globalForPrisma.eventPlatformPrisma = prisma;
 
 export * from "./generated/prisma/client.js";
+export * from "./event-v2-compat.js";

@@ -1,0 +1,16 @@
+import type { Event,Prisma } from "@event-platform/database";
+import { assetMediaCrop,mediaRoleCrops,selectContentLocale,type EventLocale,type PublicEvent,type PublicEventMedia } from "@event-platform/shared-types";
+import { eventAggregate,normalizedEvent } from "../creation-drafts/event-aggregate.js";
+export function visibleResourceDescription(text:{description:string|null;fieldMetadata:Prisma.JsonValue}|undefined){
+ const metadata=text?.fieldMetadata;const description=metadata&&typeof metadata==="object"&&!Array.isArray(metadata)?metadata.description:null;
+ return description&&typeof description==="object"&&!Array.isArray(description)&&description.stale===true?null:text?.description??null;
+}
+export async function normalizedPresentation(database:Prisma.TransactionClient,event:Event,requested:EventLocale){
+ if(!normalizedEvent(event))return null;const draft=await eventAggregate(database,event),selection=selectContentLocale(draft,requested),locale=selection.locale,content=draft.content[locale]!;
+ const links=await database.eventMedia.findMany({where:{eventId:event.id},include:{asset:true},orderBy:{slot:"asc"}});
+ const media:PublicEventMedia[]=links.map(link=>({id:link.assetId,slot:link.slot,kind:link.asset.kind as "image"|"video",width:link.asset.width!,height:link.asset.height!,url:`/media/events/${event.id}/${link.assetId}/display`,posterUrl:link.asset.kind==="video"?`/media/events/${event.id}/${link.assetId}/poster`:null,isCard:link.isCard,isBackground:link.isBackground,galleryVisible:link.galleryVisible,crops:mediaRoleCrops(assetMediaCrop(draft.media,link.assetId)),caption:draft.metadata[locale]?.[`media.${link.assetId}.caption`]?.stale?null:draft.media.captions[link.assetId]?.[locale]??null}));
+ const types=await database.ticketTypeContent.findMany({where:{ticketType:{eventId:event.id},locale}}),tables=await database.tableContent.findMany({where:{table:{venueLayout:{eventId:event.id}},locale}});
+ const localizedTickets=(items:PublicEvent["ticketTypes"])=>items.map(item=>{const text=types.find(row=>row.ticketTypeId===item.id);return {...item,name:text?.name??"",description:visibleResourceDescription(text)};});
+ const localizedTables=(items:PublicEvent["tables"])=>items.map(item=>{const text=tables.find(row=>row.tableId===item.id);return {...item,name:text?.name??null,description:visibleResourceDescription(text),typeLabel:text?.name??null,shortDescription:visibleResourceDescription(text)};});
+ return {fields:{creationVersion:2 as const,saleMode:event.saleMode!,currency:event.currency!.trim(),title:content.title!,announcement:content.summary!,summary:content.summary!,description:content.description!,venueName:content.venueName!,address:content.address!,program:null,rules:null,visitTerms:null,extraConditions:null,depositTerms:null,cancellationTerms:event.refundsAvailable?content.refundConditions??null:null,refundsAvailable:event.refundsAvailable!,refundPolicyRevision:event.refundPolicyRevision,startsAt:event.startsAt!.toISOString(),endsAt:event.endsAt?.toISOString()??null,sourceLocale:draft.sourceLocale,contentLocale:locale,media,posterUrl:media.find(item=>item.isCard)?.url??null,galleryUrls:media.filter(item=>item.galleryVisible).map(item=>item.url)},localizedTickets,localizedTables};
+}

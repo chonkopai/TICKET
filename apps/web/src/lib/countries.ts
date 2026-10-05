@@ -1,4 +1,4 @@
-import { COUNTRY_CODES } from "@event-platform/shared-types";
+import { COUNTRY_CODES, localizedCityName } from "@event-platform/shared-types";
 
 export { COUNTRY_CODES };
 
@@ -19,18 +19,10 @@ const DISPLAY_NAMES: Record<Locale, Intl.DisplayNames> = {
   en: new Intl.DisplayNames(["en"], { type: "region" }),
 };
 
-const KNOWN_CITIES: Record<string, Record<Locale, string>> = {
-  Алматы: { ru: "Алматы", kk: "Алматы", en: "Almaty" },
-  Астана: { ru: "Астана", kk: "Астана", en: "Astana" },
-  Шымкент: { ru: "Шымкент", kk: "Шымкент", en: "Shymkent" },
-  Караганда: { ru: "Караганда", kk: "Қарағанды", en: "Karaganda" },
-  Туркестан: { ru: "Туркестан", kk: "Түркістан", en: "Turkistan" },
-};
-
 export function countryName(code: string, locale: Locale): string {
   return COMMON_COUNTRIES[code]?.[locale] ?? DISPLAY_NAMES[locale].of(code) ?? code;
 }
 
 export function cityName(city: string, locale: Locale): string {
-  return KNOWN_CITIES[city]?.[locale] ?? city;
+  return localizedCityName(city, locale);
 }

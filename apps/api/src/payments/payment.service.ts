@@ -1,3 +1,4 @@
+import { readCheckoutSnapshot } from "@event-platform/shared-types";
 import { PaymentStatus, Prisma, type PrismaClient } from "@event-platform/database";
 import type { PaymentLinkResponse, PaymentStatusResponse } from "@event-platform/shared-types";
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
@@ -86,7 +87,7 @@ export class PaymentService {
   async status(userId: string, orderId: string): Promise<PaymentStatusResponse> {
     const order = await this.database.order.findFirst({ where: { id: orderId, buyerUserId: userId }, include: { payments: { where: { provider: this.provider.name }, orderBy: { createdAt: "desc" } } } });
     if (!order) throw new NotFoundException({ code: "ORDER_NOT_FOUND", message: "Order was not found" });
-    const snapshot = order.checkoutSnapshot as { paymentMode?: "deposit" | "full_payment"; paymentLabel?: "deposit" | "full_payment" } | null;
+    const snapshot = readCheckoutSnapshot(order.checkoutSnapshot);
     const attempt = order.payments[0];
     const reviewRequired = Boolean(await this.database.outboxEvent.findFirst({ where: { eventType: "payment.review_required", aggregateId: orderId } }));
     const expired = order.paymentStatus === PaymentStatus.pending && !!order.expiresAt && order.expiresAt <= this.clock.now();

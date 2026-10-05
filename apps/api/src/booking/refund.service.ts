@@ -1,3 +1,4 @@
+import { parseHistoricalPurchaseSnapshot,refundSnapshotV2Schema } from "@event-platform/shared-types";
 import { BookingStatus, PaymentStatus, Prisma, RefundStatus, SeatAllocationStatus, TableStatus, TicketStatus, type PrismaClient } from "@event-platform/database";
 import type { ManagementRefundQuote, ManagementRefundRequest } from "@event-platform/shared-types";
 import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
@@ -8,7 +9,7 @@ import { BOOKING_CLOCK, PAYMENT_PROVIDER, type BookingClock } from "./booking.co
 import type { PaymentProvider } from "./payment-provider.js";
 
 const refundOrderSelect = {
-  id: true, amount: true, currency: true, paymentStatus: true,
+  id: true, amount: true, currency: true, paymentStatus: true,checkoutSnapshot:true,
   tickets: { select: { id: true, status: true, ticketTypeId: true, ticketType: { select: { eventId: true, isInternal: true } } } },
   reservations: { select: { ticketType: { select: { eventId: true } } } },
   seatAllocations: { select: { seat: { select: { venueLayout: { select: { eventId: true } } } } } },
@@ -60,8 +61,9 @@ export class RefundService {
       if (!quote.eligible) throw new ConflictException({ code: "REFUND_NOT_ELIGIBLE", message: `Refund unavailable: ${quote.reason}` });
       const payment = paidPayment(order);
       if (!payment?.providerPaymentId) throw new ConflictException({ code: "REFUND_PAYMENT_UNVERIFIED", message: "Confirmed provider payment is required" });
-      const requestKey = `refund:${orderId}`;
-      const created = await transaction.refundRequest.create({ data: { orderId, paymentId: payment.id, organizerId, provider: payment.provider, requestKey, amount: quote.amount, currency: quote.currency, reason: normalizedReason } });
+      const requestKey = `refund:${orderId}`,accepted=parseHistoricalPurchaseSnapshot(order.checkoutSnapshot);
+      const acceptedSnapshot=accepted.version===2?refundSnapshotV2Schema.parse({version:2,orderId,paymentId:payment.id,amount:quote.amount,currency:quote.currency,acceptedPolicyRevision:accepted.snapshot.refund.revision,reason:normalizedReason,exceptional:!accepted.snapshot.refund.available}):null;
+      const created = await transaction.refundRequest.create({ data: { orderId, paymentId: payment.id, organizerId, provider: payment.provider, requestKey, amount: quote.amount, currency: quote.currency, reason: normalizedReason,...(acceptedSnapshot?{acceptedSnapshot}: {}) } });
       await this.domainEvents.append(transaction, { eventType: "refund.operation_requested", aggregateType: "order", aggregateId: orderId, payload: { eventId, refundId: created.id, amount: quote.amount, currency: quote.currency } });
       await transaction.auditLog.create({ data: { actorId: organizerId, action: "refund.operation_requested", entityType: "order", entityId: orderId, meta: { eventId, refundId: created.id } } });
       return created;

@@ -1,4 +1,5 @@
 "use client";
+import { ThemeToggle } from "../../../components/theme-toggle";
 
 import { type AuthResponse, type LoginContactMethod, type VerificationGrantResponse, type VerificationRequestResponse } from "@event-platform/shared-types";
 import Image from "next/image";
@@ -152,12 +153,13 @@ export function LoginClient() {
   const contactLabel = method === "email" ? copy.emailAddress : copy.phoneNumber;
 
   return (
-    <main className="ticket-auth min-h-svh bg-white lg:grid lg:grid-cols-2 xl:grid-cols-[7fr_5fr]">
+    <main className="ticket-auth min-h-svh bg-white dark:bg-ticket-surface lg:grid lg:grid-cols-2 xl:grid-cols-[7fr_5fr]">
+      <div className="ticket-login-theme"><ThemeToggle /></div>
       <HeroPanel catalogHref={catalogHref} />
-      <section className="flex min-h-svh flex-col justify-between bg-white px-5 py-6 text-[#0b1c30] sm:px-10 sm:py-8 xl:px-12" aria-label={copy.authRegion}>
+      <section className="flex min-h-svh flex-col justify-between bg-white dark:bg-ticket-surface px-5 py-6 text-[#0b1c30] dark:text-ticket-text sm:px-10 sm:py-8 xl:px-12" aria-label={copy.authRegion}>
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-3 sm:py-5">
-          <Link className="mb-5 flex w-fit items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] lg:hidden" href={catalogHref} aria-label={copy.catalog}><TicketIcon className="h-7 w-7 text-[#6320ee]" /><span className="ticket-auth-wordmark text-xl font-extrabold tracking-[-0.04em] text-[#6320ee]">TICKET</span></Link>
-          <h1 className="mb-5 text-[26px] font-extrabold leading-tight tracking-[-0.035em] text-[#0b1c30] sm:text-3xl">{title}</h1>
+          <Link className="mb-5 flex w-fit items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] dark:focus-visible:ring-ticket-accent lg:hidden" href={catalogHref} aria-label={copy.catalog}><TicketIcon className="h-7 w-7 text-[#6320ee] dark:text-ticket-accent" /><span className="ticket-auth-wordmark text-xl font-extrabold tracking-[-0.04em] text-[#6320ee] dark:text-ticket-accent">TICKET</span></Link>
+          <h1 className="mb-5 text-[26px] font-extrabold leading-tight tracking-[-0.035em] text-[#0b1c30] dark:text-ticket-text sm:text-3xl">{title}</h1>
 
           <div className="grid grid-cols-3 gap-2 sm:gap-3" aria-label={copy.methods}>
             {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? <GoogleLoginButton /> : <ProviderButton provider="google" />}
@@ -165,7 +167,7 @@ export function LoginClient() {
             <button
               aria-controls={telegramOpen ? "telegram-login-panel" : undefined}
               aria-expanded={telegramOpen}
-              className={classes("flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border px-1.5 py-2 text-[#0b1c30] shadow-sm transition hover:bg-[#e5eeff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] sm:flex-row sm:gap-2 sm:px-3", telegramOpen ? "border-[#6320ee] bg-[#eff4ff]" : "border-[#e5eeff] bg-[#eff4ff]")}
+              className={classes("flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border px-1.5 py-2 text-[#0b1c30] dark:text-ticket-text shadow-sm transition hover:bg-[#e5eeff] dark:hover:bg-ticket-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] dark:focus-visible:ring-ticket-accent sm:flex-row sm:gap-2 sm:px-3", telegramOpen ? "border-[#6320ee] dark:border-ticket-accent bg-[#eff4ff] dark:bg-ticket-raised" : "border-[#e5eeff] dark:border-ticket-border bg-[#eff4ff] dark:bg-ticket-raised")}
               onClick={() => setTelegramOpen((open) => !open)}
               type="button"
             >
@@ -174,32 +176,32 @@ export function LoginClient() {
           </div>
 
           <div className="relative my-5 flex items-center justify-center sm:my-6" aria-hidden="true">
-            <span className="w-full border-t border-[#dce9ff]" />
-            <span className="absolute whitespace-nowrap bg-white px-2.5 text-[9px] font-semibold tracking-[0.12em] text-[#7a7488] sm:px-3 sm:text-[11px]">{copy.divider}</span>
+            <span className="w-full border-t border-[#dce9ff] dark:border-ticket-border" />
+            <span className="absolute whitespace-nowrap bg-white dark:bg-ticket-surface px-2.5 text-[9px] font-semibold tracking-[0.12em] text-[#7a7488] dark:text-ticket-muted sm:px-3 sm:text-[11px]">{copy.divider}</span>
           </div>
 
           {telegramOpen ? (
-            <section className="rounded-2xl border border-[#e5eeff] bg-[#f8faff] p-5 sm:p-6" id="telegram-login-panel" aria-label={copy.telegramTitle}>
+            <section className="rounded-2xl border border-[#e5eeff] dark:border-ticket-border bg-[#f8faff] dark:bg-ticket-raised p-5 sm:p-6" id="telegram-login-panel" aria-label={copy.telegramTitle}>
               <div className="mb-3 flex items-start justify-between gap-3">
-                <div><h2 className="text-lg font-bold">{copy.telegramTitle}</h2><p className="mt-1 text-sm leading-5 text-[#625d70]">{copy.telegramHint}</p></div>
-                <button className="rounded-full p-1 text-[#625d70] hover:bg-[#e5eeff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee]" onClick={() => setTelegramOpen(false)} type="button" aria-label={copy.telegramClose}><CloseIcon /></button>
+                <div><h2 className="text-lg font-bold">{copy.telegramTitle}</h2><p className="mt-1 text-sm leading-5 text-[#625d70] dark:text-ticket-muted">{copy.telegramHint}</p></div>
+                <button className="rounded-full p-1 text-[#625d70] dark:text-ticket-muted hover:bg-[#e5eeff] dark:hover:bg-ticket-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] dark:focus-visible:ring-ticket-accent" onClick={() => setTelegramOpen(false)} type="button" aria-label={copy.telegramClose}><CloseIcon /></button>
               </div>
               <TelegramLoginButton />
-              <button className="mt-4 text-sm font-semibold text-[#4a00c1] underline underline-offset-2" onClick={() => setTelegramOpen(false)} type="button">{copy.telegramReturn}</button>
+              <button className="mt-4 text-sm font-semibold text-[#4a00c1] dark:text-ticket-accent underline underline-offset-2" onClick={() => setTelegramOpen(false)} type="button">{copy.telegramReturn}</button>
             </section>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-1 rounded-xl bg-[#eff4ff] p-1" role="group" aria-label={copy.methodLabel}>
+              <div className="grid grid-cols-2 gap-1 rounded-xl bg-[#eff4ff] dark:bg-ticket-raised p-1" role="group" aria-label={copy.methodLabel}>
                 {(["email", "phone"] as const).map((item) => (
-                  <button aria-pressed={method === item} className={classes("flex min-h-10 items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee]", method === item ? "bg-white text-[#4a00c1] shadow-sm" : "text-[#494456] hover:text-[#0b1c30]")} key={item} onClick={() => resetFlow(item, mode)} type="button">
+                  <button aria-pressed={method === item} className={classes("flex min-h-10 items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] dark:focus-visible:ring-ticket-accent", method === item ? "bg-white dark:bg-ticket-surface text-[#4a00c1] dark:text-ticket-accent shadow-sm" : "text-[#494456] dark:text-ticket-muted hover:text-[#0b1c30] dark:hover:text-ticket-text")} key={item} onClick={() => resetFlow(item, mode)} type="button">
                     {item === "email" ? <MailIcon /> : <PhoneIcon />}{item === "email" ? "Email" : copy.phone}
                   </button>
                 ))}
               </div>
 
-              <div className="mt-4 grid grid-cols-3 border-b border-[#dce9ff]" role="group" aria-label={copy.actionLabel}>
+              <div className="mt-4 grid grid-cols-3 border-b border-[#dce9ff] dark:border-ticket-border" role="group" aria-label={copy.actionLabel}>
                 {(["login", "register", "reset"] as const).map((item) => (
-                  <button aria-pressed={mode === item} className={classes("min-h-12 border-b-2 px-1 py-2 text-center text-[11px] font-semibold leading-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6320ee] sm:text-sm", mode === item ? "border-[#6320ee] text-[#4a00c1]" : "border-transparent text-[#494456] hover:text-[#0b1c30]")} key={item} onClick={() => resetFlow(method, item)} type="button">
+                  <button aria-pressed={mode === item} className={classes("min-h-12 border-b-2 px-1 py-2 text-center text-[11px] font-semibold leading-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6320ee] dark:focus-visible:ring-ticket-accent sm:text-sm", mode === item ? "border-[#6320ee] dark:border-ticket-accent text-[#4a00c1] dark:text-ticket-accent" : "border-transparent text-[#494456] dark:text-ticket-muted hover:text-[#0b1c30] dark:hover:text-ticket-text")} key={item} onClick={() => resetFlow(method, item)} type="button">
                     {item === "login" ? copy.login : item === "register" ? copy.register : copy.forgot}
                   </button>
                 ))}
@@ -208,7 +210,7 @@ export function LoginClient() {
               {smsUnavailable ? (
                 <div className="mt-5 space-y-4">
                   <ContactField method={method} label={contactLabel} target={target} onChange={updateTarget} />
-                  <div className="rounded-xl border border-[#e8def6] bg-[#f8f4ff] p-3.5 text-sm leading-5 text-[#51485c]" role="note">{copy.smsUnavailable}</div>
+                  <div className="rounded-xl border border-[#e8def6] dark:border-ticket-border bg-[#f8f4ff] dark:bg-ticket-raised p-3.5 text-sm leading-5 text-[#51485c] dark:text-ticket-muted" role="note">{copy.smsUnavailable}</div>
                   <button className={submitClass} disabled type="button">{copy.smsSoon}</button>
                 </div>
               ) : (
@@ -216,19 +218,19 @@ export function LoginClient() {
                   {step === "contact" || mode === "login" ? (
                     <ContactField method={method} label={contactLabel} target={target} onChange={updateTarget} />
                   ) : (
-                    <div className="flex items-center justify-between gap-2 rounded-xl bg-[#eff4ff] px-3.5 py-3 text-sm">
-                      <span className="min-w-0 break-all text-[#494456]">{step === "details" ? copy.verifiedAddress : copy.codeSentTo}: {maskDestination(target, method)}</span>
-                      <button className="shrink-0 font-semibold text-[#4a00c1] underline underline-offset-2" onClick={() => resetFlow(method, mode)} type="button">{copy.change}</button>
+                    <div className="flex items-center justify-between gap-2 rounded-xl bg-[#eff4ff] dark:bg-ticket-raised px-3.5 py-3 text-sm">
+                      <span className="min-w-0 break-all text-[#494456] dark:text-ticket-muted">{step === "details" ? copy.verifiedAddress : copy.codeSentTo}: {maskDestination(target, method)}</span>
+                      <button className="shrink-0 font-semibold text-[#4a00c1] dark:text-ticket-accent underline underline-offset-2" onClick={() => resetFlow(method, mode)} type="button">{copy.change}</button>
                     </div>
                   )}
 
                   {mode !== "login" && step === "code" ? (
                     <>
-                      <label className="grid gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0b1c30]" htmlFor="verification-code">
+                      <label className="grid gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0b1c30] dark:text-ticket-text" htmlFor="verification-code">
                         {copy.mailCode}
                         <input autoComplete="one-time-code" className={fieldClass} id="verification-code" inputMode="numeric" maxLength={6} onChange={(event) => { setCode(event.target.value.replace(/\D/g, "")); setMessage(null); }} pattern="[0-9]{6}" required type="text" value={code} />
                       </label>
-                      <button className="justify-self-start text-sm font-semibold text-[#4a00c1] underline underline-offset-2 disabled:text-[#938b9e]" disabled={busy || secondsLeft > 0} onClick={() => void requestCode(true)} type="button">
+                      <button className="justify-self-start text-sm font-semibold text-[#4a00c1] dark:text-ticket-accent underline underline-offset-2 disabled:text-[#938b9e] dark:disabled:text-ticket-muted" disabled={busy || secondsLeft > 0} onClick={() => void requestCode(true)} type="button">
                         {secondsLeft > 0 ? `${copy.resendIn} ${secondsLeft} ${locale === "en" ? "s" : "с"}` : copy.resend}
                       </button>
                     </>
@@ -253,11 +255,11 @@ export function LoginClient() {
             </>
           )}
 
-          {message ? <p aria-live="polite" className="mt-4 rounded-xl bg-[#f2edff] px-3.5 py-3 text-sm leading-5 text-[#3b176f]" role="status">{message}</p> : null}
+          {message ? <p aria-live="polite" className="mt-4 rounded-xl bg-[#f2edff] dark:bg-ticket-raised px-3.5 py-3 text-sm leading-5 text-[#3b176f] dark:text-ticket-accent" role="status">{message}</p> : null}
         </div>
 
-        <footer className="w-full border-t border-[#dce9ff]/70 pt-5 text-center sm:pt-7">
-          <p className="mx-auto max-w-sm text-[11px] leading-relaxed text-[#7a7488]">{copy.legal}</p>
+        <footer className="w-full border-t border-[#dce9ff]/70 dark:border-ticket-border pt-5 text-center sm:pt-7">
+          <p className="mx-auto max-w-sm text-[11px] leading-relaxed text-[#7a7488] dark:text-ticket-muted">{copy.legal}</p>
         </footer>
       </section>
     </main>
@@ -267,7 +269,7 @@ export function LoginClient() {
 function HeroPanel({ catalogHref }: { catalogHref: string }) {
   const copy = AUTH_COPY[useLocale()];
   return (
-    <aside className="relative hidden min-h-svh flex-col justify-between overflow-hidden bg-[#080713] px-10 py-10 text-white lg:flex xl:px-14 xl:py-12" aria-label={copy.heroRegion}>
+    <aside className="relative hidden min-h-svh flex-col justify-between overflow-hidden bg-[#080713] dark:bg-ticket-primary px-10 py-10 text-white lg:flex xl:px-14 xl:py-12" aria-label={copy.heroRegion}>
       <Image alt="" className="object-cover object-center" fill priority sizes="(min-width: 1280px) 58vw, 50vw" src="/auth/community-gathering.png" />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,5,22,.9),rgba(8,7,26,.68)_55%,rgba(4,5,15,.28))]" />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,5,22,.42),transparent_38%,rgba(4,5,15,.92))]" />
@@ -275,13 +277,13 @@ function HeroPanel({ catalogHref }: { catalogHref: string }) {
 
       <div className="relative z-10 flex items-center">
         <Link className="flex items-center gap-2.5 text-white transition-opacity hover:opacity-85" href={catalogHref} aria-label={copy.catalog}>
-          <span className="grid h-10 w-10 place-items-center rounded-xl border border-white/15 bg-[#6320ee]/85 shadow-lg"><TicketIcon className="h-6 w-6" /></span>
+          <span className="grid h-10 w-10 place-items-center rounded-xl border border-white/15 bg-[#6320ee]/85 dark:bg-ticket-primary/85 shadow-lg"><TicketIcon className="h-6 w-6" /></span>
           <span className="ticket-auth-wordmark text-xl font-extrabold tracking-[-0.04em]">TICKET</span>
         </Link>
       </div>
 
       <div className="relative z-10 my-auto max-w-xl py-10">
-        <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-amber-300 backdrop-blur-md"><StarIcon />{copy.heroLabel}</span>
+        <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-amber-300 dark:text-ticket-warning backdrop-blur-md"><StarIcon />{copy.heroLabel}</span>
         <h2 className="mb-4 text-[clamp(2.25rem,3.45vw,3rem)] font-extrabold leading-[1.04] tracking-[-0.045em] text-white drop-shadow-md">{copy.heroTitle}</h2>
         <p className="max-w-lg text-base leading-[1.75] text-slate-200/90 xl:text-lg">{copy.heroDescription}</p>
       </div>
@@ -306,10 +308,10 @@ function ProviderButton({ provider }: { provider: SocialProvider }) {
   const copy = AUTH_COPY[useLocale()];
   const label = provider === "google" ? "Google" : "Apple ID";
   return (
-    <button aria-disabled="true" aria-label={label + ", " + copy.soon} className="relative flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border border-[#e5eeff] bg-[#eff4ff] px-1.5 py-2 text-[#0b1c30] shadow-sm transition hover:bg-[#e5eeff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] sm:flex-row sm:gap-2 sm:px-2" title={label + ": " + copy.soon} type="button">
+    <button aria-disabled="true" aria-label={label + ", " + copy.soon} className="relative flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border border-[#e5eeff] dark:border-ticket-border bg-[#eff4ff] dark:bg-ticket-raised px-1.5 py-2 text-[#0b1c30] dark:text-ticket-text shadow-sm transition hover:bg-[#e5eeff] dark:hover:bg-ticket-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] dark:focus-visible:ring-ticket-accent sm:flex-row sm:gap-2 sm:px-2" title={label + ": " + copy.soon} type="button">
       {provider === "google" ? <GoogleIcon /> : <AppleIcon />}
       <span className="text-xs font-semibold sm:text-sm">{label}</span>
-      <span className="absolute right-1 top-1 rounded bg-white/80 px-1 py-0.5 text-[8px] leading-none text-[#625d70]">{copy.soon}</span>
+      <span className="absolute right-1 top-1 rounded bg-white/80 dark:bg-ticket-surface/80 px-1 py-0.5 text-[8px] leading-none text-[#625d70] dark:text-ticket-muted">{copy.soon}</span>
     </button>
   );
 }
@@ -317,10 +319,10 @@ function ProviderButton({ provider }: { provider: SocialProvider }) {
 function ContactField({ method, label, target, onChange }: { method: LoginContactMethod; label: string; target: string; onChange: (value: string) => void }) {
   const id = method === "email" ? "auth-email" : "auth-phone";
   return (
-    <label className="grid gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0b1c30]" htmlFor={id}>
+    <label className="grid gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0b1c30] dark:text-ticket-text" htmlFor={id}>
       {label}
       <span className="relative block">
-        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-[#7a7488]">{method === "email" ? <MailIcon /> : <PhoneIcon />}</span>
+        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-[#7a7488] dark:text-ticket-muted">{method === "email" ? <MailIcon /> : <PhoneIcon />}</span>
         <input autoComplete={method === "email" ? "email" : "tel"} className={fieldClass + " pl-11"} id={id} onChange={(event) => onChange(event.target.value)} placeholder={method === "phone" ? "+7 (7__) ___-__-__" : "name@example.com"} required type={method === "email" ? "email" : "tel"} value={target} />
       </span>
     </label>
@@ -333,15 +335,15 @@ function PasswordField({ mode, password, showPassword, busy, onChange, onToggle 
   const copy = AUTH_COPY[useLocale()];
   const label = mode === "reset" ? copy.newPassword : copy.password;
   return (
-    <div className="grid gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0b1c30]">
+    <div className="grid gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0b1c30] dark:text-ticket-text">
       <div className="flex items-center justify-between gap-2"><label htmlFor="auth-password">{label}</label>
-        <button aria-label={showPassword ? copy.hidePassword : copy.showPassword} className="inline-flex items-center gap-1 text-[11px] font-semibold normal-case tracking-normal text-[#4a00c1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee]" onClick={onToggle} type="button"><EyeIcon />{showPassword ? copy.hide : copy.show}</button>
+        <button aria-label={showPassword ? copy.hidePassword : copy.showPassword} className="inline-flex items-center gap-1 text-[11px] font-semibold normal-case tracking-normal text-[#4a00c1] dark:text-ticket-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] dark:focus-visible:ring-ticket-accent" onClick={onToggle} type="button"><EyeIcon />{showPassword ? copy.hide : copy.show}</button>
       </div>
       <span className="relative block">
-        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-[#7a7488]"><LockIcon /></span>
+        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-[#7a7488] dark:text-ticket-muted"><LockIcon /></span>
         <input autoComplete={mode === "login" ? "current-password" : "new-password"} className={fieldClass + " pl-11 pr-4"} disabled={busy} id="auth-password" maxLength={1024} minLength={mode === "login" ? undefined : 12} onChange={(event) => onChange(event.target.value)} placeholder={copy.passwordPlaceholder} required type={showPassword ? "text" : "password"} value={password} />
       </span>
-      {mode !== "login" ? <span className="text-[11px] font-normal normal-case tracking-normal text-[#7a7488]">{copy.passwordMinimum}</span> : null}
+      {mode !== "login" ? <span className="text-[11px] font-normal normal-case tracking-normal text-[#7a7488] dark:text-ticket-muted">{copy.passwordMinimum}</span> : null}
     </div>
   );
 }
@@ -349,13 +351,13 @@ function PasswordField({ mode, password, showPassword, busy, onChange, onToggle 
 function TextField({ id, label, autoComplete, maxLength, value, onChange, disabled }: {
   id: string; label: string; autoComplete: string; maxLength: number; value: string; onChange: (value: string) => void; disabled: boolean;
 }) {
-  return <label className="grid gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0b1c30]" htmlFor={id}>
+  return <label className="grid gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0b1c30] dark:text-ticket-text" htmlFor={id}>
     {label}<input autoComplete={autoComplete} className={fieldClass} disabled={disabled} id={id} maxLength={maxLength} onChange={(event) => onChange(event.target.value)} required type="text" value={value} />
   </label>;
 }
 
-const fieldClass = "min-h-12 w-full rounded-xl border border-transparent bg-[#eff4ff] px-4 py-3 text-sm font-normal normal-case tracking-normal text-[#0b1c30] outline-none transition placeholder:text-[#7a7488] hover:bg-[#eaf1ff] focus:border-[#6320ee] focus:bg-white focus:ring-2 focus:ring-[#6320ee]/15 disabled:opacity-60";
-const submitClass = "mt-1 flex min-h-[54px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#6320ee] to-[#4a00c1] px-5 py-3.5 text-sm font-bold tracking-wide text-white shadow-lg shadow-[#6320ee]/25 transition hover:brightness-105 hover:shadow-xl hover:shadow-[#6320ee]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none sm:text-base";
+const fieldClass = "min-h-12 w-full rounded-xl border border-transparent bg-[#eff4ff] dark:bg-ticket-raised px-4 py-3 text-sm font-normal normal-case tracking-normal text-[#0b1c30] dark:text-ticket-text outline-none transition placeholder:text-[#7a7488] dark:placeholder:text-ticket-muted hover:bg-[#eaf1ff] dark:hover:bg-ticket-hover focus:border-[#6320ee] dark:focus:border-ticket-accent focus:bg-white dark:focus:bg-ticket-surface focus:ring-2 focus:ring-[#6320ee]/15 dark:focus:ring-ticket-accent/15 disabled:opacity-60";
+const submitClass = "mt-1 flex min-h-[54px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#6320ee] dark:from-ticket-primary to-[#4a00c1] dark:to-ticket-primary px-5 py-3.5 text-sm font-bold tracking-wide text-white shadow-lg shadow-[#6320ee]/25 transition hover:brightness-105 hover:shadow-xl hover:shadow-[#6320ee]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] dark:focus-visible:ring-ticket-accent focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none sm:text-base";
 
 function classes(...values: (string | false | undefined)[]) { return values.filter(Boolean).join(" "); }
 function submitLabel(mode: Mode, step: Step, copy: typeof AUTH_COPY.ru) {

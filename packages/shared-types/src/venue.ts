@@ -176,6 +176,7 @@ export interface VenueTable {
 }
 
 export interface VenueLayout {
+  canonicalVersion?:3;
   id: string;
   eventId: string | null;
   organizerId: string | null;
@@ -222,7 +223,6 @@ export interface CreateTableRequest {
   name?: string | null;
   seats: number;
   price: number;
-  deposit: number;
   currency?: string;
   description?: string | null;
   typeLabel?: string | null;
@@ -240,7 +240,6 @@ export interface CreateVenueRowRequest {
   typeLabel?: string | null;
   shortDescription?: string | null;
   price: number;
-  deposit: number;
   currency?: string;
   seatCount: number;
   startSeatNumber?: number;

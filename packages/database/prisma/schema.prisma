@@ -37,6 +37,42 @@ enum EventPaymentMode {
   full_payment
 }
 
+enum EventSaleMode {
+  free
+  paid_general
+  paid_seated
+}
+
+enum EventV2State {
+  legacy
+  reconciled
+  review
+  dirty
+}
+
+enum EventDraftState {
+  active
+  claimed
+  publishing
+  published
+  deleted
+  expired
+}
+
+enum MediaAssetKind {
+  image
+  video
+  unknown
+}
+
+enum MediaAssetState {
+  uploading
+  processing
+  ready
+  failed
+  legacy
+}
+
 enum EventCategory {
   music
   nightlife
@@ -215,6 +251,7 @@ model User {
   favorites          Favorite[]
   organizerProfile   OrganizerProfile?
   notificationPreference UserNotificationPreference?
+  creationDrafts EventCreationDraft[]
 
   @@index([role])
 }
@@ -380,6 +417,21 @@ model Event {
   createdAt         DateTime    @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime    @updatedAt @db.Timestamptz(3)
 
+  // Expansion: legacy columns remain temporary compatibility projections.
+  creationVersion   Int?
+  saleMode          EventSaleMode?
+  currency          String?     @db.Char(3)
+  startsAt          DateTime?   @db.Timestamptz(3)
+  endsAt            DateTime?   @db.Timestamptz(3)
+  refundsAvailable  Boolean?
+  refundPolicyRevision Int      @default(0)
+  revision          Int         @default(1)
+  latitude          Float?
+  longitude         Float?
+  v2State           EventV2State @default(legacy)
+  legacyFingerprint String?     @db.VarChar(64)
+  reviewReasons     Json        @default("[]")
+
   organizer    User          @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Restrict)
   ticketTypes  TicketType[]
   venueLayout  VenueLayout?
@@ -389,6 +441,12 @@ model Event {
   chatMessages ChatMessage[]
   favorites   Favorite[]
   translations EventTranslation[]
+  contents EventContent[]
+  mediaLinks EventMedia[]
+  mediaAssets MediaAsset[]
+  creationDraft EventCreationDraft? @relation("DraftResult")
+  editingDrafts EventCreationDraft[] @relation("DraftEditing")
+  publishIntents EventPublishIntent[]
 
   @@index([organizerId, status])
   @@index([status, date])
@@ -474,6 +532,9 @@ model TicketType {
   tickets      Ticket[]
   reservations TicketReservation[]
   seats        Seat[]
+  contents     TicketTypeContent[]
+  tariffId     String? @db.Uuid
+  tariff       HallTariff? @relation(fields: [tariffId], references: [id], onDelete: Restrict)
 
   @@unique([eventId, name])
   @@index([eventId, status])
@@ -539,6 +600,7 @@ model VenueLayout {
   tables    Table[]
   rows      VenueRow[]
   seats     Seat[]
+  tariffs   HallTariff[]
 
   @@index([organizerId])
 }
@@ -568,6 +630,9 @@ model Table {
   holds       TableHold[]
   seatRecords Seat[] @relation("TableSeats")
   groupPasses GroupPass[]
+  contents TableContent[]
+  tariffId String? @db.Uuid
+  tariff HallTariff? @relation(fields: [tariffId], references: [id], onDelete: Restrict)
 
   @@unique([venueLayoutId, number])
   @@index([venueLayoutId, status])
@@ -590,9 +655,216 @@ model VenueRow {
 
   venueLayout VenueLayout @relation(fields: [venueLayoutId], references: [id], onDelete: Cascade)
   seats       Seat[]      @relation("RowSeats")
+  contents VenueRowContent[]
+  tariffId String? @db.Uuid
+  tariff HallTariff? @relation(fields: [tariffId], references: [id], onDelete: Restrict)
 
   @@unique([venueLayoutId, number])
   @@index([venueLayoutId, status])
+}
+
+model EventContent {
+  eventId String @db.Uuid
+  locale String @db.VarChar(2)
+  title String?
+  summary String? @db.Text
+  description String? @db.Text
+  venueName String?
+  address String?
+  refundConditions String? @db.Text
+  revision Int @default(1)
+  fieldMetadata Json @default("{}")
+  managedBy String @default("editor") @db.VarChar(16)
+  legacyHash String? @db.VarChar(64)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  @@id([eventId, locale])
+  @@index([locale, title])
+}
+
+model TicketTypeContent {
+  ticketTypeId String @db.Uuid
+  locale String @db.VarChar(2)
+  name String?
+  description String? @db.Text
+  revision Int @default(1)
+  fieldMetadata Json @default("{}")
+  managedBy String @default("editor") @db.VarChar(16)
+  legacyHash String? @db.VarChar(64)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  ticketType TicketType @relation(fields: [ticketTypeId], references: [id], onDelete: Cascade)
+  @@id([ticketTypeId, locale])
+}
+
+model TableContent {
+  tableId String @db.Uuid
+  locale String @db.VarChar(2)
+  name String?
+  description String? @db.Text
+  revision Int @default(1)
+  fieldMetadata Json @default("{}")
+  managedBy String @default("editor") @db.VarChar(16)
+  legacyHash String? @db.VarChar(64)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  table Table @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  @@id([tableId, locale])
+}
+
+model VenueRowContent {
+  rowId String @db.Uuid
+  locale String @db.VarChar(2)
+  name String?
+  description String? @db.Text
+  revision Int @default(1)
+  fieldMetadata Json @default("{}")
+  managedBy String @default("editor") @db.VarChar(16)
+  legacyHash String? @db.VarChar(64)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  row VenueRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  @@id([rowId, locale])
+}
+
+model HallTariff {
+  active Boolean @default(true)
+  id String @id @db.Uuid
+  venueLayoutId String @db.Uuid
+  price Int?
+  currency String? @db.Char(3)
+  managedBy String @default("editor") @db.VarChar(16)
+  legacyHash String? @db.VarChar(64)
+  venueLayout VenueLayout @relation(fields: [venueLayoutId], references: [id], onDelete: Cascade)
+  contents HallTariffContent[]
+  ticketTypes TicketType[]
+  tables Table[]
+  rows VenueRow[]
+  @@index([venueLayoutId])
+}
+
+model HallTariffContent {
+  tariffId String @db.Uuid
+  locale String @db.VarChar(2)
+  name String?
+  description String? @db.Text
+  revision Int @default(1)
+  fieldMetadata Json @default("{}")
+  managedBy String @default("editor") @db.VarChar(16)
+  legacyHash String? @db.VarChar(64)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  tariff HallTariff @relation(fields: [tariffId], references: [id], onDelete: Cascade)
+  @@id([tariffId, locale])
+}
+
+model EventCreationDraft {
+  id String @id @default(uuid()) @db.Uuid
+  ownerId String? @db.Uuid
+  capabilityHash String? @unique @db.VarChar(64)
+  capabilityExpiresAt DateTime? @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  revision Int @default(1)
+  state EventDraftState @default(active)
+  aggregate Json
+  resultEventId String? @unique @db.Uuid
+  editingEventId String? @db.Uuid
+  baseEventRevision Int?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  owner User? @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  result Event? @relation("DraftResult", fields: [resultEventId], references: [id], onDelete: Restrict)
+  editingEvent Event? @relation("DraftEditing", fields: [editingEventId], references: [id], onDelete: Restrict)
+  intents EventPublishIntent[]
+  assets MediaAsset[]
+  @@index([state, expiresAt])
+  @@index([ownerId, updatedAt])
+  @@index([editingEventId, ownerId])
+}
+
+model EventPublishIntent {
+  id String @id @default(uuid()) @db.Uuid
+  draftId String @db.Uuid
+  revision Int
+  aggregateHash String @db.VarChar(64)
+  browserHash String @db.VarChar(64)
+  expiresAt DateTime @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  resultEventId String? @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  draft EventCreationDraft @relation(fields: [draftId], references: [id], onDelete: Restrict)
+  result Event? @relation(fields: [resultEventId], references: [id], onDelete: Restrict)
+  @@unique([draftId, revision])
+  @@index([expiresAt])
+  @@index([resultEventId])
+}
+
+model MediaAsset {
+  id String @id @default(uuid()) @db.Uuid
+  draftId String? @db.Uuid
+  eventId String? @db.Uuid
+  kind MediaAssetKind
+  state MediaAssetState @default(uploading)
+  storageKey String? @unique
+  contentType String?
+  bytes BigInt?
+  width Int?
+  height Int?
+  durationSeconds Float?
+  checksum String? @db.VarChar(64)
+  derivatives Json @default("{}")
+  legacyReference String?
+  errorCode String? @db.VarChar(80)
+  uploadExpiresAt DateTime? @db.Timestamptz(3)
+  publishedAt DateTime? @db.Timestamptz(3)
+  deletingAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  draft EventCreationDraft? @relation(fields: [draftId], references: [id], onDelete: Restrict)
+  event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  links EventMedia[]
+  contents MediaAssetContent[]
+  @@unique([id, eventId])
+  @@unique([eventId, legacyReference])
+  @@index([draftId, state])
+  @@index([state, uploadExpiresAt])
+}
+
+model MediaAssetContent {
+  assetId String @db.Uuid
+  locale String @db.VarChar(2)
+  caption String? @db.Text
+  fieldMetadata Json @default("{}")
+  asset MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  @@id([assetId, locale])
+}
+
+model EventMedia {
+  eventId String @db.Uuid
+  assetId String @db.Uuid
+  slot Int
+  galleryVisible Boolean @default(true)
+  isCard Boolean @default(false)
+  isBackground Boolean @default(false)
+  crops Json @default("{}")
+  managedBy String @default("editor") @db.VarChar(16)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  asset MediaAsset @relation(fields: [assetId, eventId], references: [id, eventId], onDelete: Restrict, onUpdate: NoAction)
+  @@id([eventId, assetId])
+  @@unique([eventId, slot])
+}
+
+model LegacyEventSnapshot {
+  eventId String @db.Uuid
+  fingerprint String @db.VarChar(64)
+  version Int @default(1)
+  original Json
+  capturedAt DateTime @default(now()) @db.Timestamptz(3)
+  @@id([eventId, fingerprint])
+}
+
+model EventBackfillCheckpoint {
+  key String @id @db.VarChar(120)
+  version Int
+  cursor String? @db.Uuid
+  processedCount Int @default(0)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 }
 
 model Seat {
@@ -814,6 +1086,7 @@ model Payment {
 }
 
 model RefundRequest {
+  acceptedSnapshot Json?
   id               String       @id @default(uuid()) @db.Uuid
   orderId          String       @unique @db.Uuid
   paymentId        String       @db.Uuid
@@ -1002,5 +1275,17 @@ model GoogleIdentity {
 model GoogleLoginProof {
   nonce     String   @id @db.VarChar(64)
   expiresAt DateTime @db.Timestamptz(3)
+  @@index([expiresAt])
+}
+
+// Source-hash cache; no browser can enumerate or read this table.
+model DraftTranslationCache {
+  key          String   @id @db.Char(64)
+  sourceLocale String   @db.VarChar(2)
+  targetLocale String   @db.VarChar(2)
+  sourceHash   String   @db.Char(64)
+  text         String   @db.Text
+  expiresAt    DateTime @db.Timestamptz(3)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
   @@index([expiresAt])
 }

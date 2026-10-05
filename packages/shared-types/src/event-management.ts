@@ -175,6 +175,7 @@ export interface ManagementRefundRequest {
 }
 
 export interface ManagementOrderDetail extends ManagementOrderRow {
+  acceptedPolicy?:import("./event-creation-v2.js").PurchaseSnapshotV2["refund"]|null;
   eventId: string;
   payments: Array<{ status: ManagementPaymentFilter; amount: number; currency: string; settledAt: string | null }>;
   tickets: Array<{ id: string; typeName: string; seatLabel: string | null; status: string; paidAt: string | null; usedAt: string | null; cancelledAt: string | null; refundedAt: string | null }>;

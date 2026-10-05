@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "../components/theme.css";
+@import "../components/rich-text.css";
 
 @font-face {
   font-family: "TICKET Inter";
@@ -52,8 +54,8 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #f9f9ff;
-  color: #151c27;
+  background: var(--ticket-bg);
+  color: var(--ticket-text);
 }
 
 ::selection {

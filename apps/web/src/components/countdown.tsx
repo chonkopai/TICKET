@@ -13,10 +13,10 @@ export function Countdown({ startsAt, past = false }: { startsAt: string; past?:
     return () => window.clearInterval(timer);
   }, [startsAt]);
 
-  if (past) return <span className="rounded-xl bg-zinc-100 px-3 py-2 text-sm font-semibold">{ru.guest.past}</span>;
+  if (past) return <span className="rounded-xl bg-zinc-100 dark:bg-ticket-raised px-3 py-2 text-sm font-semibold">{ru.guest.past}</span>;
   const target = new Date(startsAt).getTime();
   const remainingSeconds = Number.isFinite(target) ? Math.floor((target - now) / 1000) : 0;
   const formatted = formatCountdown(remainingSeconds);
   if (!formatted) return null;
-  return <span className="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">{ru.countdown.label}: {formatted}</span>;
+  return <span className="rounded-xl bg-emerald-50 dark:bg-ticket-success-soft px-3 py-2 text-sm font-semibold text-emerald-800 dark:text-ticket-success">{ru.countdown.label}: {formatted}</span>;
 }

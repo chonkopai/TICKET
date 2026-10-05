@@ -155,10 +155,9 @@ describe("PublicEventsService", () => {
     expect(free).toMatchObject({ total: 1, items: [{ id: rows[0]!.id, startingAmount: 0 }] });
   });
 
-  it("applies category, payment and timezone-aware preset filters", async () => {
-    await expect(service.list({ page: 1, limit: 12, sort: "recent", category: "music", city: "алматы", paymentMode: "deposit" })).resolves.toMatchObject({ total: 1, items: [{ id: publishedId }] });
+  it("applies category and timezone-aware preset filters", async () => {
+    await expect(service.list({ page: 1, limit: 12, sort: "recent", category: "music", city: "алматы", search:"Открытый концерт" })).resolves.toMatchObject({ total: 1, items: [{ id: publishedId }] });
     await expect(service.list({ page: 1, limit: 12, sort: "recent", search: "Открытый концерт", datePreset: "today" }, new Date("2027-01-01T10:00:00.000Z"))).resolves.toMatchObject({ total: 1, items: [{ id: publishedId }] });
-    await expect(service.list({ page: 1, limit: 12, sort: "recent", free: true, paymentMode: "deposit" })).rejects.toMatchObject({ response: { code: "EVENT_FILTER_COMBINATION_INVALID" } });
   });
 
   it("filters events by their KZT starting ticket price", async () => {

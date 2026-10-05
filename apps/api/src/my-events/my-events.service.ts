@@ -1,16 +1,17 @@
 import type { Prisma, PrismaClient } from "@event-platform/database";
 import { EventStatus, TicketStatus } from "@event-platform/database";
 import type { EventLocale, GuestBooking, GuestEvent, GuestEventList, GuestParticipationStatus, GuestTicket } from "@event-platform/shared-types";
-import { zonedInputToIso } from "@event-platform/shared-types";
+import { zonedInputToIso,readCheckoutSnapshot,acceptedResourceName } from "@event-platform/shared-types";
 import { Inject, Injectable } from "@nestjs/common";
 
 import { DATABASE_CLIENT } from "../auth/auth.constants.js";
 import { eventContent, eventContentHash } from "../events/event-translation-content.js";
 
+import { normalizedPresentation } from "../public-events/normalized-presentation.js";
 const MAX_EVENT_SCAN = 500;
 type EventWithGuestData = Prisma.EventGetPayload<{
   include: {
-    ticketTypes: { include: { tickets: true } };
+    ticketTypes: { include: { tickets: {include:{order:true;seatAllocation:{select:{seatId:true;seat:{select:{tableId:true}}}}}} } };
     venueLayout: { include: { tables: { include: { bookings: { include: { order: { include: { deposit: true } } } } } } } };
   };
 }>;
@@ -21,7 +22,7 @@ export class MyEventsService {
 
   async list(userId: string, status: "upcoming" | "past", page: number, limit: number, now = new Date(), locale: EventLocale = "ru"): Promise<GuestEventList> {
     const include: Prisma.EventInclude = {
-      ticketTypes: { include: { tickets: { where: { OR: [{ ownerUserId: userId }, { order: { buyerUserId: userId } }] } } } },
+      ticketTypes: { include: { tickets: { where: { OR: [{ ownerUserId: userId }, { order: { buyerUserId: userId } }] }, include: { order: true, seatAllocation: { select: { seatId: true, seat: { select: { tableId: true } } } } } } } },
       venueLayout: { include: { tables: { include: { bookings: { where: { order: { buyerUserId: userId } }, include: { order: { include: { deposit: true } } } } } } } },
     };
     const events = await this.database.event.findMany({
@@ -48,8 +49,10 @@ export class MyEventsService {
     const sourceById = new Map(events.map((event) => [event.id, event]));
     const translations = items.length ? await this.database.eventTranslation.findMany({ where: { eventId: { in: items.map((item) => item.id) }, locale } }) : [];
     const translationById = new Map(translations.map((translation) => [translation.eventId, translation]));
-    const localized = items.map((item) => {
+    const localized = await Promise.all(items.map(async(item) => {
       const source = sourceById.get(item.id);
+      const normalized=source?await normalizedPresentation(this.database,source,locale):null;
+      if(normalized)return {...item,...normalized.fields,tickets:item.tickets};
       const sourceLocale = (source?.sourceLocale ?? "ru") as EventLocale;
       const candidate = sourceLocale === locale ? null : translationById.get(item.id);
       const translation = candidate && source && (candidate.origin === "manual" || candidate.sourceHash === eventContentHash(eventContent(source))) ? candidate : null;
@@ -60,22 +63,22 @@ export class MyEventsService {
         extraConditions: translation.extraConditions, venueName: translation.venueName, address: translation.address,
         tickets: item.tickets.map((ticket) => ({ ...ticket, eventTitle: translation.title })),
       } : {}), contentLocale: translation ? locale : sourceLocale, sourceLocale };
-    });
+    }));
     return { items: localized, status, page, limit, total: filtered.length, hasNext: skip + items.length < filtered.length };
   }
 
   private presentEvent(event: EventWithGuestData, now: Date): GuestEvent {
     const date = dateString(event.date);
     const time = timeString(event.time);
-    const startsAt = zonedInputToIso(`${date}T${time}`, event.timezone);
+    const startsAt = event.startsAt?.toISOString()??zonedInputToIso(`${date}T${time}`, event.timezone);
     const isPast = new Date(startsAt) <= now;
     const tickets = event.ticketTypes.flatMap((type) => type.tickets.map((ticket) => presentGuestTicket(
       ticket,
-      type.isInternal ? "Место за столом" : type.name,
+      acceptedResourceName(readCheckoutSnapshot(ticket.order.checkoutSnapshot),[type.id,ticket.seatAllocation?.seatId,ticket.seatAllocation?.seat.tableId],type.isInternal ? "Место за столом" : type.name),
       event.id,
-      event.title,
+      readCheckoutSnapshot(ticket.order.checkoutSnapshot).eventTitle??event.title,
     )));
-    const bookings = event.venueLayout?.tables.flatMap((table) => table.bookings.map((booking) => presentBooking(booking, table))) ?? [];
+    const bookings = event.venueLayout?.tables.flatMap((table) => table.bookings.map((booking) => presentBooking(booking, {...table,name:acceptedResourceName(readCheckoutSnapshot(booking.order.checkoutSnapshot),[table.id],table.name??`Table ${table.number}`)}))) ?? [];
     const participationStatus = eventParticipation(event.status, tickets, bookings, isPast);
     return {
       id: event.id,

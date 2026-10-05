@@ -1,5 +1,6 @@
 import type { PublicEvent, PublicEventSummary } from "@event-platform/shared-types";
 import { describe, expect, it } from "vitest";
+import { wrapRichDescription } from "@event-platform/shared-types";
 
 import {
   formatCommandList,
@@ -10,6 +11,15 @@ import {
 } from "./presentation.js";
 
 describe("Telegram presentation", () => {
+  it("renders formatted descriptions as readable Telegram text", () => {
+    const details = formatEventDetails(eventFixture({ description: wrapRichDescription('<h1>Programme</h1><p><strong>Guests &amp; music</strong></p><ul><li>Doors open</li></ul><p><a href="https://example.com">Details</a></p>') }));
+    expect(details).toContain("Programme");
+    expect(details).toContain("Guests & music");
+    expect(details).toContain("Doors open");
+    expect(details).toContain("https://example.com");
+    expect(details).not.toContain("<h1>");
+    expect(details).not.toContain("data-ticket-rich-text");
+  });
   it("uses the same common command list for welcome/help and hides organizer commands from guests", () => {
     const guest = formatWelcome("guest");
     expect(guest).toContain("/events");

@@ -22,10 +22,10 @@ RUN test -n "$SITE_DOMAIN" && test -n "$TELEGRAM_BOT_USERNAME" \
     && rm -rf apps/web/.next/cache
 
 FROM node:24-bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /data/posters \
-    && chown node:node /data/posters
+    && mkdir -p /data/posters /data/draft-media \
+    && chown node:node /data/posters /data/draft-media
 
 WORKDIR /app
 COPY --from=build --chown=node:node /app /app

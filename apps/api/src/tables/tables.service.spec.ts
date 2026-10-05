@@ -147,8 +147,7 @@ describe("TablesService", () => {
 
 async function createTable(number: number) {
   return service.create(organizerA, layoutId, {
-    number, name: `Стол ${number}`, seats: 6, price: 0, deposit: 500_000,
-    geometry: { x: 20 + number, y: 20 + number, width: 80, height: 60 },
+    number, name: `Стол ${number}`, seats: 6, price: 0, geometry: { x: 20 + number, y: 20 + number, width: 80, height: 60 },
   });
 }
 

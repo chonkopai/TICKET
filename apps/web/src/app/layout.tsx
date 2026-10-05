@@ -6,6 +6,8 @@ import { LocaleProvider } from "../components/locale-provider";
 
 import { Navbar } from "../components/navbar";
 import { CurrencyProvider } from "../components/currency-provider";
+import { ThemeProvider } from "../components/theme-provider";
+import { THEME_BOOTSTRAP } from "../lib/theme";
 import "./globals.css";
 
 const META = {
@@ -35,8 +37,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const value = requestHeaders.get("x-ticket-locale");
   const locale = isLocale(value) ? value : "ru";
   return (
-    <html lang={locale}>
-      <body><LocaleProvider locale={locale}><CurrencyProvider><Navbar />{children}</CurrencyProvider></LocaleProvider></body>
+    <html lang={locale} suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} /></head>
+      <body><LocaleProvider locale={locale}><ThemeProvider><CurrencyProvider><Navbar />{children}</CurrencyProvider></ThemeProvider></LocaleProvider></body>
     </html>
   );
 }

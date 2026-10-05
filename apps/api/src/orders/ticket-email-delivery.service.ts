@@ -1,3 +1,4 @@
+import { readCheckoutSnapshot,acceptedResourceName } from "@event-platform/shared-types";
 import { createHash, createHmac } from "node:crypto";
 
 import { type PrismaClient, type TicketEmailDelivery } from "@event-platform/database";
@@ -94,7 +95,7 @@ export class TicketEmailDeliveryService implements OnModuleInit, OnModuleDestroy
       await this.db.ticketEmailDelivery.update({ where: { id: row.id }, data: { status: "failed", leaseUntil: null, lastErrorCode: "LINK_EXPIRED" } });
       return;
     }
-    const snapshot = order.checkoutSnapshot as unknown as CheckoutSnapshot;
+    const snapshot = readCheckoutSnapshot(order.checkoutSnapshot);
     const message = this.compose(row, snapshot);
     try {
       const accepted = await this.sender.send(message);
@@ -137,7 +138,7 @@ export class TicketEmailDeliveryService implements OnModuleInit, OnModuleDestroy
 
   async access(rawToken: string) {
     if (!/^[A-Za-z0-9_-]{43}$/.test(rawToken)) throw unavailable();
-    const delivery = await this.db.ticketEmailDelivery.findUnique({ where: { capabilityHash: hash(rawToken) }, include: { order: { include: { tickets: { include: { ticketType: { select: { name: true, isInternal: true } } }, orderBy: { id: "asc" } }, booking: { include: { table: { select: { number: true, name: true } } } }, groupPass: true } } } });
+    const delivery = await this.db.ticketEmailDelivery.findUnique({ where: { capabilityHash: hash(rawToken) }, include: { order: { include: { tickets: { include: { ticketType: { select: { name: true, isInternal: true } },seatAllocation:{select:{seatId:true,seat:{select:{tableId:true}}}} }, orderBy: { id: "asc" } }, booking: { include: { table: { select: { number: true, name: true } } } }, groupPass: true } } } });
     if (!delivery || delivery.capabilityExpiresAt <= new Date() || delivery.order.paymentStatus !== "paid") throw unavailable();
     return delivery;
   }
@@ -145,13 +146,13 @@ export class TicketEmailDeliveryService implements OnModuleInit, OnModuleDestroy
   async view(rawToken: string) {
     const delivery = await this.access(rawToken);
     const order = delivery.order;
-    const snapshot = order.checkoutSnapshot as unknown as CheckoutSnapshot;
+    const snapshot = readCheckoutSnapshot(order.checkoutSnapshot);
     const event = typeof snapshot.eventId === "string" ? await this.db.event.findUnique({ where: { id: snapshot.eventId }, select: { sourceLocale: true } }) : null;
-    return { orderId: order.id, title: snapshot.eventTitle, sourceLocale: event?.sourceLocale ?? "ru", date: snapshot.eventDate ?? null, time: snapshot.eventTime ?? null, timezone: snapshot.eventTimezone ?? null, venue: snapshot.venueName ?? null,
+    return { orderId: order.id, title: snapshot.eventTitle, sourceLocale: snapshot.contentLocale??event?.sourceLocale ?? "ru", date: snapshot.eventDate ?? null, time: snapshot.eventTime ?? null, timezone: snapshot.eventTimezone ?? null, venue: snapshot.venueName ?? null,
       paymentMode: snapshot.paymentMode, amountPaid: order.amount, currency: order.currency.trim(), status: order.paymentStatus,
       items: snapshot.items ?? [{ kind: snapshot.itemKind, name: snapshot.itemName, quantity: snapshot.quantity }],
-      tickets: order.tickets.map(ticket => ({ id: ticket.id, name: ticket.ticketType.isInternal ? ticket.seatLabelSnapshot ?? "Место за столом" : ticket.ticketType.name, seatLabel: ticket.seatLabelSnapshot, status: ticket.status })),
-      booking: order.booking ? { status: order.booking.status, table: order.booking.table } : null,
+      tickets: order.tickets.map(ticket => ({ id: ticket.id, name: acceptedResourceName(snapshot,[ticket.ticketTypeId,ticket.seatAllocation?.seatId,ticket.seatAllocation?.seat.tableId],ticket.ticketType.isInternal ? ticket.seatLabelSnapshot ?? "Место за столом" : ticket.ticketType.name), seatLabel: ticket.seatLabelSnapshot, status: ticket.status })),
+      booking: order.booking ? { status: order.booking.status, table: {...order.booking.table,name:acceptedResourceName(snapshot,[order.booking.tableId],order.booking.table.name??`Table ${order.booking.table.number}`)} } : null,
       groupPass: order.groupPass ? { id: order.groupPass.id, status: order.groupPass.status, totalSeats: order.groupPass.totalSeats } : null,
     };
   }

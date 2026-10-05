@@ -48,6 +48,8 @@ export const EVENT_AGE_RESTRICTIONS = [0, 6, 12, 16, 18, 21] as const;
 export type EventAgeRestriction = (typeof EVENT_AGE_RESTRICTIONS)[number];
 
 export interface OrganizerEvent {
+  creationVersion?:number|null;
+  currency?: string | null | undefined;
   id: string;
   organizerId: string;
   sourceLocale?: EventLocale | undefined;
@@ -76,32 +78,6 @@ export interface OrganizerEvent {
   createdAt: string;
   updatedAt: string;
 }
-
-export interface CreateEventRequest {
-  sourceLocale?: EventLocale | undefined;
-  title: string;
-  category: EventCategory;
-  countryCode?: string;
-  city: string;
-  date: string;
-  time: string;
-  timezone?: string;
-  ageRestriction?: EventAgeRestriction;
-  venueName: string;
-  address: string;
-  announcement?: string | null;
-  description?: string | null;
-  program?: string | null;
-  rules?: string | null;
-  visitTerms?: string | null;
-  cancellationTerms?: string | null;
-  paymentMode?: EventPaymentMode;
-  showFullAmountForDeposit?: boolean;
-  depositTerms?: string | null;
-  extraConditions?: string | null;
-}
-
-export type UpdateEventRequest = Partial<CreateEventRequest>;
 
 export interface OrganizerEventList {
   items: OrganizerEvent[];
@@ -159,7 +135,10 @@ export interface PublicPaymentOption {
   cancellationTerms: string | null;
 }
 
+export interface PublicEventMedia {id:string;slot:number;kind:"image"|"video";width:number;height:number;url:string;posterUrl:string|null;isCard:boolean;isBackground:boolean;galleryVisible:boolean;caption:string|null;crops:import("./event-creation-v2.js").EventCreationDraftV2["media"]["crops"]}
+
 export interface PublicEvent {
+  creationVersion?:2; saleMode?:import("./event-creation-v2.js").EventSaleMode;currency?:string;summary?:string;endsAt?:string|null;refundsAvailable?:boolean;refundPolicyRevision?:number;media?:PublicEventMedia[];
   id: string;
   contentLocale?: EventLocale;
   sourceLocale?: EventLocale;
@@ -192,6 +171,7 @@ export interface PublicEvent {
 }
 
 export interface PublicEventSummary {
+  creationVersion?:2;saleMode?:import("./event-creation-v2.js").EventSaleMode;currency?:string;endsAt?:string|null;media?:PublicEventMedia[];
   id: string;
   contentLocale?: EventLocale;
   sourceLocale?: EventLocale;

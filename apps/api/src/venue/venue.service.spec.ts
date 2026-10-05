@@ -38,8 +38,7 @@ describe("VenueService", () => {
   it("creates owned layouts, validates exact geometry IDs, and hides cross-organizer resources", async () => {
     const layout = await venue.createForEvent(organizerA, eventA, {});
     const table = await tables.create(organizerA, layout.id, {
-      number: 1, seats: 4, price: 0, deposit: 100_000,
-      geometry: { x: 30, y: 40, width: 100, height: 70 },
+      number: 1, seats: 4, price: 0, geometry: { x: 30, y: 40, width: 100, height: 70 },
     });
     await expect(venue.get(organizerB, layout.id)).rejects.toBeInstanceOf(NotFoundException);
     await expect(venue.update(organizerA, layout.id, {

@@ -5,10 +5,10 @@ export const quickStartSchema = z.object({ name: z.string().trim().min(1).max(10
 export const quickEmailRequestSchema = z.object({ address: z.email().max(254) }).strict();
 export const quickEmailVerifySchema = quickEmailRequestSchema.extend({ challengeId: z.uuid(), code: z.string().regex(/^\d{6}$/) }).strict();
 export const checkoutEmailChoiceSchema = z.object({ address: z.email().max(254), grant: z.string().regex(/^[A-Za-z0-9_-]{43}$/).optional() }).strict();
-export const quickTicketSchema = z.object({ ticketTypeId: z.uuid(), quantity: z.number().int().min(1).max(10), termsAccepted: z.literal(true), emailDelivery: checkoutEmailChoiceSchema.optional() }).strict();
-export const quickTableSchema = z.object({ tableId: z.uuid(), termsAccepted: z.literal(true), emailDelivery: checkoutEmailChoiceSchema.optional() }).strict();
-export const quickSeatsSchema = z.object({ seatIds: z.array(z.uuid()).min(1).max(10), termsAccepted: z.literal(true), emailDelivery: checkoutEmailChoiceSchema.optional() }).strict();
-export const quickCartSchema = z.object({ eventId: z.uuid(), tickets: z.array(z.object({ ticketTypeId: z.uuid(), quantity: z.number().int().min(1).max(10) }).strict()).max(10), tableId: z.uuid().optional(), seatIds: z.array(z.uuid()).max(10), termsAccepted: z.literal(true), emailDelivery: checkoutEmailChoiceSchema.optional() }).strict()
+export const quickTicketSchema = z.object({ ticketTypeId: z.uuid(), quantity: z.number().int().min(1).max(10), termsAccepted: z.literal(true), contentLocale:z.enum(["ru","en","kk"]).optional(),policyRevision:z.number().int().positive().optional(), emailDelivery: checkoutEmailChoiceSchema.optional() }).strict();
+export const quickTableSchema = z.object({ tableId: z.uuid(), termsAccepted: z.literal(true), contentLocale:z.enum(["ru","en","kk"]).optional(),policyRevision:z.number().int().positive().optional(), emailDelivery: checkoutEmailChoiceSchema.optional() }).strict();
+export const quickSeatsSchema = z.object({ seatIds: z.array(z.uuid()).min(1).max(10), termsAccepted: z.literal(true), contentLocale:z.enum(["ru","en","kk"]).optional(),policyRevision:z.number().int().positive().optional(), emailDelivery: checkoutEmailChoiceSchema.optional() }).strict();
+export const quickCartSchema = z.object({ eventId: z.uuid(), tickets: z.array(z.object({ ticketTypeId: z.uuid(), quantity: z.number().int().min(1).max(10) }).strict()).max(10), tableId: z.uuid().optional(), seatIds: z.array(z.uuid()).max(10), termsAccepted: z.literal(true), contentLocale:z.enum(["ru","en","kk"]).optional(),policyRevision:z.number().int().positive().optional(), emailDelivery: checkoutEmailChoiceSchema.optional() }).strict()
   .refine((value) => value.tickets.length > 0 || Boolean(value.tableId) || value.seatIds.length > 0)
   .refine((value) => new Set(value.tickets.map((ticket) => ticket.ticketTypeId)).size === value.tickets.length)
   .refine((value) => new Set(value.seatIds).size === value.seatIds.length)
@@ -31,6 +31,7 @@ export const quickRu = {
 };
 export interface QuickSession { sessionToken: string; accessToken: string; telegramUrl: string; expiresAt: string; accessExpiresAt: string }
 export interface QuickOrderStatus {
+  acceptedPolicy?:import("./event-creation-v2.js").PurchaseSnapshotV2["refund"];
   orderId: string; eventId: string | null; status: string; title: string; sourceLocale?: "ru" | "kk" | "en"; paymentMode: "deposit" | "full_payment"; amountDue: number; fullAmount: number | null;
   currency: string; cancellationTerms: string | null; depositTerms: string | null; expiresAt: string | null; linked: boolean;
   deliveryStatus: "pending" | "confirmed" | "unavailable";

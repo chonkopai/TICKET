@@ -24,29 +24,60 @@
     "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME",
     "NODE_ENV",
     "ORGANIZER_REQUIRES_APPROVAL",
+    "EVENT_CONTENT_V2_ENABLED",
     "POSTER_STORAGE_DIR",
     "REDIS_URL",
     "TELEGRAM_BOT_TOKEN",
     "TELEGRAM_BOT_USERNAME",
     "TABLE_HOLD_CLEANUP_INTERVAL_SECONDS",
     "TABLE_HOLD_TTL_SECONDS",
-    "WEB_ORIGIN"
+    "WEB_ORIGIN",
+    "DRAFT_MEDIA_STORAGE_DIR",
+    "MEDIA_FFMPEG_PATH",
+    "MEDIA_FFPROBE_PATH",
+    "MEDIA_IMAGE_MAX_BYTES",
+    "MEDIA_VIDEO_MAX_BYTES",
+    "MEDIA_VIDEO_MAX_SECONDS",
+    "MEDIA_DRAFT_MAX_BYTES",
+    "GOOGLE_TRANSLATE_API_KEY",
+    "TRANSLATION_PROVIDER",
+    "AZURE_TRANSLATOR_KEY",
+    "AZURE_TRANSLATOR_REGION",
+    "TRANSLATION_TIMEOUT_MS",
+    "TRANSLATION_RETRIES",
+    "TRANSLATION_HOURLY_REQUESTS",
+    "TRANSLATION_DAILY_CHARACTERS",
+    "TRANSLATION_CACHE_SECONDS",
+    "TICKET_NEXT_DIST_DIR",
+    "GOOGLE_AUTH_DB_TEST",
+    "EVENT_CREATION_DB_TEST",
+    "VERIFICATION_TEST_DATABASE_URL"
   ],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "test": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "outputs": []
     },
     "typecheck": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "outputs": []
     }
   }

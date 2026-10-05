@@ -24,4 +24,5 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ["/:path*"] };
+// Exclude streaming draft uploads: Next Proxy otherwise buffers/clones bodies.
+export const config = { matcher: ["/((?!api/creation-drafts(?:/|$)).*)"] };

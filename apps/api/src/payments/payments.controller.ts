@@ -1,5 +1,5 @@
 import type { PaymentLinkResponse, PaymentStatusResponse } from "@event-platform/shared-types";
-import { BadRequestException, Controller, Get, Headers, HttpCode, Param, Post, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Controller, Get, Headers, HttpCode, Inject, Param, Post, Req, UseGuards } from "@nestjs/common";
 
 import type { AuthenticatedPrincipal } from "../auth/auth.constants.js";
 import { CurrentUser } from "../auth/auth.decorators.js";
@@ -11,7 +11,7 @@ import { PaymentService } from "./payment.service.js";
 @Controller("orders")
 @UseGuards(JwtAuthGuard)
 export class OrdersPaymentController {
-  constructor(private readonly payments: PaymentService, private readonly booking: BookingService) {}
+  constructor(@Inject(PaymentService) private readonly payments: PaymentService, @Inject(BookingService) private readonly booking: BookingService) {}
 
   @Post(":id/pay")
   @UseGuards(SensitiveRateGuard)
@@ -33,7 +33,7 @@ export class OrdersPaymentController {
 
 @Controller("payments")
 export class PaymentWebhookController {
-  constructor(private readonly payments: PaymentService, private readonly booking: BookingService) {}
+  constructor(@Inject(PaymentService) private readonly payments: PaymentService, @Inject(BookingService) private readonly booking: BookingService) {}
 
   @Post("webhooks/:provider")
   @HttpCode(200)

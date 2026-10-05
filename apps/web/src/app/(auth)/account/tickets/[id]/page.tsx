@@ -1,4 +1,5 @@
 "use client";
+import {RefundPolicyText} from "../../../../../components/event-presentation";
 
 import { type CancellationResponse, type CancellationTermsResponse, type GuestTicket } from "@event-platform/shared-types";
 import { useEffect, useState } from "react";
@@ -86,24 +87,24 @@ function Ticket({ params }: { params: Promise<{ id: string }> }) {
     finally { setWalletBusy(false); }
   }
 
-  if (!ticket) return error ? <p className="rounded-2xl bg-red-50 p-5 text-red-800" role="alert">{error}</p> : <p>{extra.loading}</p>;
+  if (!ticket) return error ? <p className="rounded-2xl bg-red-50 dark:bg-ticket-danger-soft p-5 text-red-800 dark:text-ticket-danger" role="alert">{error}</p> : <p>{extra.loading}</p>;
   const status = copy.statuses[ticket.status as keyof typeof copy.statuses] ?? ticket.status;
 
-  return <section className="rounded-3xl border border-black/10 bg-white p-7 text-center shadow-sm">
+  return <section className="rounded-3xl border border-black/10 dark:border-ticket-border bg-white dark:bg-ticket-surface p-7 text-center shadow-sm">
     <BackLink href={localeUrl("/account", locale)} />
     <h1 className="mt-6 text-3xl font-semibold">{ticket.eventTitle}</h1>
     <div className="mt-2"><ContentLanguageNote contentLocale={ticket.contentLocale ?? ticket.sourceLocale ?? "ru"} /></div>
-    <p className="mt-2 text-zinc-600">{ticket.ticketTypeName}</p>
+    <p className="mt-2 text-zinc-600 dark:text-ticket-muted">{ticket.ticketTypeName}</p>
     {ticket.sourceLocale && ticket.contentLocale === locale && ticket.sourceLocale !== locale ? <div className="mt-1"><ContentLanguageNote contentLocale={ticket.sourceLocale} /></div> : null}
     {ticket.seatLabel ? <p className="mt-1 text-lg font-semibold">{ticket.seatLabel}</p> : null}
-    <p className="mt-1 text-sm text-zinc-600">{status}</p>
-    {error ? <p className="mt-5 rounded-xl bg-red-50 p-4 text-red-800" role="alert">{error}</p> : null}
-    {qrUrl ? <img className="mx-auto mt-7 w-72 rounded-2xl border border-zinc-200 p-2" src={qrUrl} alt={`${copy.ticket} QR`} /> : ticket.status === "cancelled" || ticket.status === "refunded" ? <p className="mt-7 text-zinc-600">{extra.qrInvalid}</p> : <p className="mt-7 text-zinc-600">{extra.loading}</p>}
+    <p className="mt-1 text-sm text-zinc-600 dark:text-ticket-muted">{status}</p>
+    {error ? <p className="mt-5 rounded-xl bg-red-50 dark:bg-ticket-danger-soft p-4 text-red-800 dark:text-ticket-danger" role="alert">{error}</p> : null}
+    {qrUrl ? <img className="mx-auto mt-7 w-72 rounded-2xl border border-zinc-200 dark:border-ticket-border p-2" src={qrUrl} alt={`${copy.ticket} QR`} /> : ticket.status === "cancelled" || ticket.status === "refunded" ? <p className="mt-7 text-zinc-600 dark:text-ticket-muted">{extra.qrInvalid}</p> : <p className="mt-7 text-zinc-600 dark:text-ticket-muted">{extra.loading}</p>}
     <div className="mt-6 flex flex-wrap justify-center gap-3">
-      {ticket.walletPath ? <button className="rounded-xl border border-black/15 px-5 py-3 font-semibold disabled:opacity-50" disabled={walletBusy} onClick={() => void downloadWallet()} type="button">{walletBusy ? extra.loading : copy.addWallet}</button> : null}
-      {ticket.status !== "cancelled" && ticket.status !== "used" && ticket.status !== "refunded" ? <button className="rounded-xl border border-red-300 px-5 py-3 font-semibold text-red-800 disabled:opacity-50" disabled={walletBusy} onClick={() => void loadCancellation()} type="button">{extra.cancel}</button> : null}
+      {ticket.walletPath ? <button className="rounded-xl border border-black/15 dark:border-ticket-border px-5 py-3 font-semibold disabled:opacity-50" disabled={walletBusy} onClick={() => void downloadWallet()} type="button">{walletBusy ? extra.loading : copy.addWallet}</button> : null}
+      {ticket.status !== "cancelled" && ticket.status !== "used" && ticket.status !== "refunded" ? <button className="rounded-xl border border-red-300 dark:border-ticket-danger-border px-5 py-3 font-semibold text-red-800 dark:text-ticket-danger disabled:opacity-50" disabled={walletBusy} onClick={() => void loadCancellation()} type="button">{extra.cancel}</button> : null}
     </div>
-    {cancellation && !cancelled ? <div className="mt-6 rounded-2xl bg-zinc-50 p-5 text-left"><h2 className="font-semibold">{extra.cancellationTerms}</h2><p className="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{cancellation.cancellationTerms ?? "—"}</p><button className="mt-4 rounded-xl bg-red-700 px-5 py-3 font-semibold text-white" onClick={() => void cancelTicket()} type="button">{extra.cancelConfirm}</button></div> : null}
-    {cancelled ? <p className="mt-6 rounded-xl bg-emerald-50 p-4 text-emerald-900">{extra.cancelled}{cancelled.refundPending ? ` ${extra.refundPending}` : ""}</p> : null}
+    {cancellation && !cancelled ? <div className="mt-6 rounded-2xl bg-zinc-50 dark:bg-ticket-bg p-5 text-left"><h2 className="font-semibold">{extra.cancellationTerms}</h2>{cancellation.acceptedPolicy?<RefundPolicyText locale={locale} free={cancellation.acceptedPolicy.freeCancellation} available={cancellation.acceptedPolicy.available} conditions={cancellation.cancellationTerms}/>:<p className="mt-2 whitespace-pre-wrap text-sm text-zinc-700 dark:text-ticket-muted">{cancellation.cancellationTerms ?? "—"}</p>}{!cancellation.acceptedPolicy||cancellation.acceptedPolicy.freeCancellation||cancellation.acceptedPolicy.available||cancellation.amountPaid===0?<button className="mt-4 rounded-xl bg-red-700 px-5 py-3 font-semibold text-white" onClick={() => void cancelTicket()} type="button">{extra.cancelConfirm}</button>:null}</div> : null}
+    {cancelled ? <p className="mt-6 rounded-xl bg-emerald-50 dark:bg-ticket-success-soft p-4 text-emerald-900 dark:text-ticket-success">{extra.cancelled}{cancelled.refundPending ? ` ${extra.refundPending}` : ""}</p> : null}
   </section>;
 }

@@ -64,10 +64,12 @@ services:
       REDIS_URL: redis://redis:6379
       WEB_ORIGIN: https://${SITE_DOMAIN:?Set SITE_DOMAIN in .env.demo}
       POSTER_STORAGE_DIR: /data/posters
+      DRAFT_MEDIA_STORAGE_DIR: /data/draft-media
       PAYMENT_PROVIDER_NAME: mock
       TRANSACTIONAL_NOTIFICATIONS_ENABLED: "false"
     volumes:
       - poster_data:/data/posters
+      - draft_media_data:/data/draft-media
     depends_on:
       postgres:
         condition: service_healthy
@@ -150,5 +152,6 @@ volumes:
   postgres_data:
   redis_data:
   poster_data:
+  draft_media_data:
   caddy_data:
   caddy_config:

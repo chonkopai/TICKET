@@ -1,0 +1,16 @@
+.ticket-rich-text { font-size: 15px; line-height: 1.75; overflow-wrap: anywhere; }
+.ticket-rich-text p { margin: 0 0 .75em; white-space: pre-wrap; }
+.ticket-rich-text h1 { margin: 1em 0 .5em; font-size: 1.75em; line-height: 1.25; font-weight: 700; color: var(--ticket-text); }
+.ticket-rich-text h2 { margin: 1em 0 .5em; font-size: 1.35em; line-height: 1.35; font-weight: 650; color: var(--ticket-text); }
+.ticket-rich-text strong { font-weight: 700; }
+.ticket-rich-text em { font-style: italic; }
+.ticket-rich-text ul, .ticket-rich-text ol { padding-left: 1.5em; margin: .5em 0 .85em; }
+.ticket-rich-text ul { list-style: disc; }
+.ticket-rich-text ol { list-style: decimal; }
+.ticket-rich-text li { margin: .25em 0; }
+.ticket-rich-text li > p { margin: 0; }
+.ticket-rich-text a { color: var(--ticket-accent); text-decoration: underline; text-underline-offset: 3px; }
+.ticket-rich-text a:hover { text-decoration-thickness: 2px; }
+.ticket-rich-text a:focus-visible { outline: 2px solid var(--ticket-accent); outline-offset: 3px; }
+.ticket-rich-text > :first-child { margin-top: 0; }
+.ticket-rich-text > :last-child { margin-bottom: 0; }

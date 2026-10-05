@@ -1,3 +1,4 @@
+import { readCheckoutSnapshot,parseHistoricalPurchaseSnapshot } from "@event-platform/shared-types";
 import { randomBytes } from "node:crypto";
 
 import {
@@ -22,7 +23,7 @@ import { DomainEventsService } from "../domain-events/domain-events.service.js";
 import { WALLET_PASS_GENERATOR } from "../wallet/wallet.constants.js";
 import type { WalletPassGenerator } from "../wallet/wallet-pass-generator.js";
 import {
-  presentTicket,
+  presentTicket,acceptedTicketName,
   presentGuestTicket,
   ticketContextInclude,
   type TicketWithContext,
@@ -77,6 +78,8 @@ export class TicketsService {
   async getForUser(userId: string, id: string, locale: EventLocale = "ru"): Promise<GuestTicket> {
     const ticket = await this.findForUser(this.database, userId, id);
     const event = ticket.ticketType.event;
+    const accepted=parseHistoricalPurchaseSnapshot(ticket.order?.checkoutSnapshot);
+    if(accepted.version===2)return {...presentGuestTicket(ticket),eventTitle:accepted.snapshot.title,contentLocale:accepted.snapshot.contentLocale,sourceLocale:accepted.snapshot.sourceLocale,walletPath:ticket.status===TicketStatus.active&&this.wallet.isConfigured()?`/me/tickets/${ticket.id}/wallet`:null};
     const sourceLocale = event.sourceLocale as EventLocale;
     const candidate = sourceLocale === locale ? null : await this.database.eventTranslation.findUnique({ where: { eventId_locale: { eventId: event.id, locale } } });
     const translation = candidate && (candidate.origin === "manual" || candidate.sourceHash === eventContentHash(eventContent(event))) ? candidate : null;
@@ -257,17 +260,17 @@ export class TicketsService {
       });
     }
 
-    const event = ticket.ticketType.event;
+    const event = ticket.ticketType.event,saved=readCheckoutSnapshot(ticket.order?.checkoutSnapshot);
     return this.wallet.generate({
       serialNumber: ticket.appleWalletPassId ?? ticket.id,
-      eventTitle: event.title,
-      ticketTypeName: ticket.seatAllocation?.seat.table?.typeLabel ?? ticket.seatAllocation?.seat.row?.typeLabel ?? ticket.ticketType.name,
+      eventTitle: saved.eventTitle??event.title,
+      ticketTypeName: acceptedTicketName(ticket),
       seatLabel: ticket.seatLabelSnapshot ?? ticket.seatAllocation?.seat.label ?? null,
-      venueName: event.venueName,
-      address: event.address,
-      eventDate: event.date.toISOString().slice(0, 10),
-      eventTime: event.time.toISOString().slice(11, 16),
-      timezone: event.timezone,
+      venueName: saved.venueName??event.venueName,
+      address: saved.address??event.address,
+      eventDate: saved.eventDate??event.date.toISOString().slice(0,10),
+      eventTime: saved.eventTime??event.time.toISOString().slice(11,16),
+      timezone: saved.eventTimezone??event.timezone,
       qrToken: ticket.qrToken,
     });
   }

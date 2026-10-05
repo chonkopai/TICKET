@@ -1,5 +1,5 @@
 import type { CreateTableSeatsRequest, CreateVenueRowRequest } from "@event-platform/shared-types";
-import { Body, Controller, Delete, Get, Inject, Param, ParseUUIDPipe, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Inject, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from "@nestjs/common";
 
 import type { AuthenticatedPrincipal } from "../auth/auth.constants.js";
 import { CurrentUser, Roles } from "../auth/auth.decorators.js";
@@ -55,5 +55,5 @@ export class PublicSeatsController {
   constructor(@Inject(SeatsService) private readonly seats: SeatsService) {}
 
   @Get(":eventId/venue-layout")
-  getPublic(@Param("eventId", new ParseUUIDPipe({ version: "4" })) eventId: string) { return this.seats.publicForEvent(eventId); }
+  getPublic(@Param("eventId", new ParseUUIDPipe({ version: "4" })) eventId: string,@Query("locale") locale?:string) { return this.seats.publicForEvent(eventId,locale); }
 }

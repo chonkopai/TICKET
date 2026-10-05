@@ -1,3 +1,4 @@
+import { readCheckoutSnapshot,acceptedResourceName } from "@event-platform/shared-types";
 import { loadApiEnv } from "@event-platform/config";
 import type { PrismaClient } from "@event-platform/database";
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
@@ -23,7 +24,7 @@ export class QuickDeliveryService implements OnModuleInit, OnModuleDestroy {
     this.running = true;
     let delivered = 0;
     try {
-      const rows = await this.db.anonymousCheckoutSession.findMany({ where: { ...(sessionIds ? { id: { in: sessionIds } } : {}), deliveredAt: null, deliveryMessageId: { not: null }, order: { paymentStatus: "paid" } }, take: 25, orderBy: { id: "asc" }, ...(!sessionIds && this.cursor ? { cursor: { id: this.cursor }, skip: 1 } : {}), include: { order: { include: { tickets: { orderBy: { id: "asc" }, include: { ticketType: { select: { name: true, isInternal: true } } } }, booking: { include: { table: { select: { number: true } } } } } } } });
+      const rows = await this.db.anonymousCheckoutSession.findMany({ where: { ...(sessionIds ? { id: { in: sessionIds } } : {}), deliveredAt: null, deliveryMessageId: { not: null }, order: { paymentStatus: "paid" } }, take: 25, orderBy: { id: "asc" }, ...(!sessionIds && this.cursor ? { cursor: { id: this.cursor }, skip: 1 } : {}), include: { order: { include: { tickets: { orderBy: { id: "asc" }, include: { ticketType: { select: { name: true, isInternal: true } },seatAllocation:{select:{seatId:true,seat:{select:{tableId:true}}}} } }, booking: { include: { table: { select: { number: true } } } } } } } });
       // Advance past permanently failing chats so they cannot starve later deliveries.
       if (!sessionIds) this.cursor = rows.length === 25 ? rows.at(-1)?.id : undefined;
       for (const row of rows) {
@@ -31,16 +32,16 @@ export class QuickDeliveryService implements OnModuleInit, OnModuleDestroy {
         if (!order || !row.chatId || !row.deliveryMessageId) continue;
         const committed = await this.db.outboxEvent.findFirst({ where: { aggregateId: order.id, eventType: "checkout.paid" } });
         if (!committed) continue;
-        const snapshot = order.checkoutSnapshot as { eventTitle: string; paymentMode: string };
+        const snapshot = readCheckoutSnapshot(order.checkoutSnapshot);
         const activeTickets = order.tickets.filter(t => t.status === "active" || t.status === "used");
         const lines = [snapshot.eventTitle.slice(0, 200), `${snapshot.paymentMode === "deposit" ? ru.events.paymentModes.deposit : ru.events.paymentModes.full_payment}: ${(order.amount / 100).toFixed(2)} ${order.currency.trim()}`, ru.bot.paymentConfirmed,
-          ...activeTickets.map(t => `${(t.ticketType.isInternal ? t.seatLabelSnapshot ?? ru.bot.tableOption : t.ticketType.name).slice(0, 80)}\n${ru.bot.qrWillSend}`),
+          ...activeTickets.map(t => `${(acceptedResourceName(snapshot,[t.ticketTypeId,t.seatAllocation?.seatId,t.seatAllocation?.seat.tableId],t.ticketType.isInternal ? t.seatLabelSnapshot ?? ru.bot.tableOption : t.ticketType.name)).slice(0, 80)}\n${ru.bot.qrWillSend}`),
           ...(order.booking?.status === "confirmed" ? [`${ru.bot.tableOption} №${order.booking.table.number}: ${ru.bot.tableConfirmed}`] : []),
           ru.bot.doNotShare];
         try { await send(row.chatId.toString(), row.deliveryMessageId, lines.join("\n\n")); }
         catch { continue; }
         if (sendPhoto) {
-          try { for (const ticket of activeTickets) await sendPhoto(row.chatId.toString(), await QRCode.toBuffer(ticket.qrToken, { type: "png", width: 320, margin: 2 }), `${ru.bot.ticketCaption}: ${ticket.ticketType.isInternal ? ticket.seatLabelSnapshot ?? ru.bot.tableOption : ticket.ticketType.name}`); }
+          try { for (const ticket of activeTickets) await sendPhoto(row.chatId.toString(), await QRCode.toBuffer(ticket.qrToken, { type: "png", width: 320, margin: 2 }), `${ru.bot.ticketCaption}: ${acceptedResourceName(snapshot,[ticket.ticketTypeId,ticket.seatAllocation?.seatId,ticket.seatAllocation?.seat.tableId],ticket.ticketType.isInternal ? ticket.seatLabelSnapshot ?? ru.bot.tableOption : ticket.ticketType.name)}`); }
           catch { continue; }
         }
         await this.db.$transaction(async tx => {

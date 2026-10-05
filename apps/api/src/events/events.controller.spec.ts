@@ -32,30 +32,14 @@ describe("EventsController", () => {
       removePoster: vi.fn().mockResolvedValue(event),
       deleteDraft: vi.fn().mockResolvedValue({ deleted: true, id: event.id }),
     } as unknown as EventsService;
-    const controller = new EventsController(events, publicEvents as never, {} as never);
+    const controller = new EventsController(events, publicEvents as never);
     const principal: AuthenticatedPrincipal = { userId: event.organizerId, role: "organizer" };
-    const create = {
-      title: event.title,
-      category: event.category,
-      city: event.city,
-      date: event.date,
-      time: event.time,
-      venueName: event.venueName,
-      address: event.address,
-    };
-    const file = {
-      buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
-      mimetype: "image/png",
-      originalname: "poster.png",
-      size: 4,
-    };
     const analyticsQuery = { from: "2027-01-01T00:00:00Z", to: "2027-01-02T00:00:00Z", bucket: "day" as const };
     const ordersQuery = { page: 1, limit: 20, payment: "all" as const, booking: "all" as const, attendance: "all" as const };
     const orderId = randomUUID();
     const analyticsResponse = { setHeader: vi.fn(), type: vi.fn(), send: vi.fn() };
     const ordersResponse = { setHeader: vi.fn(), type: vi.fn(), send: vi.fn() };
 
-    await controller.create(principal, create);
     await controller.list(principal, { page: 1, limit: 20 });
     await controller.dashboard(principal);
     await controller.managementSummary(principal, event.id);
@@ -67,16 +51,11 @@ describe("EventsController", () => {
     await controller.managementOrderDetail(principal, event.id, orderId);
     await controller.get(principal, event.id);
     await controller.preview(principal, event.id);
-    await controller.update(principal, event.id, { title: "Обновлено" });
-    await controller.publish(principal, event.id);
     await controller.reopen(principal, event.id);
     await controller.cancel(principal, event.id);
     await controller.complete(principal, event.id);
-    await controller.replacePoster(principal, event.id, file);
-    await controller.removePoster(principal, event.id);
     await controller.deleteDraft(principal, event.id);
 
-    expect(events.create).toHaveBeenCalledWith(principal.userId, create);
     expect(events.list).toHaveBeenCalledWith(principal.userId, { page: 1, limit: 20 });
     expect(events.dashboard).toHaveBeenCalledWith(principal.userId);
     expect(events.managementSummary).toHaveBeenCalledWith(principal.userId, event.id);
@@ -90,13 +69,9 @@ describe("EventsController", () => {
     expect(ordersResponse.send).toHaveBeenCalledWith("orders-csv");
     expect(events.get).toHaveBeenCalledWith(principal.userId, event.id);
     expect(publicEvents.preview).toHaveBeenCalledWith(principal.userId, event.id, expect.any(Date), false, undefined);
-    expect(events.update).toHaveBeenCalledWith(principal.userId, event.id, { title: "Обновлено" });
-    expect(events.publish).toHaveBeenCalledWith(principal.userId, event.id);
     expect(events.reopen).toHaveBeenCalledWith(principal.userId, event.id);
     expect(events.cancel).toHaveBeenCalledWith(principal.userId, event.id);
     expect(events.complete).toHaveBeenCalledWith(principal.userId, event.id);
-    expect(events.replacePoster).toHaveBeenCalledWith(principal.userId, event.id, file);
-    expect(events.removePoster).toHaveBeenCalledWith(principal.userId, event.id);
     expect(events.deleteDraft).toHaveBeenCalledWith(principal.userId, event.id);
   });
 });

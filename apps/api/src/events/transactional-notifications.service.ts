@@ -8,9 +8,9 @@ import { Inject, Injectable, Logger, type OnModuleDestroy, type OnModuleInit } f
 import { DATABASE_CLIENT } from "../auth/auth.constants.js";
 import { EventNotificationsService } from "./event-notifications.service.js";
 
-const CHANGE_FIELDS = new Set(["date", "time", "timezone", "venueName", "address", "program", "rules", "visitTerms", "cancellationTerms", "depositTerms", "extraConditions"]);
+const CHANGE_FIELDS = new Set(["date", "time", "timezone", "venueName", "address", "program", "rules", "visitTerms", "cancellationTerms", "depositTerms", "extraConditions", "description"]);
 const REMINDER_BEFORE_MS = 24 * 60 * 60 * 1000;
-type EventTime = { date: Date; time: Date; timezone: string };
+type EventTime = { date: Date; time: Date; timezone: string;startsAt?:Date|null };
 
 @Injectable()
 export class TransactionalNotificationsService implements OnModuleInit, OnModuleDestroy {
@@ -72,7 +72,7 @@ export class TransactionalNotificationsService implements OnModuleInit, OnModule
     const event = await this.db.event.findUnique({ where: { id: eventId }, select: { id: true, status: true, updatedAt: true, date: true, time: true, timezone: true, venueName: true, address: true } });
     if (!event || event.status !== "published") return;
     if (fields.some((field) => field === "date" || field === "time" || field === "timezone")) await this.supersedeReminders(eventId);
-    const labels: Record<string, string> = { date: "дата", time: "время", timezone: "часовой пояс", venueName: "площадка", address: "адрес", program: "программа", rules: "правила", visitTerms: "условия посещения", cancellationTerms: "условия отмены", depositTerms: "условия депозита", extraConditions: "дополнительные условия" };
+    const labels: Record<string, string> = { date: "дата", time: "время", timezone: "часовой пояс", venueName: "площадка", address: "адрес", program: "программа", rules: "правила", visitTerms: "условия посещения", cancellationTerms: "условия отмены", depositTerms: "условия депозита", extraConditions: "дополнительные условия",description:"описание" };
     const changed = fields.map((field) => labels[field]).filter(Boolean).join(", ");
     const message = `Изменились: ${changed}. Начало: ${event.date.toISOString().slice(0, 10)} ${event.time.toISOString().slice(11, 16)} (${event.timezone}). Место: ${event.venueName}, ${event.address}. Проверьте актуальные подробности на странице события.`;
     await this.delivery.queueSystem({ eventId, requestKey: triggerId, type: "event.change", message });
@@ -145,7 +145,7 @@ export class TransactionalNotificationsService implements OnModuleInit, OnModule
     let cursor = this.reminderCursor;
     for (let batch = 0; batch < 10; batch++) {
       const rows = await this.db.event.findMany({ where: { status: "published", date: { gte: from, lt: to } }, orderBy: [{ date: "asc" }, { id: "asc" }], take: 100,
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}), select: { id: true, date: true, time: true, timezone: true, title: true, venueName: true, address: true } });
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}), select: { id: true, date: true, time: true, timezone: true, startsAt:true, title: true, venueName: true, address: true } });
       for (const event of rows) {
         const start = startIso(event);
         const until = new Date(start).getTime() - now.getTime();
@@ -163,7 +163,7 @@ export class TransactionalNotificationsService implements OnModuleInit, OnModule
   }
 }
 
-function startIso(event: EventTime): string { return zonedInputToIso(`${event.date.toISOString().slice(0, 10)}T${event.time.toISOString().slice(11, 16)}`, event.timezone); }
+function startIso(event: EventTime): string { if(event.startsAt)return event.startsAt.toISOString();return zonedInputToIso(`${event.date.toISOString().slice(0, 10)}T${event.time.toISOString().slice(11, 16)}`, event.timezone); }
 function jsonObject(value: unknown): Record<string, unknown> { return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
 function stableUuid(value: string): string {
   const hex = createHash("sha256").update(value).digest("hex").slice(0, 32);

@@ -1,0 +1,9 @@
+import {describe,expect,it} from "vitest";
+import {readCheckoutSnapshot} from "./checkout-snapshot-reader.js";
+const id="00000000-0000-4000-8000-000000000001";
+const snapshot={version:2,eventId:id,sourceLocale:"en",contentLocale:"kk",title:"Accepted title",venueName:"Accepted venue",address:"Accepted address",startsAt:"2030-12-01T15:00:00Z",endsAt:"2030-12-01T20:00:00Z",timezone:"Asia/Almaty",saleMode:"paid_seated",amount:2500,currency:"USD",acceptedAt:"2026-10-03T00:00:00Z",refund:{available:false,conditions:null,revision:3,locale:"kk",freeCancellation:false},items:[{resourceId:id,kind:"seat",name:"Орын 1",quantity:1,unitAmount:2500}],selection:{kind:"ticket",seatIds:[id],seatLabels:["Орын 1"]}};
+describe("purchase snapshot reader",()=>{
+ it("projects accepted presentation and canonical money for every downstream reader",()=>{expect(readCheckoutSnapshot(snapshot)).toMatchObject({eventTitle:"Accepted title",address:"Accepted address",eventDate:"2030-12-01",eventTime:"20:00",currency:"USD",amountDue:2500,depositTerms:null,paymentMode:"full_payment",acceptedPolicy:{revision:3,available:false},contentLocale:"kk",seatIds:[id]});});
+ it("preserves legacy JSON and refuses unknown versions or mismatched totals",()=>{const legacy={paymentMode:"deposit",amountDue:40000,cancellationTerms:"Original promise"};expect(readCheckoutSnapshot(legacy)).toBe(legacy);expect(readCheckoutSnapshot(null)).toEqual({});expect(()=>readCheckoutSnapshot({...snapshot,version:3})).toThrow();expect(()=>readCheckoutSnapshot({...snapshot,amount:2499})).toThrow();});
+ it("keeps free cancellation explicit without inventing a payment or refund promise",()=>{expect(readCheckoutSnapshot({...snapshot,saleMode:"free",amount:0,refund:{...snapshot.refund,freeCancellation:true},items:[{...snapshot.items[0],kind:"ticket",unitAmount:0}],selection:{kind:"cart"}})).toMatchObject({itemKind:"ticket",amountDue:0,acceptedPolicy:{freeCancellation:true,available:false}});});
+});

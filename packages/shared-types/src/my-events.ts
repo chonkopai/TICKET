@@ -1,5 +1,5 @@
 import type { GuestTicket } from "./tickets.js";
-import type { EventLocale } from "./events.js";
+import type { PublicEventMedia, EventLocale } from "./events.js";
 
 export type GuestParticipationStatus = "registered" | "attended" | "no_show" | "cancelled";
 
@@ -17,6 +17,7 @@ export interface GuestEvent {
   sourceLocale?: EventLocale;
   title: string;
   posterUrl: string | null;
+  media?: PublicEventMedia[];
   announcement: string | null;
   description: string | null;
   program: string | null;

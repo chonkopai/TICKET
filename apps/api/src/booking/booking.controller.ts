@@ -36,7 +36,7 @@ export class BookingController {
 
   @Post("checkouts/cart")
   @UseGuards(SensitiveRateGuard)
-  cartCheckout(@CurrentUser() user: AuthenticatedPrincipal, @Headers("idempotency-key") key: string | undefined, @Body() body: CartCheckoutDto): Promise<CheckoutResponse> {
+  cartCheckout(@CurrentUser() user: AuthenticatedPrincipal, @Headers("idempotency-key") key: string | undefined, @Body(new ExplicitDtoPipe(CartCheckoutDto)) body: CartCheckoutDto): Promise<CheckoutResponse> {
     return this.booking.checkoutCart(user.userId, key, body, undefined, user.sessionFamilyId);
   }
 
@@ -45,7 +45,7 @@ export class BookingController {
   ticketCheckout(
     @CurrentUser() user: AuthenticatedPrincipal,
     @Headers("idempotency-key") key: string | undefined,
-    @Body() body: TicketCheckoutDto,
+    @Body(new ExplicitDtoPipe(TicketCheckoutDto)) body: TicketCheckoutDto,
   ): Promise<CheckoutResponse> {
     return this.booking.checkoutTickets(user.userId, key, body, undefined, user.sessionFamilyId);
   }
@@ -55,7 +55,7 @@ export class BookingController {
   tableCheckout(
     @CurrentUser() user: AuthenticatedPrincipal,
     @Headers("idempotency-key") key: string | undefined,
-    @Body() body: TableCheckoutDto,
+    @Body(new ExplicitDtoPipe(TableCheckoutDto)) body: TableCheckoutDto,
   ): Promise<CheckoutResponse> {
     return this.booking.checkoutTable(user.userId, key, body, undefined, user.sessionFamilyId);
   }
@@ -65,7 +65,7 @@ export class BookingController {
   seatCheckout(
     @CurrentUser() user: AuthenticatedPrincipal,
     @Headers("idempotency-key") key: string | undefined,
-    @Body() body: SeatCheckoutDto,
+    @Body(new ExplicitDtoPipe(SeatCheckoutDto)) body: SeatCheckoutDto,
   ): Promise<CheckoutResponse> {
     return this.booking.checkoutSeats(user.userId, key, body, undefined, user.sessionFamilyId);
   }
@@ -88,7 +88,7 @@ export class BookingController {
     @CurrentUser() user: AuthenticatedPrincipal,
     @Param("id") id: string,
     @Headers("idempotency-key") key: string | undefined,
-    @Body() _body: CancelDto,
+    @Body(new ExplicitDtoPipe(CancelDto)) _body: CancelDto,
   ): Promise<CancellationResponse> {
     return this.booking.cancelTicket(user.userId, id, key);
   }
@@ -103,7 +103,7 @@ export class BookingController {
     @CurrentUser() user: AuthenticatedPrincipal,
     @Param("id") id: string,
     @Headers("idempotency-key") key: string | undefined,
-    @Body() _body: CancelDto,
+    @Body(new ExplicitDtoPipe(CancelDto)) _body: CancelDto,
   ): Promise<CancellationResponse> {
     return this.booking.cancelBooking(user.userId, id, key);
   }

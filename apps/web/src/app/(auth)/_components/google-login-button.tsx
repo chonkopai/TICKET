@@ -5,6 +5,7 @@ import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "../../../components/locale-provider";
+import { useTheme } from "../../../components/theme-provider";
 import { apiRequest } from "../_lib/api";
 import { publicAuthRequest, safeReturnPath } from "../_lib/public-auth";
 import { saveSession } from "../_lib/session";
@@ -20,6 +21,7 @@ declare global { interface Window { google?: { accounts: { id: GoogleApi } } } }
 
 export function GoogleLoginButton({ link = false, onLinked }: { link?: boolean; onLinked?: () => void } = {}) {
   const locale = useLocale();
+  const { theme } = useTheme();
   const copy = COPY[locale];
   const router = useRouter();
   const host = useRef<HTMLDivElement>(null);
@@ -62,21 +64,21 @@ export function GoogleLoginButton({ link = false, onLinked }: { link?: boolean; 
         });
       } });
       element.replaceChildren();
-      window.google.accounts.id.renderButton(element, { type: "icon", theme: "outline", size: "large", shape: "circle", locale });
+      window.google.accounts.id.renderButton(element, { type: "icon", theme: theme === "dark" ? "filled_black" : "outline", size: "large", shape: "circle", locale });
       setRendered(true);
     };
     void setup().catch(() => { if (active) setError(copy.unavailable); });
     return () => { active = false; element.replaceChildren(); };
-  }, [ready, attempt, link, router, locale, copy.unavailable]);
+  }, [ready, attempt, link, router, locale, copy.unavailable, theme]);
 
   if (!CLIENT_ID) return null;
-  return <div className="min-w-0 rounded-xl border border-[#e5eeff] bg-[#eff4ff] p-2 text-center">
+  return <div className="min-w-0 rounded-xl border border-[#e5eeff] dark:border-ticket-border bg-[#eff4ff] dark:bg-ticket-raised p-2 text-center">
     <Script src="https://accounts.google.com/gsi/client" onReady={() => setReady(true)} onError={() => setError(copy.unavailable)} />
     <div className={busy ? "pointer-events-none flex justify-center opacity-50" : "flex justify-center"} ref={host} />
     <span className="block text-xs font-semibold">{link ? copy.link : "Google"}</span>
     {!rendered && !error ? <span className="text-xs">{copy.loading}</span> : null}
     {busy ? <p className="text-xs" role="status">{copy.busy}</p> : null}
-    {error ? <p className="mt-2 text-xs text-red-700" role="alert">{error}</p> : null}
+    {error ? <p className="mt-2 text-xs text-red-700 dark:text-ticket-danger" role="alert">{error}</p> : null}
     {error && ready ? <button type="button" className="mt-1 text-xs underline" onClick={() => { setError(null); setAttempt(value => value + 1); }}>{copy.retry}</button> : null}
   </div>;
 }

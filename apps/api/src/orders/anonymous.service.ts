@@ -1,3 +1,4 @@
+import { readCheckoutSnapshot,acceptedResourceName } from "@event-platform/shared-types";
 import { createHash, randomBytes } from "node:crypto";
 import { Prisma, type PrismaClient } from "@event-platform/database";
 import type { CheckoutResponse, CreateCartCheckoutRequest, CreateSeatCheckoutRequest, CreateTableCheckoutRequest, CreateTicketCheckoutRequest } from "@event-platform/shared-types";
@@ -147,22 +148,22 @@ export class AnonymousService {
 
   async status(raw: string) {
     const session = await this.access(raw);
-    let order = await this.db.order.findUniqueOrThrow({ where: { id: session.orderId! }, include: { tickets: { include: { ticketType: { select: { name: true, isInternal: true } } } }, booking: { include: { table: { select: { number: true, name: true } } } }, deposit: true } });
+    let order = await this.db.order.findUniqueOrThrow({ where: { id: session.orderId! }, include: { tickets: { include: { ticketType: { select: { name: true, isInternal: true } },seatAllocation:{select:{seatId:true,seat:{select:{tableId:true}}}} } }, booking: { include: { table: { select: { number: true, name: true } } } }, deposit: true } });
     if (order.paymentStatus === "pending" && order.expiresAt && order.expiresAt <= this.clock.now()) {
       await this.booking.settleFailed(order.id, "expired");
-      order = await this.db.order.findUniqueOrThrow({ where: { id: order.id }, include: { tickets: { include: { ticketType: { select: { name: true, isInternal: true } } } }, booking: { include: { table: { select: { number: true, name: true } } } }, deposit: true } });
+      order = await this.db.order.findUniqueOrThrow({ where: { id: order.id }, include: { tickets: { include: { ticketType: { select: { name: true, isInternal: true } },seatAllocation:{select:{seatId:true,seat:{select:{tableId:true}}}} } }, booking: { include: { table: { select: { number: true, name: true } } } }, deposit: true } });
     }
-    const snapshot = order.checkoutSnapshot as Record<string, Prisma.JsonValue>;
+    const snapshot = readCheckoutSnapshot(order.checkoutSnapshot);
     const event = typeof snapshot.eventId === "string" ? await this.db.event.findUnique({ where: { id: snapshot.eventId }, select: { date: true, time: true, timezone: true, venueName: true, address: true, sourceLocale: true } }) : null;
     const review = await this.db.outboxEvent.findFirst({ where: { aggregateId: order.id, eventType: "payment.review_required" } });
     const expired = await this.db.outboxEvent.findFirst({ where: { aggregateId: order.id, eventType: "checkout.expired" } });
     return { orderId: order.id, eventId: typeof snapshot.eventId === "string" ? snapshot.eventId : null, status: review ? "review_required" : expired ? "expired" : order.paymentStatus,
-      title: snapshot.eventTitle, sourceLocale: event?.sourceLocale ?? "ru", paymentMode: snapshot.paymentMode, amountDue: order.amount, currency: order.currency.trim(),
-      fullAmount: snapshot.fullAmount, cancellationTerms: snapshot.cancellationTerms, depositTerms: snapshot.depositTerms,
+      title: snapshot.eventTitle, sourceLocale: snapshot.contentLocale??event?.sourceLocale ?? "ru", paymentMode: snapshot.paymentMode, amountDue: order.amount, currency: order.currency.trim(),
+      fullAmount: snapshot.fullAmount, ...(snapshot.acceptedPolicy?{acceptedPolicy:snapshot.acceptedPolicy}:{}), cancellationTerms: snapshot.cancellationTerms, depositTerms: snapshot.depositTerms,
       expiresAt: order.expiresAt?.toISOString() ?? null, linked: Boolean(order.buyerUserId),
       deliveryStatus: session.deliveredAt ? "confirmed" : session.chatId && session.deliveryMessageId ? "pending" : "unavailable",
-      event: event ? { date: event.date.toISOString().slice(0, 10), time: event.time.toISOString().slice(11, 16), timezone: event.timezone, venueName: event.venueName, address: event.address } : null,
-      tickets: order.tickets.map(t => ({ id: t.id, name: t.ticketType.isInternal ? t.seatLabelSnapshot ?? "Место за столом" : t.ticketType.name, seatLabel: t.seatLabelSnapshot, status: t.status })),
+      event: event ? { date: snapshot.eventDate??event.date.toISOString().slice(0,10), time: snapshot.eventTime??event.time.toISOString().slice(11,16), timezone: snapshot.eventTimezone??event.timezone, venueName: snapshot.venueName??event.venueName, address: snapshot.address??event.address } : null,
+      tickets: order.tickets.map(t => ({ id: t.id, name: acceptedResourceName(snapshot,[t.ticketTypeId,t.seatAllocation?.seatId,t.seatAllocation?.seat.tableId],t.ticketType.isInternal ? t.seatLabelSnapshot ?? "Место за столом" : t.ticketType.name), seatLabel: t.seatLabelSnapshot, status: t.status })),
       booking: order.booking ? { id: order.booking.id, status: order.booking.status, table: order.booking.table } : null,
       deposit: order.deposit ? { amount: order.deposit.amount, status: order.deposit.status } : null };
   }

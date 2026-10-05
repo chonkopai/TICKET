@@ -1,4 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import type { CurrencyCapability } from "@event-platform/shared-types";
+const mockCurrencies=[{code:"KZT",exponent:2},{code:"USD",exponent:2},{code:"RUB",exponent:2},{code:"EUR",exponent:2}] as const;
+export function configuredPaymentCurrencies(env:{PAYMENT_PROVIDER_NAME:string;NODE_ENV?:string;DEMO_MODE?:boolean}):readonly CurrencyCapability[]{return env.PAYMENT_PROVIDER_NAME==="mock"&&(env.NODE_ENV!=="production"||env.DEMO_MODE)?mockCurrencies:[];}
 
 export type PaymentWebhookType = "payment.succeeded" | "payment.failed" | "payment.expired";
 
@@ -28,6 +31,7 @@ export interface NormalizedPaymentWebhook {
 
 export interface PaymentProvider {
   readonly name: string;
+  readonly supportedCurrencies?: readonly CurrencyCapability[];
   createPaymentLink(input: PaymentLinkRequest): Promise<PaymentLinkResult>;
   verifyWebhook(input: { rawBody: Buffer; headers: Record<string, string | undefined>; now?: Date }): NormalizedPaymentWebhook;
   requestRefund?(input: { paymentId: string; orderId: string; amount: number; currency: string; idempotencyKey: string }): Promise<{ providerRefundId: string; status: "succeeded" | "processing" | "failed" }>;
@@ -37,6 +41,7 @@ export interface PaymentProvider {
 /** Signed local adapter. The signing helper is for server-side fixtures/tests only. */
 export class DevelopmentPaymentProvider implements PaymentProvider {
   readonly name = "mock";
+  readonly supportedCurrencies=mockCurrencies;
   private readonly refundedKeys = new Set<string>();
 
   constructor(

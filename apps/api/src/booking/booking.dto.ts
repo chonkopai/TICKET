@@ -6,7 +6,7 @@ import type {
   CreateCartCheckoutRequest,
   CheckoutEmailChoice,
 } from "@event-platform/shared-types";
-import { ArrayMaxSize, ArrayNotEmpty, Equals, IsInt, IsUUID, Max, Min, ValidateNested, IsOptional, IsArray, ArrayUnique, IsEmail, IsString, Matches } from "class-validator";
+import { ArrayMaxSize, ArrayNotEmpty, Equals, IsInt, IsUUID, Max, Min, ValidateNested, IsOptional, IsArray, ArrayUnique, IsEmail, IsString, Matches, IsIn } from "class-validator";
 import { Type } from "class-transformer";
 
 class CartTicketDto {
@@ -29,6 +29,8 @@ export class CheckoutEmailVerifyDto extends CheckoutEmailRequestDto {
 }
 
 export class CartCheckoutDto implements CreateCartCheckoutRequest {
+  @IsOptional() @IsIn(["ru","en","kk"]) contentLocale?:import("@event-platform/shared-types").EventLocale;
+  @IsOptional() @IsInt() @Min(1) policyRevision?:number;
   @IsOptional() @ValidateNested() @Type(() => EmailDeliveryDto) emailDelivery?: EmailDeliveryDto;
   @IsUUID("4") eventId!: string;
   @IsArray() @ArrayMaxSize(10) @ValidateNested({ each: true }) @Type(() => CartTicketDto) tickets!: CartTicketDto[];
@@ -38,6 +40,8 @@ export class CartCheckoutDto implements CreateCartCheckoutRequest {
 }
 
 export class TicketCheckoutDto implements CreateTicketCheckoutRequest {
+  @IsOptional() @IsIn(["ru","en","kk"]) contentLocale?:import("@event-platform/shared-types").EventLocale;
+  @IsOptional() @IsInt() @Min(1) policyRevision?:number;
   @IsOptional() @ValidateNested() @Type(() => EmailDeliveryDto) emailDelivery?: EmailDeliveryDto;
   @IsUUID()
   ticketTypeId!: string;
@@ -52,6 +56,8 @@ export class TicketCheckoutDto implements CreateTicketCheckoutRequest {
 }
 
 export class TableCheckoutDto implements CreateTableCheckoutRequest {
+  @IsOptional() @IsIn(["ru","en","kk"]) contentLocale?:import("@event-platform/shared-types").EventLocale;
+  @IsOptional() @IsInt() @Min(1) policyRevision?:number;
   @IsOptional() @ValidateNested() @Type(() => EmailDeliveryDto) emailDelivery?: EmailDeliveryDto;
   @IsUUID()
   tableId!: string;
@@ -61,6 +67,8 @@ export class TableCheckoutDto implements CreateTableCheckoutRequest {
 }
 
 export class SeatCheckoutDto implements CreateSeatCheckoutRequest {
+  @IsOptional() @IsIn(["ru","en","kk"]) contentLocale?:import("@event-platform/shared-types").EventLocale;
+  @IsOptional() @IsInt() @Min(1) policyRevision?:number;
   @IsOptional() @ValidateNested() @Type(() => EmailDeliveryDto) emailDelivery?: EmailDeliveryDto;
   @IsUUID("4", { each: true })
   @ArrayNotEmpty()

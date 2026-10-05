@@ -1,17 +1,17 @@
-import { EventStatus, TicketStatus, type Prisma, type PrismaClient } from "@event-platform/database";
+import { EventStatus, TicketStatus, eventV2CompatibilityRead, type Prisma, type PrismaClient } from "@event-platform/database";
 import type {
   EventCategory,
   EventLocale,
-  EventPaymentMode,
   OrganizerEventPreview,
   PublicEvent,
   PublicEventList,
   PublicEventSummary,
   PublicSaleStatus,
 } from "@event-platform/shared-types";
-import { EVENT_LOCALES, zonedInputToIso } from "@event-platform/shared-types";
+import { cityAliases, EVENT_LOCALES, zonedInputToIso } from "@event-platform/shared-types";
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 
+import { normalizedPresentation } from "./normalized-presentation.js";
 import { DATABASE_CLIENT } from "../auth/auth.constants.js";
 import { TablesService } from "../tables/tables.service.js";
 import { TicketTypesService } from "../ticket-types/ticket-types.service.js";
@@ -154,7 +154,6 @@ export class PublicEventsService {
     countryCode?: string;
     category?: EventCategory;
     datePreset?: "today" | "weekend";
-    paymentMode?: EventPaymentMode;
     free?: boolean;
     minPrice?: number;
     maxPrice?: number;
@@ -162,17 +161,12 @@ export class PublicEventsService {
     if (query.minPrice !== undefined && query.maxPrice !== undefined && query.minPrice > query.maxPrice) {
       throw new BadRequestException({ code: "EVENT_PRICE_RANGE_INVALID", message: "Minimum price must not exceed maximum price" });
     }
-    if (query.free === true && query.paymentMode === "deposit") {
-      throw new BadRequestException({
-        code: "EVENT_FILTER_COMBINATION_INVALID",
-        message: "Free events cannot use deposit payment mode",
-      });
-    }
     validateDateRange(query.from, query.to);
     const where: Prisma.EventWhereInput = { status: EventStatus.published };
     const search = query.search?.trim();
     if (search) {
       where.OR = [
+        { contents:{some:{locale:query.locale??"ru",OR:[{title:{contains:search,mode:"insensitive"}},{summary:{contains:search,mode:"insensitive"}},{venueName:{contains:search,mode:"insensitive"}},{address:{contains:search,mode:"insensitive"}}]}} },
         { title: { contains: search, mode: "insensitive" } },
         { announcement: { contains: search, mode: "insensitive" } },
         { city: { contains: search, mode: "insensitive" } },
@@ -186,10 +180,11 @@ export class PublicEventsService {
         ] } } },
       ];
     }
-    if (query.city?.trim()) where.city = { contains: query.city.trim(), mode: "insensitive" };
+    if (query.city?.trim()) {
+      where.AND = [{ OR: cityAliases(query.city, query.countryCode).map(city => ({ city: { contains: city, mode: "insensitive" as const } })) }];
+    }
     if (query.countryCode) where.countryCode = query.countryCode;
     if (query.category) where.category = query.category;
-    if (query.paymentMode) where.paymentMode = query.paymentMode;
     if (query.from || query.to) {
       where.date = {
         ...(query.from ? { gte: dateAtUtcStart(query.from) } : {}),
@@ -299,6 +294,8 @@ export class PublicEventsService {
     if (!event) throw new NotFoundException({ code: "EVENT_NOT_FOUND", message: "Event was not found" });
     const serialized = await this.serialize(event, now, false);
     const requested = normalizeLocale(locale);
+    const normalized=await normalizedPresentation(this.database,event,requested);
+    if(normalized)return {...serialized,...normalized.fields,ticketTypes:normalized.localizedTickets(serialized.ticketTypes),tables:normalized.localizedTables(serialized.tables)};
     const candidate = requested === event.sourceLocale ? null : await this.database.eventTranslation.findUnique({
       where: { eventId_locale: { eventId: id, locale: requested } },
     });
@@ -324,8 +321,9 @@ export class PublicEventsService {
     ]);
     const sources = new Map(events.map((event) => [event.id, event]));
     const localized = new Map(translations.map((translation) => [translation.eventId, translation]));
-    return items.map((item) => {
+    return Promise.all(items.map(async (item) => {
       const source = sources.get(item.id);
+      if(source){const normalized=await normalizedPresentation(this.database,source,requested);if(normalized)return {...item,...normalized.fields};}
       const sourceLocale = source?.sourceLocale as EventLocale | undefined ?? "ru";
       const candidate = requested === sourceLocale ? null : localized.get(item.id);
       const translation = candidate && source && (candidate.origin === "manual" || candidate.sourceHash === eventContentHash(eventContent(source))) ? candidate : null;
@@ -336,7 +334,7 @@ export class PublicEventsService {
         contentLocale: translation ? requested : sourceLocale,
         sourceLocale,
       };
-    });
+    }));
   }
 
   async preview(
@@ -353,6 +351,8 @@ export class PublicEventsService {
     if (!event) throw new NotFoundException({ code: "EVENT_NOT_FOUND", message: "Event was not found" });
     const serialized = await this.serialize(event, now, true);
     const requested = normalizeLocale(locale);
+    const normalized=await normalizedPresentation(this.database,event,requested);
+    if(normalized)return {...serialized,...normalized.fields,ticketTypes:normalized.localizedTickets(serialized.ticketTypes),tables:normalized.localizedTables(serialized.tables),status:event.status};
     const candidate = requested === event.sourceLocale ? null : await this.database.eventTranslation.findUnique({
       where: { eventId_locale: { eventId: id, locale: requested } },
     });
@@ -374,6 +374,7 @@ export class PublicEventsService {
     now: Date,
     includeUnpublished: boolean,
   ): Promise<PublicEvent> {
+    event = { ...event, ...await eventV2CompatibilityRead(this.database, event) };
     const date = event.date.toISOString().slice(0, 10);
     const time = event.time.toISOString().slice(11, 16);
     const [ticketTypes, tables] = await Promise.all([
@@ -498,7 +499,7 @@ export class PublicEventsService {
       remainingTickets: ticketTypes.reduce((sum, ticket) => sum + ticket.remaining, 0),
       remainingTables: tables.filter((table) => table.availability === "available" && table.saleMode === "whole_table").length,
       remainingSeats: seats.length,
-      saleStatus: saleStatus(ticketTypes, tables, seats.length, seatCandidates.length > seats.length && seatCandidates.some((seat) => seat.ticketType?.salesStartAt && seat.ticketType.salesStartAt > now), seatCandidates.length > seats.length && seatCandidates.every((seat) => seat.ticketType?.salesEndAt && seat.ticketType.salesEndAt <= now), activeTicketHolds + activeSeatHolds + activeTableHolds > 0, now),
+      saleStatus: event.paymentMode === "deposit" ? "temporarily_unavailable" : saleStatus(ticketTypes, tables, seats.length, seatCandidates.length > seats.length && seatCandidates.some((seat) => seat.ticketType?.salesStartAt && seat.ticketType.salesStartAt > now), seatCandidates.length > seats.length && seatCandidates.every((seat) => seat.ticketType?.salesEndAt && seat.ticketType.salesEndAt <= now), activeTicketHolds + activeSeatHolds + activeTableHolds > 0, now),
       organizer: { name: event.organizer.name, photoUrl: event.organizer.photoUrl },
       popularity: event.ticketTypes.reduce((sum, type) => sum + type.tickets.length, 0),
       publishedAt: (event.publishedAt ?? event.updatedAt).toISOString(),

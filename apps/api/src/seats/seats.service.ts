@@ -1,7 +1,10 @@
+import { assertCurrentResourceWrite,rejectDepositInput } from "../events/current-sale-policy.js";
+import { normalizedPresentation,visibleResourceDescription } from "../public-events/normalized-presentation.js";
+import { readCanonicalHall,canonicalHallCompatibility } from "../venue/canonical-hall.compat.js";
 import { randomUUID } from "node:crypto";
 
 import { EventStatus, Prisma, SeatStatus, TableSaleMode, TableStatus, TicketTypeStatus, type PrismaClient } from "@event-platform/database";
-import { rowGeometryV2Schema, venueLayoutSchemaAny, type CreateTableSeatsRequest, type CreateVenueRowRequest, type DuplicateVenueElementResponse, type PublicVenueLayout, type UpdateVenueRowRequest, type VenueLayoutJsonV2, type VenueRow } from "@event-platform/shared-types";
+import { rowGeometryV2Schema, venueLayoutSchemaAny,publishedHallV3Schema,type EventLocale, type CreateTableSeatsRequest, type CreateVenueRowRequest, type DuplicateVenueElementResponse, type PublicVenueLayout, type UpdateVenueRowRequest, type VenueLayoutJsonV2, type VenueRow } from "@event-platform/shared-types";
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 
 import { assertLegacyLayout } from "../venue/hall-editor.persistence.js";
@@ -20,12 +23,14 @@ export class SeatsService {
   ) {}
 
   async createForTable(organizerId: string, tableId: string, input: CreateTableSeatsRequest) {
+    rejectDepositInput(input);
     const numbers = normalizeNumbers(input.numbers);
     return this.database.$transaction(async (transaction) => {
       await lockSeatParent(transaction, tableId);
       const table = await transaction.table.findFirst({ where: { id: tableId, venueLayout: { OR: [{ organizerId }, { event: { organizerId } }] } }, include: { venueLayout: { include: { event: true } } } });
       if (!table) throw notFound("TABLE_NOT_FOUND");
       assertLegacyLayout(table.venueLayout.layoutJson);
+      if(table.venueLayout.event)assertCurrentResourceWrite(table.venueLayout.event);
       if (table.venueLayout.event && table.venueLayout.event.status !== EventStatus.draft) throw new ConflictException({ code: "VENUE_STRUCTURE_DRAFT_ONLY", message: "Seat numbering can only change while the event is a draft" });
       if (table.saleMode !== TableSaleMode.per_seat) throw new ConflictException({ code: "TABLE_NOT_PER_SEAT", message: "The table is configured for whole-table sales" });
       const existing = await transaction.seat.findMany({ where: { tableId }, select: { number: true } });
@@ -34,9 +39,9 @@ export class SeatsService {
       const currency = normalizeCurrency(table.currency);
       const ticketType = input.ticketTypeId
         ? (table.venueLayout.event ? (await assertTicketType(transaction, input.ticketTypeId, table.venueLayoutId), { id: input.ticketTypeId }) : null)
-        : (table.venueLayout.event ? await ensureSeatTicketType(transaction, table.venueLayout.event.id, `Места стола ${table.number}`, numbers.length, table.price, table.deposit, currency) : null);
+        : (table.venueLayout.event ? await ensureSeatTicketType(transaction, table.venueLayout.event.id, `Места стола ${table.number}`, numbers.length, table.price, currency) : null);
       const totalSeats = existing.length + numbers.length;
-      if (ticketType && table.venueLayout.event) await syncSeatTicketType(transaction, ticketType.id, table.venueLayout.event.id, totalSeats, table.price, table.deposit, currency);
+      if (ticketType && table.venueLayout.event) await syncSeatTicketType(transaction, ticketType.id, table.venueLayout.event.id, totalSeats, table.price, currency);
       const seats = [];
       for (const [index, number] of numbers.entries()) seats.push(await transaction.seat.create({ data: { id: randomUUID(), venueLayoutId: table.venueLayoutId, tableId, number, label: String(number), sortOrder: existing.length + index, ticketTypeId: ticketType?.id ?? null } }));
       await transaction.table.update({ where: { id: tableId }, data: { seats: totalSeats } });
@@ -52,6 +57,7 @@ export class SeatsService {
         include: { venueLayout: { include: { event: true } }, allocations: { select: { id: true } } },
       });
       if (!seat) throw notFound("SEAT_NOT_FOUND");
+      if(seat.venueLayout.event)assertCurrentResourceWrite(seat.venueLayout.event);
       assertLegacyLayout(seat.venueLayout.layoutJson);
       if (seat.venueLayout.event && seat.venueLayout.event.status !== EventStatus.draft) throw structureLocked();
       if (seat.allocations.length) throw new ConflictException({ code: "SEAT_HAS_HISTORY", message: "A seat with allocation history cannot be deleted" });
@@ -67,20 +73,22 @@ export class SeatsService {
 
   async createRow(organizerId: string, layoutId: string, input: CreateVenueRowRequest): Promise<VenueRow> {
     const numbers = consecutiveNumbers(input.startSeatNumber ?? 1, input.seatCount);
+    rejectDepositInput(input);
     return this.database.$transaction(async (transaction) => {
       await lockLayout(transaction, layoutId);
       const layout = await transaction.venueLayout.findFirst({ where: { id: layoutId, OR: [{ organizerId }, { event: { organizerId } }] }, include: { event: true } });
       if (!layout) throw notFound("VENUE_LAYOUT_NOT_FOUND");
       assertLegacyLayout(layout.layoutJson);
+      if(layout.event)assertCurrentResourceWrite(layout.event);
       if (layout.event && layout.event.status !== EventStatus.draft) throw new ConflictException({ code: "ROW_EDIT_DRAFT_ONLY", message: "Rows can only be created on a draft event" });
       if (await transaction.venueRow.findFirst({ where: { venueLayoutId: layoutId, number: input.number }, select: { id: true } })) throw new ConflictException({ code: "ROW_NUMBER_EXISTS", message: "A row with this number already exists" });
       const currency = normalizeCurrency(input.currency);
       const ticketType = input.ticketTypeId
         ? (layout.event ? (await assertTicketType(transaction, input.ticketTypeId, layoutId), { id: input.ticketTypeId }) : (() => { throw new ConflictException({ code: "TICKET_TYPE_EVENT_REQUIRED", message: "Template rows cannot reference an event ticket type" }); })())
-        : (layout.event ? await ensureSeatTicketType(transaction, layout.event.id, `Места ряда ${input.number}`, numbers.length, input.price, input.deposit, currency) : null);
-      if (ticketType && layout.event) await syncSeatTicketType(transaction, ticketType.id, layout.event.id, numbers.length, input.price, input.deposit, currency);
+        : (layout.event ? await ensureSeatTicketType(transaction, layout.event.id, `Места ряда ${input.number}`, numbers.length, input.price, currency) : null);
+      if (ticketType && layout.event) await syncSeatTicketType(transaction, ticketType.id, layout.event.id, numbers.length, input.price, currency);
       const rowId = randomUUID();
-      const row = await transaction.venueRow.create({ data: { id: rowId, venueLayoutId: layoutId, number: input.number, name: nullable(input.name), typeLabel: nullable(input.typeLabel), shortDescription: nullable(input.shortDescription), price: input.price, deposit: input.deposit, currency, status: input.status ?? TableStatus.available, seats: { create: numbers.map((number, index) => ({ id: randomUUID(), venueLayoutId: layoutId, number, label: String(number), sortOrder: index, ticketTypeId: ticketType?.id ?? null })) } }, include: { seats: { orderBy: { sortOrder: "asc" } } } });
+      const row = await transaction.venueRow.create({ data: { id: rowId, venueLayoutId: layoutId, number: input.number, name: nullable(input.name), typeLabel: nullable(input.typeLabel), shortDescription: nullable(input.shortDescription), price: input.price, deposit: 0, currency, status: input.status ?? TableStatus.available, seats: { create: numbers.map((number, index) => ({ id: randomUUID(), venueLayoutId: layoutId, number, label: String(number), sortOrder: index, ticketTypeId: ticketType?.id ?? null })) } }, include: { seats: { orderBy: { sortOrder: "asc" } } } });
       if (input.geometry) {
         const layoutJson = requireV2(layout.layoutJson);
         const geometry = rowGeometryV2Schema.parse({ rowId, ...input.geometry, seatCount: numbers.length });
@@ -98,6 +106,7 @@ export class SeatsService {
       if (!current) throw notFound("VENUE_ROW_NOT_FOUND");
       assertLegacyLayout(current.venueLayout.layoutJson);
       const event = current.venueLayout.event;
+      rejectDepositInput(input);if(event)assertCurrentResourceWrite(event);
       const hasStructuralChange = input.number !== undefined || input.seatCount !== undefined || input.startSeatNumber !== undefined;
       if (event && event.status !== EventStatus.draft && hasStructuralChange) throw new ConflictException({ code: "VENUE_STRUCTURE_DRAFT_ONLY", message: "Seat numbering can only change while the event is a draft" });
       const allocationCount = await transaction.seatAllocation.count({ where: { seat: { rowId }, status: { in: ["active", "consumed"] } } });
@@ -111,11 +120,10 @@ export class SeatsService {
       if (duplicate) throw new ConflictException({ code: "ROW_NUMBER_EXISTS", message: "A row with this number already exists" });
       const currency = input.currency === undefined ? current.currency.trim() : normalizeCurrency(input.currency);
       const price = input.price ?? current.price;
-      const deposit = input.deposit ?? current.deposit;
-      const ticketTypeId = input.ticketTypeId ?? current.seats.find((seat) => seat.ticketTypeId)?.ticketTypeId ?? (event ? (await ensureSeatTicketType(transaction, event.id, `Места ряда ${number}`, numbers.length, price, deposit, currency)).id : null);
-      if (ticketTypeId && event) await syncSeatTicketType(transaction, ticketTypeId, event.id, numbers.length, price, deposit, currency);
+      const ticketTypeId = input.ticketTypeId ?? current.seats.find((seat) => seat.ticketTypeId)?.ticketTypeId ?? (event ? (await ensureSeatTicketType(transaction, event.id, `Места ряда ${number}`, numbers.length, price, currency)).id : null);
+      if (ticketTypeId && event) await syncSeatTicketType(transaction, ticketTypeId, event.id, numbers.length, price, currency);
       const replaceSeats = input.seatCount !== undefined || input.startSeatNumber !== undefined;
-      const row = await transaction.venueRow.update({ where: { id: rowId }, data: { number, ...(input.name !== undefined ? { name: nullable(input.name) } : {}), ...(input.typeLabel !== undefined ? { typeLabel: nullable(input.typeLabel) } : {}), ...(input.shortDescription !== undefined ? { shortDescription: nullable(input.shortDescription) } : {}), price, deposit, currency, ...(input.status !== undefined ? { status: input.status } : {}), ...(replaceSeats ? { seats: { deleteMany: {}, create: numbers.map((seatNumber, index) => ({ id: randomUUID(), venueLayoutId: current.venueLayoutId, number: seatNumber, label: String(seatNumber), sortOrder: index, ticketTypeId })) } } : {}) }, include: { seats: { orderBy: { sortOrder: "asc" } } } });
+      const row = await transaction.venueRow.update({ where: { id: rowId }, data: { number, ...(input.name !== undefined ? { name: nullable(input.name) } : {}), ...(input.typeLabel !== undefined ? { typeLabel: nullable(input.typeLabel) } : {}), ...(input.shortDescription !== undefined ? { shortDescription: nullable(input.shortDescription) } : {}), price, currency, ...(input.status !== undefined ? { status: input.status } : {}), ...(replaceSeats ? { seats: { deleteMany: {}, create: numbers.map((seatNumber, index) => ({ id: randomUUID(), venueLayoutId: current.venueLayoutId, number: seatNumber, label: String(seatNumber), sortOrder: index, ticketTypeId })) } } : {}) }, include: { seats: { orderBy: { sortOrder: "asc" } } } });
       await this.record(transaction, organizerId, row.id, "venue_row.updated", { layoutId: current.venueLayoutId, changedFields: Object.keys(input) });
       return presentRow(row);
     });
@@ -125,6 +133,7 @@ export class SeatsService {
     await this.database.$transaction(async (transaction) => {
       const row = await transaction.venueRow.findFirst({ where: { id: rowId, venueLayout: { OR: [{ organizerId }, { event: { organizerId } }] } }, include: { venueLayout: { include: { event: true } } } });
       if (!row) throw notFound("VENUE_ROW_NOT_FOUND");
+      if(row.venueLayout.event)assertCurrentResourceWrite(row.venueLayout.event);
       assertLegacyLayout(row.venueLayout.layoutJson);
       if (row.venueLayout.event && row.venueLayout.event.status !== EventStatus.draft) throw new ConflictException({ code: "VENUE_STRUCTURE_DRAFT_ONLY", message: "Venue structure can only change while the event is a draft" });
       const history = await transaction.seatAllocation.count({ where: { seat: { rowId } } });
@@ -145,6 +154,7 @@ export class SeatsService {
         where: { id: tableId, venueLayout: { OR: [{ organizerId }, { event: { organizerId } }] } },
         include: { seatRecords: { orderBy: { sortOrder: "asc" } }, venueLayout: { include: { event: true } } },
       });
+      if(source?.venueLayout.event)assertCurrentResourceWrite(source.venueLayout.event);
       if (!source) throw notFound("TABLE_NOT_FOUND");
       assertLegacyLayout(source.venueLayout.layoutJson);
       await lockLayout(transaction, source.venueLayoutId);
@@ -156,12 +166,12 @@ export class SeatsService {
       const id = randomUUID();
       const geometry = offsetTable(sourceGeometry, id, layoutJson.room);
       const ticketType = source.venueLayout.event && source.saleMode === TableSaleMode.per_seat
-        ? await ensureSeatTicketType(transaction, source.venueLayout.event.id, `Места стола ${number}`, source.seatRecords.length, source.price, source.deposit, normalizeCurrency(source.currency))
+        ? await ensureSeatTicketType(transaction, source.venueLayout.event.id, `Места стола ${number}`, source.seatRecords.length, source.price, normalizeCurrency(source.currency))
         : null;
       const duplicated = await transaction.table.create({
         data: {
           id, venueLayoutId: source.venueLayoutId, number, name: source.name ? `${source.name} (копия)` : `Стол ${number}`,
-          seats: source.seats, price: source.price, deposit: source.deposit, currency: source.currency, description: source.description,
+          seats: source.seats, price: source.price, deposit: 0, currency: source.currency, description: source.description,
           typeLabel: source.typeLabel, shortDescription: source.shortDescription, saleMode: source.saleMode,
           status: source.status === TableStatus.unavailable ? TableStatus.unavailable : TableStatus.available,
           seatRecords: { create: source.seatRecords.map((seat) => ({ id: randomUUID(), venueLayoutId: source.venueLayoutId, number: seat.number, label: String(seat.number), sortOrder: seat.sortOrder, status: seat.status, ticketTypeId: ticketType?.id ?? null })) },
@@ -180,6 +190,7 @@ export class SeatsService {
         where: { id: rowId, venueLayout: { OR: [{ organizerId }, { event: { organizerId } }] } },
         include: { seats: { orderBy: { sortOrder: "asc" } }, venueLayout: { include: { event: true } } },
       });
+      if(source?.venueLayout.event)assertCurrentResourceWrite(source.venueLayout.event);
       if (!source) throw notFound("VENUE_ROW_NOT_FOUND");
       assertLegacyLayout(source.venueLayout.layoutJson);
       await lockLayout(transaction, source.venueLayoutId);
@@ -191,12 +202,12 @@ export class SeatsService {
       const id = randomUUID();
       const geometry = offsetRow(sourceGeometry, id, layoutJson.room);
       const ticketType = source.venueLayout.event
-        ? await ensureSeatTicketType(transaction, source.venueLayout.event.id, `Места ряда ${number}`, source.seats.length, source.price, source.deposit, normalizeCurrency(source.currency))
+        ? await ensureSeatTicketType(transaction, source.venueLayout.event.id, `Места ряда ${number}`, source.seats.length, source.price, normalizeCurrency(source.currency))
         : null;
       const duplicated = await transaction.venueRow.create({
         data: {
           id, venueLayoutId: source.venueLayoutId, number, name: source.name ? `${source.name} (копия)` : `Ряд ${number}`,
-          typeLabel: source.typeLabel, shortDescription: source.shortDescription, price: source.price, deposit: source.deposit, currency: source.currency,
+          typeLabel: source.typeLabel, shortDescription: source.shortDescription, price: source.price, deposit: 0, currency: source.currency,
           status: source.status === TableStatus.unavailable ? TableStatus.unavailable : TableStatus.available,
           seats: { create: source.seats.map((seat) => ({ id: randomUUID(), venueLayoutId: source.venueLayoutId, number: seat.number, label: String(seat.number), sortOrder: seat.sortOrder, status: seat.status, ticketTypeId: ticketType?.id ?? null })) },
         },
@@ -208,7 +219,7 @@ export class SeatsService {
     });
   }
 
-  async publicForEvent(eventId: string): Promise<PublicVenueLayout | null> {
+  async publicForEvent(eventId: string,requestedLocale?:string): Promise<PublicVenueLayout | null> {
     const layout = await this.database.venueLayout.findFirst({ where: { eventId, event: { status: EventStatus.published } }, include: { event: true, tables: { include: { seatRecords: { orderBy: { sortOrder: "asc" } } }, orderBy: { number: "asc" } }, rows: { include: { seats: { orderBy: { sortOrder: "asc" } } }, orderBy: { number: "asc" } } } });
     if (!layout) return null;
     await this.tables.expireLayoutHolds(layout.id);
@@ -237,7 +248,10 @@ export class SeatsService {
         },
       },
     });
-    const parsed = venueLayoutSchemaAny.safeParse(refreshed.layoutJson);
+    const normalized=refreshed.event?await normalizedPresentation(this.database,refreshed.event,(["ru","en","kk"].includes(requestedLocale??"")?requestedLocale:refreshed.event.sourceLocale) as EventLocale):null;
+    const contentLocale=normalized?.fields.contentLocale??refreshed.event?.sourceLocale??"ru";
+    const geometry=publishedHallV3Schema.safeParse(refreshed.layoutJson).success?canonicalHallCompatibility(await readCanonicalHall(this.database,refreshed.id,refreshed.layoutJson),contentLocale as EventLocale):refreshed.layoutJson;
+    const parsed = publishedHallV3Schema.safeParse(refreshed.layoutJson).success?{success:true as const,data:geometry as import("@event-platform/shared-types").VenueLayoutAny}:venueLayoutSchemaAny.safeParse(geometry);
     if (!parsed.success) throw new ConflictException({ code: "VENUE_LAYOUT_INVALID", message: "The venue layout is invalid" });
     const hideFullPrices = refreshed.event?.paymentMode === "deposit" && !refreshed.event.showFullAmountForDeposit;
     const now = new Date();
@@ -250,7 +264,7 @@ export class SeatsService {
     const publicJson = parsed.data.version === 2 && parsed.data.editor && hideFullPrices
       ? { ...parsed.data, editor: { ...parsed.data.editor, tariffs: parsed.data.editor.tariffs.map((t) => ({ ...t, price: 0 })), objects: parsed.data.editor.objects.map((o) => ({ ...o, price: null })) } }
       : parsed.data;
-    return {
+    const result:PublicVenueLayout = {
       seats: refreshed.seats.map((seat) => ({ id: seat.id, number: seat.number, label: seat.label, sortOrder: seat.sortOrder, status: seat.status, tableId: seat.tableId, rowId: seat.rowId, ticketTypeId: seat.ticketTypeId, availability: saleable(seat) ? "available" as const : "unavailable" as const, tariffName: category(seat), price: hideFullPrices ? null : seat.ticketType?.price ?? null, deposit: seat.ticketType?.deposit ?? 0, currency: seat.ticketType?.currency.trim() ?? "KZT" })),
       id: refreshed.id,
       eventId,
@@ -258,6 +272,12 @@ export class SeatsService {
       tables: refreshed.tables.map((table) => ({ id: table.id, number: table.number, name: table.name, seats: table.seats, price: hideFullPrices ? null : table.price, deposit: table.deposit, currency: table.currency.trim(), description: table.description, typeLabel: table.typeLabel, shortDescription: table.shortDescription, saleMode: table.saleMode, status: table.status, holdExpiresAt: table.holdExpiresAt?.toISOString() ?? null, seatRecords: table.seatRecords.map((seat) => ({ id: seat.id, number: seat.number, label: seat.label, sortOrder: seat.sortOrder, status: seat.status, tableId: seat.tableId, rowId: seat.rowId, ticketTypeId: seat.ticketTypeId, availability: saleable(seat) ? "available" : "unavailable" })) })),
       rows: refreshed.rows.map((row) => ({ id: row.id, number: row.number, name: row.name, typeLabel: row.typeLabel, shortDescription: row.shortDescription, price: hideFullPrices ? null : row.price, deposit: row.deposit, currency: row.currency.trim(), availability: row.status === TableStatus.available && row.seats.some(saleable) ? "available" : "unavailable", seats: row.seats.map((seat) => ({ id: seat.id, number: seat.number, label: seat.label, sortOrder: seat.sortOrder, status: seat.status, tableId: seat.tableId, rowId: seat.rowId, ticketTypeId: seat.ticketTypeId, availability: saleable(seat) ? "available" : "unavailable", tariffName: seat.ticketType?.name ?? null, price: hideFullPrices ? null : seat.ticketType?.price ?? null, deposit: seat.ticketType?.deposit ?? 0, currency: seat.ticketType?.currency.trim() ?? "KZT" })) })),
     };
+    if(normalized){const locale=normalized.fields.contentLocale,contents=await this.database.ticketTypeContent.findMany({where:{ticketType:{eventId},locale}}),tableContents=await this.database.tableContent.findMany({where:{table:{venueLayout:{eventId}},locale}}),rowContents=await this.database.venueRowContent.findMany({where:{row:{venueLayout:{eventId}},locale}}),seatWord=locale==="en"?"Seat":locale==="kk"?"Орын":"Место";
+      for(const seat of result.seats??[]){seat.tariffName=contents.find(row=>row.ticketTypeId===seat.ticketTypeId)?.name??null;seat.label=`${seatWord} ${seat.number}`;}
+      for(const table of result.tables){const text=tableContents.find(row=>row.tableId===table.id);table.name=text?.name??null;table.typeLabel=text?.name??null;table.description=visibleResourceDescription(text);table.shortDescription=visibleResourceDescription(text);for(const seat of table.seatRecords)seat.label=`${seatWord} ${seat.number}`;}
+      for(const row of result.rows){const text=rowContents.find(text=>text.rowId===row.id);row.name=text?.name??null;row.typeLabel=text?.name??null;row.shortDescription=visibleResourceDescription(text);for(const seat of row.seats){seat.label=`${seatWord} ${seat.number}`;seat.tariffName=contents.find(text=>text.ticketTypeId===seat.ticketTypeId)?.name??null;}}
+    }
+    return result;
   }
 
   private async record(transaction: Prisma.TransactionClient, actorId: string, entityId: string, eventType: string, payload: Prisma.InputJsonObject): Promise<void> {
@@ -313,11 +333,11 @@ function structureLocked(): ConflictException { return new ConflictException({ c
 function nullable(value: string | null | undefined): string | null { const normalized = value?.trim(); return normalized || null; }
 function normalizeCurrency(value: string | undefined): string { const currency = (value ?? "KZT").trim().toUpperCase(); if (!/^[A-Z]{3}$/.test(currency)) throw new BadRequestException({ code: "CURRENCY_INVALID", message: "Currency must be a 3-letter code" }); return currency; }
 async function assertTicketType(transaction: Prisma.TransactionClient, id: string, layoutId: string): Promise<void> { const type = await transaction.ticketType.findFirst({ where: { id, event: { venueLayout: { id: layoutId } } }, select: { id: true } }); if (!type) throw notFound("TICKET_TYPE_NOT_FOUND"); }
-async function ensureSeatTicketType(transaction: Prisma.TransactionClient, eventId: string, name: string, quantity: number, price: number, deposit: number, currency: string): Promise<{ id: string }> {
+async function ensureSeatTicketType(transaction: Prisma.TransactionClient, eventId: string, name: string, quantity: number, price: number, currency: string): Promise<{ id: string }> {
   const existing = await transaction.ticketType.findFirst({ where: { eventId, name, isInternal: false }, select: { id: true } });
   if (existing) return existing;
   try {
-    return await transaction.ticketType.create({ data: { eventId, name: name.slice(0, 120), price, deposit, currency, quantityTotal: Math.max(1, quantity), status: TicketTypeStatus.active }, select: { id: true } });
+    return await transaction.ticketType.create({ data: { eventId, name: name.slice(0, 120), price, deposit: 0, currency, quantityTotal: Math.max(1, quantity), status: TicketTypeStatus.active }, select: { id: true } });
   } catch (error) {
     if ((error as { code?: string }).code !== "P2002") throw error;
     const raced = await transaction.ticketType.findFirst({ where: { eventId, name, isInternal: false }, select: { id: true } });
@@ -325,10 +345,10 @@ async function ensureSeatTicketType(transaction: Prisma.TransactionClient, event
     throw error;
   }
 }
-async function syncSeatTicketType(transaction: Prisma.TransactionClient, id: string, eventId: string, quantity: number, price: number, deposit: number, currency: string): Promise<void> {
+async function syncSeatTicketType(transaction: Prisma.TransactionClient, id: string, eventId: string, quantity: number, price: number, currency: string): Promise<void> {
   const type = await transaction.ticketType.findFirst({ where: { id, eventId, isInternal: false }, select: { id: true, quantitySold: true } });
   if (!type) throw notFound("TICKET_TYPE_NOT_FOUND");
   if (type.quantitySold > quantity) throw new ConflictException({ code: "SEAT_INVENTORY_BELOW_SOLD", message: "Seat capacity cannot be reduced below sold seats" });
-  await transaction.ticketType.update({ where: { id }, data: { price, deposit, currency, quantityTotal: Math.max(quantity, type.quantitySold), status: TicketTypeStatus.active } });
+  await transaction.ticketType.update({ where: { id }, data: { price, currency, quantityTotal: Math.max(quantity, type.quantitySold), status: TicketTypeStatus.active } });
 }
 function notFound(code: string): NotFoundException { return new NotFoundException({ code, message: "Resource was not found" }); }

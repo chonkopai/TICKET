@@ -4,7 +4,8 @@ import type {
   PublicEventSummary,
   PublicPaymentOption,
 } from "@event-platform/shared-types";
-import { ru } from "@event-platform/shared-types";
+import { ru, richDescriptionBody } from "@event-platform/shared-types";
+import { convert } from "html-to-text";
 
 export type BotRole = BotIdentityResponse["user"]["role"];
 
@@ -68,7 +69,16 @@ export function formatEventDetails(event: PublicEvent, hasSeatSelection = false)
     `${truncate(event.venueName, 120)} · ${truncate(event.address, 220)}`,
   ];
   if (event.announcement) lines.push(`\n${truncate(event.announcement, 500)}`);
-  if (event.description) lines.push(`\n${truncate(event.description, 700)}`);
+  if (event.description) {
+    const body = richDescriptionBody(event.description);
+    const description = body === null ? event.description : convert(body, {
+      wordwrap: false,
+      selectors: [{ selector: "h1", options: { uppercase: false } }, { selector: "h2", options: { uppercase: false } }, { selector: "a", options: { hideLinkHrefIfSameAsText: true } }, { selector: "img", format: "skip" }, { selector: "script", format: "skip" }, { selector: "style", format: "skip" }],
+    });
+    lines.push(`\n${truncate(description, 700)}`);
+  }
+
+  if (event.paymentMode === "deposit") return [...lines, "", "Новые продажи приостановлены. Существующие покупки сохраняют первоначальные суммы и условия."].join("\n");
 
   const options = [
     ...event.ticketTypes.map((ticket) => formatPaymentOption(ticket.name, ticket.payment, ticket.status === "active" && ticket.remaining > 0 ? `${ticket.remaining} ${ru.bot.availableTickets}` : ru.bot.soldOut)),
