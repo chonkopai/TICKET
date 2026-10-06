@@ -154,7 +154,7 @@ export class AnonymousService {
       order = await this.db.order.findUniqueOrThrow({ where: { id: order.id }, include: { tickets: { include: { ticketType: { select: { name: true, isInternal: true } },seatAllocation:{select:{seatId:true,seat:{select:{tableId:true}}}} } }, booking: { include: { table: { select: { number: true, name: true } } } }, deposit: true } });
     }
     const snapshot = readCheckoutSnapshot(order.checkoutSnapshot);
-    const event = typeof snapshot.eventId === "string" ? await this.db.event.findUnique({ where: { id: snapshot.eventId }, select: { date: true, time: true, timezone: true, venueName: true, address: true, sourceLocale: true } }) : null;
+    const event = typeof snapshot.eventId === "string" ? await this.db.event.findUnique({ where: { id: snapshot.eventId }, select: { date: true, time: true, timezone: true, address: true, sourceLocale: true } }) : null;
     const review = await this.db.outboxEvent.findFirst({ where: { aggregateId: order.id, eventType: "payment.review_required" } });
     const expired = await this.db.outboxEvent.findFirst({ where: { aggregateId: order.id, eventType: "checkout.expired" } });
     return { orderId: order.id, eventId: typeof snapshot.eventId === "string" ? snapshot.eventId : null, status: review ? "review_required" : expired ? "expired" : order.paymentStatus,
@@ -162,7 +162,7 @@ export class AnonymousService {
       fullAmount: snapshot.fullAmount, ...(snapshot.acceptedPolicy?{acceptedPolicy:snapshot.acceptedPolicy}:{}), cancellationTerms: snapshot.cancellationTerms, depositTerms: snapshot.depositTerms,
       expiresAt: order.expiresAt?.toISOString() ?? null, linked: Boolean(order.buyerUserId),
       deliveryStatus: session.deliveredAt ? "confirmed" : session.chatId && session.deliveryMessageId ? "pending" : "unavailable",
-      event: event ? { date: snapshot.eventDate??event.date.toISOString().slice(0,10), time: snapshot.eventTime??event.time.toISOString().slice(11,16), timezone: snapshot.eventTimezone??event.timezone, venueName: snapshot.venueName??event.venueName, address: snapshot.address??event.address } : null,
+      event: event ? { date: snapshot.eventDate??event.date.toISOString().slice(0,10), time: snapshot.eventTime??event.time.toISOString().slice(11,16), timezone: snapshot.eventTimezone??event.timezone, address: snapshot.address??event.address } : null,
       tickets: order.tickets.map(t => ({ id: t.id, name: acceptedResourceName(snapshot,[t.ticketTypeId,t.seatAllocation?.seatId,t.seatAllocation?.seat.tableId],t.ticketType.isInternal ? t.seatLabelSnapshot ?? "Место за столом" : t.ticketType.name), seatLabel: t.seatLabelSnapshot, status: t.status })),
       booking: order.booking ? { id: order.booking.id, status: order.booking.status, table: order.booking.table } : null,
       deposit: order.deposit ? { amount: order.deposit.amount, status: order.deposit.status } : null };

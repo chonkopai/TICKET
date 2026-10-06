@@ -84,6 +84,6 @@ describe("VenueService", () => {
 function eventData(id: string, organizerId: string) {
   return {
     id, organizerId, title: `Event ${id.slice(0, 4)}`, date: new Date("2027-07-01T00:00:00Z"),
-    time: new Date("1970-01-01T20:00:00Z"), timezone: "Asia/Almaty", venueName: "Зал", address: "Адрес", status: "published" as const,
+    time: new Date("1970-01-01T20:00:00Z"), timezone: "Asia/Almaty", address: "Адрес", status: "published" as const,
   };
 }

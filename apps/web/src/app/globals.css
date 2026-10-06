@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "../components/theme.css";
 @import "../components/rich-text.css";
+@import "../components/account.css";
+@import "../components/organizer-workspace.css";
 
 @font-face {
   font-family: "TICKET Inter";

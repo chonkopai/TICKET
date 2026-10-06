@@ -369,7 +369,6 @@ function eventData(id: string, paymentMode: "deposit" | "full_payment", showFull
     date: new Date("2031-09-03T00:00:00.000Z"),
     time: new Date("1970-01-01T19:00:00.000Z"),
     timezone: "Asia/Almaty",
-    venueName: "Зал",
     address: "Адрес",
     status: "published" as const,
   };

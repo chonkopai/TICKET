@@ -21,7 +21,7 @@ export function mergeDescription(row,locale) {
   return parts.length?parts.join('\n\n'):null;
 }
 export function legacyContent(row,locale) {
-  return {title:row.title??null,summary:row.announcement??null,description:mergeDescription(row,locale),venueName:row.venueName??null,address:row.address??null,refundConditions:row.cancellationTerms??null};
+  return {title:row.title??null,description:mergeDescription(row,locale),address:row.address??null,refundConditions:row.cancellationTerms??null};
 }
 const uuid=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 export function trustedMediaReference(value) {
@@ -42,7 +42,7 @@ export function planLegacyEvent(graph) {
     reviewed:isSource,stale:!isSource,revision:1,
   }]));
   const addContent=(locale,values,isSource,original)=>{
-    check(values,{title:100,summary:240,description:10000,venueName:120,address:250,refundConditions:2000},locale,isSource?['title','summary','description','venueName','address']:[]);
+    check(values,{title:100,description:10000,address:250,refundConditions:2000},locale,isSource?['title','description','address']:[]);
     const fieldMetadata=metadata(values,isSource,original);
     contents.push({table:'EventContent',idField:'eventId',id:event.id,locale,values,fieldMetadata,legacyHash:hash({values,fieldMetadata})});
   };

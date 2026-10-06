@@ -57,10 +57,10 @@ export class MyEventsService {
       const candidate = sourceLocale === locale ? null : translationById.get(item.id);
       const translation = candidate && source && (candidate.origin === "manual" || candidate.sourceHash === eventContentHash(eventContent(source))) ? candidate : null;
       return { ...item, ...(translation ? {
-        title: translation.title, announcement: translation.announcement, description: translation.description,
+        title: translation.title,  description: translation.description,
         program: translation.program, rules: translation.rules, visitTerms: translation.visitTerms,
         cancellationTerms: translation.cancellationTerms, depositTerms: translation.depositTerms,
-        extraConditions: translation.extraConditions, venueName: translation.venueName, address: translation.address,
+        extraConditions: translation.extraConditions,  address: translation.address,
         tickets: item.tickets.map((ticket) => ({ ...ticket, eventTitle: translation.title })),
       } : {}), contentLocale: translation ? locale : sourceLocale, sourceLocale };
     }));
@@ -84,7 +84,6 @@ export class MyEventsService {
       id: event.id,
       title: event.title,
       posterUrl: event.posterUrl,
-      announcement: event.announcement,
       description: event.description,
       program: event.program,
       rules: event.rules,
@@ -98,7 +97,6 @@ export class MyEventsService {
       time,
       timezone: event.timezone,
       startsAt,
-      venueName: event.venueName,
       address: event.address,
       eventStatus: event.status,
       participationStatus,

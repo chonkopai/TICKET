@@ -1,4 +1,5 @@
 "use client";
+import { CatalogLocationPicker } from "../components/catalog-location-picker";
 import { PublicFramedAsset } from "../components/public-event-media";
 
 import { INTL_LOCALES, localeFromBrowser } from "../lib/locale";
@@ -9,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { AfishaCalendar } from "../components/afisha-calendar";
 import { DateStrip } from "../components/date-strip";
+import { PromotionCarousel } from "../components/promotion-carousel";
 import { AgeRestrictionBadge } from "../components/age-restriction-badge";
 import { FavoriteButton } from "../components/favorite-button";
 import { OptionPicker } from "../components/option-picker";
@@ -25,7 +27,7 @@ import { clearCatalogLocation, validCountryCode } from "../lib/catalog-location"
 
 function useHomeCopy() { return HOME_COPY[useLocale()]; }
 
-const CITY_HEADING_NAMES: Record<string, string> = { Алматы: "Алматы", Астана: "Астане", Шымкент: "Шымкенте" };
+const CITY_HEADING_NAMES: Record<string, string> = { Алматы: "Алматы", Астана: "Астане", Шымкент: "Шымкенте", Москва: "Москве" };
 const PAGE_SIZE = 18;
 const FEATURED_COUNT = 6;
 
@@ -188,9 +190,10 @@ export default function HomePage() {
     <section className="relative px-4 py-7 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="pb-2 text-center">
-          <div><h1 className="mx-auto max-w-4xl text-[2rem] font-extrabold leading-[1.15] tracking-[-0.03em] sm:text-5xl">{city ? `${copy.headingCity} ${locale === "ru" ? CITY_HEADING_NAMES[city] ?? city : cityName(city, locale)}${countryCode ? ` · ${countryName(countryCode, locale)}` : ""}` : countryCode ? `${copy.heading} — ${countryName(countryCode, locale)}` : copy.heading}</h1></div>
+          <div><h1 className="mx-auto max-w-4xl text-[2rem] font-extrabold leading-[1.15] tracking-[-0.03em] sm:text-5xl">{city ? `${copy.headingCity} ${locale === "ru" ? CITY_HEADING_NAMES[city] ?? city : cityName(city, locale)}` : countryCode ? `${copy.heading} — ${countryName(countryCode, locale)}` : copy.heading}</h1></div>
         </div>
         <CategoryStrip category={query.category as EventCategory | undefined} total={total} allTotal={allTotal ?? undefined} onSelect={(category) => update({ category })} />
+        <PromotionCarousel />
         <CatalogFilters query={query} onUpdate={update} onReset={reset} />
       </div>
     </section>
@@ -200,7 +203,7 @@ export default function HomePage() {
       {events && !error ? <>
         {featured.length ? <FeaturedCarousel events={featured} /> : null}
         <section className="mt-6 scroll-mt-6" aria-live="polite" id="catalog-results"><div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><h2 className="text-xl font-bold tracking-tight">{filtered ? copy.results : copy.current}</h2><span className="rounded-full bg-slate-200 dark:bg-ticket-raised px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-ticket-muted">{total}</span></div></div>
-          {catalog.length ? <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{catalog.map((event, index) => <CatalogEventCard event={event} index={(page - 1) * PAGE_SIZE + featured.length + index + 1} key={event.id} />)}</div> : featured.length ? null : <p className="mt-5 rounded-xl border border-slate-200 dark:border-ticket-border bg-white dark:bg-ticket-surface p-8 text-center text-slate-600 dark:text-ticket-muted">{copy.emptyResults}</p>}
+          {catalog.length ? <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{catalog.map((event, index) => <CatalogEventCard event={event} index={(page - 1) * PAGE_SIZE + featured.length + index + 1} key={event.id} />)}</div> : featured.length ? null : <OtherCitiesEvents key={locale} />}
           {pageCount > 1 ? <CatalogPagination page={page} pageCount={pageCount} onChange={changePage} /> : null}
         </section>
       </> : null}
@@ -331,13 +334,51 @@ function FeaturedEvent({ event }: { event: PublicEventSummary }) {
   return <article className="relative isolate h-full overflow-hidden rounded-2xl bg-[#0b0d12] text-white shadow-[0_10px_25px_-5px_rgba(15,23,42,0.16)]">
     <div className="absolute inset-y-0 right-0 aspect-video" aria-hidden="true">{event.media?.find(asset=>asset.isCard)?<PublicFramedAsset asset={event.media.find(asset=>asset.isCard)!} role="featured" className="h-full w-full"/>:<PosterImage alt="" fallbackIndex={0} position="center 25%" src={event.posterUrl}/> }<div className="absolute inset-0 bg-black/10" /></div>
     <div className="absolute inset-0 bg-[linear-gradient(90deg,#0b0d12_0%,rgba(11,13,18,0.95)_58%,rgba(11,13,18,0.35)_100%)] sm:bg-[linear-gradient(90deg,#0b0d12_0%,#0b0d12_38%,rgba(11,13,18,0.96)_43%,rgba(11,13,18,0.52)_51%,rgba(11,13,18,0.08)_62%,rgba(11,13,18,0.03)_100%)]" aria-hidden="true" />
-    <div className="relative z-[1] flex min-h-[350px] max-w-[720px] flex-col justify-between p-6 sm:p-9 lg:p-10"><div><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-[#6320ee] dark:bg-ticket-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wide">{copy.editorsChoice}</span><AvailabilityBadge status={event.saleStatus} /><span className="text-[11px] font-medium uppercase tracking-wide text-slate-300">{copy.categories[event.category]}</span></div><h2 className="mt-4 text-3xl font-extrabold leading-[1.08] tracking-tight sm:text-4xl">{event.title}</h2><ContentLanguageNote contentLocale={event.contentLocale} />{event.announcement ? <p className="mt-3 max-w-lg text-sm leading-6 text-slate-100">{event.announcement}</p> : null}</div><div className="mt-6 border-t border-white/10 pt-5"><p className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium"><span className="inline-flex items-center gap-1.5"><CalendarIcon />{formatEventDate(event, locale)}</span><span className="inline-flex items-center gap-1.5"><PinIcon />{event.venueName}</span></p><div className="mt-3 flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-wide text-slate-300">{copy.tickets}</p><p className="mt-1 text-2xl font-extrabold leading-tight">{formatPrice(event, formatMoney, locale)}</p></div><Link className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#6320ee] dark:bg-ticket-primary px-7 text-sm font-semibold text-white shadow-[0_10px_25px_-5px_rgba(99,32,238,0.3)] transition hover:bg-[#4f16c8] dark:hover:bg-ticket-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 dark:focus-visible:ring-ticket-accent" href={`/events/${event.id}`}>{copy.tickets}</Link></div></div></div><AgeRestrictionBadge age={event.ageRestriction} className="absolute bottom-4 right-4 z-[2]" /><FavoriteButton eventId={event.id} />
+    <div className="relative z-[1] flex min-h-[350px] max-w-[720px] flex-col justify-between p-6 sm:p-9 lg:p-10"><div><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-[#6320ee] dark:bg-ticket-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wide">{copy.editorsChoice}</span><AvailabilityBadge status={event.saleStatus} /><span className="text-[11px] font-medium uppercase tracking-wide text-slate-300">{copy.categories[event.category]}</span></div><h2 className="mt-4 text-3xl font-extrabold leading-[1.08] tracking-tight sm:text-4xl">{event.title}</h2><ContentLanguageNote contentLocale={event.contentLocale} /></div><div className="mt-6 border-t border-white/10 pt-5"><p className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium"><span className="inline-flex items-center gap-1.5"><CalendarIcon />{formatEventDate(event, locale)}</span><span className="inline-flex items-center gap-1.5"><PinIcon />{event.address}</span></p><div className="mt-3 flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-wide text-slate-300">{copy.tickets}</p><p className="mt-1 text-2xl font-extrabold leading-tight">{formatPrice(event, formatMoney, locale)}</p></div><Link className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#6320ee] dark:bg-ticket-primary px-7 text-sm font-semibold text-white shadow-[0_10px_25px_-5px_rgba(99,32,238,0.3)] transition hover:bg-[#4f16c8] dark:hover:bg-ticket-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 dark:focus-visible:ring-ticket-accent" href={`/events/${event.id}`}>{copy.tickets}</Link></div></div></div><AgeRestrictionBadge age={event.ageRestriction} className="absolute bottom-4 right-4 z-[2]" /><FavoriteButton eventId={event.id} />
   </article>;
+}
+
+function mixCities(items: PublicEventSummary[]) {
+  const groups = new Map<string, PublicEventSummary[]>();
+  for (const event of items) {
+    const key = `${event.countryCode}:${event.city}`;
+    const group = groups.get(key) ?? [];
+    group.push(event); groups.set(key, group);
+  }
+  const mixed: PublicEventSummary[] = [];
+  while (groups.size) for (const [city, group] of groups) {
+    mixed.push(group.shift()!);
+    if (!group.length) groups.delete(city);
+  }
+  return mixed;
+}
+
+function OtherCitiesEvents() {
+  const copy = useHomeCopy();
+  const [items, setItems] = useState<PublicEventSummary[]>([]);
+  const [page, setPage] = useState(1), [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true), [error, setError] = useState(false), [retry, setRetry] = useState(0);
+  useEffect(() => {
+    let live = true; setLoading(true); setError(false);
+    void fetchPublicEvents({ page, limit: PAGE_SIZE, sort: "popular" }).then(result => {
+      if (!live) return;
+      setItems(previous => [...new Map([...previous, ...mixCities(result.items)].map(item => [item.id, item])).values()]);
+      setTotal(result.total);
+    }).catch(() => { if (live) setError(true); }).finally(() => { if (live) setLoading(false); });
+    return () => { live = false; };
+  }, [page, retry]);
+  return <div className="mt-5">
+    <p className="text-sm text-slate-600 dark:text-ticket-muted">{copy.emptyResults}</p>
+    <h3 className="mt-8 text-xl font-bold tracking-tight">{copy.otherCities}</h3>
+    {loading && !items.length ? <HomeSkeleton /> : null}
+    {items.length ? <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{items.map((event, index) => <CatalogEventCard key={event.id} event={event} index={index + 1} />)}</div> : !loading && !error ? <p className="mt-4 text-sm text-slate-500 dark:text-ticket-muted">{copy.emptyTitle}</p> : null}
+    {error ? <div className="mt-5"><ErrorState message={copy.loadFailed} onRetry={() => setRetry(value => value + 1)} /></div> : null}
+    {items.length < total && !error ? <button type="button" disabled={loading} className="mx-auto mt-6 block rounded-xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white disabled:opacity-50" onClick={() => setPage(value => value + 1)}>{loading ? copy.loading : copy.showMore}</button> : null}
+  </div>;
 }
 
 function CatalogFilters({ query, onUpdate, onReset }: { query: PublicEventsQuery; onUpdate: (next: Partial<PublicEventsQuery>) => void; onReset: () => void }) {
   const copy = useHomeCopy();
-  const locale = useLocale();
   const { currency, rates, setCurrency, formatWholeKzt } = useDisplayCurrency();
   const currencyOptions = [{ value: "KZT", label: "KZT ₸" }, { value: "RUB", label: "RUB ₽", disabled: !rates }, { value: "USD", label: "USD $", disabled: !rates }];
   const chipClassName = "max-w-full rounded-lg border border-violet-100 dark:border-ticket-accent bg-white dark:bg-ticket-surface px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-ticket-muted";
@@ -356,7 +397,7 @@ function CatalogFilters({ query, onUpdate, onReset }: { query: PublicEventsQuery
           </div>
           <div aria-label={copy.appliedFilters} className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs">
             <span className="font-bold text-violet-800 dark:text-ticket-accent">{copy.applied}</span>
-            <span className={chipClassName}>{query.countryCode ? `${countryName(query.countryCode, locale)} · ${query.city ? cityName(query.city, locale) : copy.allCities}` : copy.allCountries}</span>
+            <CatalogLocationPicker appearance="filter" />
             <span className={chipClassName}>{query.category ? copy.categories[query.category as EventCategory] : copy.allEvents}</span>
             {query.search ? <span className={`${chipClassName} truncate`}>{copy.searchTerm} {query.search}</span> : null}
             {query.datePreset ? <span className={chipClassName}>{query.datePreset === "today" ? copy.today : copy.weekend}</span> : null}
@@ -431,7 +472,7 @@ function CatalogEventCard({ event, index }: { event: PublicEventSummary; index: 
           </div>
           <h3 className="mt-1.5 line-clamp-2 text-sm font-bold leading-5 transition group-hover:text-violet-700 dark:group-hover:text-ticket-accent">{event.title}</h3>
           <ContentLanguageNote contentLocale={event.contentLocale} />
-          <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-ticket-muted"><PinIcon /><span className="truncate">{event.venueName}</span><span aria-hidden="true" className="mx-1 shrink-0">|</span><AgeRestrictionBadge age={event.ageRestriction} inline /></p>
+          <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-ticket-muted"><PinIcon /><span className="truncate">{event.address}</span><span aria-hidden="true" className="mx-1 shrink-0">|</span><AgeRestrictionBadge age={event.ageRestriction} inline /></p>
         </div>
         <div className="flex items-end justify-between gap-2 border-t border-slate-100 dark:border-ticket-border pt-2">
           <div><p className="text-[10px] uppercase tracking-wide text-slate-400 dark:text-ticket-dim">{copy.cost}</p><p className="mt-0.5 text-sm font-bold">{formatPrice(event, formatMoney, locale)}</p></div>

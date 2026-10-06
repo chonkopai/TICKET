@@ -57,7 +57,7 @@ export function formatEventSummary(event: PublicEventSummary): string {
   return [
     `🎫 ${truncate(event.title, 180)}`,
     `${event.date} ${event.time} (${event.timezone})`,
-    `${truncate(event.venueName, 120)} · ${truncate(event.address, 180)}`,
+    `${truncate(event.address, 180)}`,
     price,
   ].join("\n");
 }
@@ -66,9 +66,8 @@ export function formatEventDetails(event: PublicEvent, hasSeatSelection = false)
   const lines = [
     `🎫 ${truncate(event.title, 200)}`,
     `${event.date} ${event.time} (${event.timezone})`,
-    `${truncate(event.venueName, 120)} · ${truncate(event.address, 220)}`,
+    `${truncate(event.address, 220)}`,
   ];
-  if (event.announcement) lines.push(`\n${truncate(event.announcement, 500)}`);
   if (event.description) {
     const body = richDescriptionBody(event.description);
     const description = body === null ? event.description : convert(body, {

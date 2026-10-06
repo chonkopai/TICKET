@@ -91,7 +91,7 @@ describe("MyEventsService", () => {
 });
 
 function eventData(id: string, title: string, date: string, time: string) {
-  return { id, organizerId: userId, title, date: new Date(`${date}T00:00:00.000Z`), time: new Date(`1970-01-01T${time}.000Z`), timezone: "Asia/Almaty", venueName: "Зал", address: "Алматы", status: "published" as const };
+  return { id, organizerId: userId, title, date: new Date(`${date}T00:00:00.000Z`), time: new Date(`1970-01-01T${time}.000Z`), timezone: "Asia/Almaty", address: "Алматы", status: "published" as const };
 }
 
 function ticketTypeData(eventId: string, name: string) {

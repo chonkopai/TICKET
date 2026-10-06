@@ -31,7 +31,7 @@ beforeAll(async () => {
   ] });
   await prisma.event.create({ data: {
     id: eventId, organizerId: organizerA, title: "Venue safety", date: new Date("2027-06-01T00:00:00Z"),
-    time: new Date("1970-01-01T19:00:00Z"), timezone: "Asia/Almaty", venueName: "Зал", address: "Адрес", status: "published",
+    time: new Date("1970-01-01T19:00:00Z"), timezone: "Asia/Almaty", address: "Адрес", status: "published",
   } });
   await prisma.venueLayout.create({ data: {
     id: layoutId, eventId, templateName: "Main", layoutJson: { version: 1, canvas: { width: 800, height: 600 }, tables: [] },

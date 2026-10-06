@@ -23,7 +23,7 @@ function readSelection(): { countryCode: string; city: string } {
   };
 }
 
-export function CatalogLocationPicker({ onDark = false }: { onDark?: boolean }) {
+export function CatalogLocationPicker({ onDark = false, appearance = "navbar" }: { onDark?: boolean; appearance?: "navbar" | "filter" }) {
   const locale = useLocale();
   const pathname = usePathname();
   const copy = NAV_COPY[locale];
@@ -65,10 +65,12 @@ export function CatalogLocationPicker({ onDark = false }: { onDark?: boolean }) 
     }
     window.addEventListener("popstate", sync);
     window.addEventListener(CATALOG_QUERY_UPDATED, sync);
+    window.addEventListener(CATALOG_CITY_SELECTED, sync);
     return () => {
       active = false;
       window.removeEventListener("popstate", sync);
       window.removeEventListener(CATALOG_QUERY_UPDATED, sync);
+      window.removeEventListener(CATALOG_CITY_SELECTED, sync);
     };
   }, [pathname]);
 
@@ -132,10 +134,10 @@ export function CatalogLocationPicker({ onDark = false }: { onDark?: boolean }) 
     setOpen((current) => !current);
   }
 
-  const selectionLabel = selection.city ? cityName(selection.city, locale) : selection.countryCode ? countryName(selection.countryCode, locale) : copy.allCountries;
+  const selectionLabel = appearance === "filter" && selection.countryCode ? `${countryName(selection.countryCode, locale)} · ${selection.city ? cityName(selection.city, locale) : copy.allCities}` : selection.city ? cityName(selection.city, locale) : selection.countryCode ? countryName(selection.countryCode, locale) : copy.allCountries;
   return <div className="relative min-w-0" ref={root}>
-    <button aria-expanded={open} aria-haspopup="dialog" aria-label={`${copy.location}: ${selectionLabel}`} className={`inline-flex min-h-10 max-w-[120px] items-center gap-1.5 rounded-full px-1 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:focus-visible:ring-ticket-accent sm:max-w-[180px] ${onDark ? "text-white hover:text-white/75" : "text-slate-700 dark:text-ticket-muted hover:text-violet-700 dark:hover:text-ticket-accent"}`} onClick={openPicker} type="button">
-      <svg aria-hidden="true" className={`h-4 w-4 shrink-0 ${onDark ? "text-white" : "text-violet-600 dark:text-ticket-accent"}`} fill="none" viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" stroke="currentColor" strokeWidth="2" /><circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="2" /></svg>
+    <button aria-expanded={open} aria-haspopup="dialog" aria-label={`${copy.location}: ${selectionLabel}`} className={appearance === "filter" ? "inline-flex max-w-full items-center gap-1.5 rounded-lg border border-violet-100 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:border-ticket-accent dark:bg-ticket-surface dark:text-ticket-muted" : `inline-flex min-h-10 max-w-[120px] items-center gap-1.5 rounded-full px-1 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:focus-visible:ring-ticket-accent sm:max-w-[180px] ${onDark ? "text-white hover:text-white/75" : "text-slate-700 dark:text-ticket-muted hover:text-violet-700 dark:hover:text-ticket-accent"}`} onClick={openPicker} type="button">
+      {appearance === "navbar" ? <svg aria-hidden="true" className={`h-4 w-4 shrink-0 ${onDark ? "text-white" : "text-violet-600 dark:text-ticket-accent"}`} fill="none" viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" stroke="currentColor" strokeWidth="2" /><circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="2" /></svg> : null}
       <span className="ticket-location-label truncate">{selectionLabel}</span><svg aria-hidden="true" className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m7 10 5 5 5-5" /></svg>
     </button>
     {open ? <div aria-label={copy.location} className="fixed left-3 right-3 top-16 z-50 rounded-2xl border border-slate-200 dark:border-ticket-border bg-white dark:bg-ticket-surface p-3 shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-full sm:mt-2 sm:w-[360px]" role="dialog">

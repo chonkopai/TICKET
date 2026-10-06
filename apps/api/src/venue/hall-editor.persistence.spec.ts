@@ -19,7 +19,7 @@ const json:VenueLayoutJsonV2={version:2,room:{widthM:24,heightM:16},tables:[],ro
 beforeAll(async()=>{
  const base=BigInt(Date.now())*100000n;
  await prisma.user.createMany({data:[{id:owner,telegramId:base+910n,role:"organizer"},{id:other,telegramId:base+911n,role:"organizer"}]});
- await prisma.event.create({data:{id:eventId,organizerId:owner,title:"Hall integration",date:new Date("2027-07-01"),time:new Date("1970-01-01T20:00:00Z"),timezone:"Asia/Almaty",venueName:"Hall",address:"Address",status:"draft"}});
+ await prisma.event.create({data:{id:eventId,organizerId:owner,title:"Hall integration",date:new Date("2027-07-01"),time:new Date("1970-01-01T20:00:00Z"),timezone:"Asia/Almaty",address:"Address",status:"draft"}});
  const l=await service.createForEvent(owner,eventId,{layoutJson:{version:2,room:json.room,tables:[],rows:[]}});layoutId=l.id;revision=l.revision;
 });
 afterAll(async()=>{await prisma.event.deleteMany({where:{organizerId:{in:[owner,other]}}});await prisma.venueLayout.deleteMany({where:{organizerId:owner}});await prisma.auditLog.deleteMany({where:{actorId:{in:[owner,other]}}});await prisma.user.deleteMany({where:{id:{in:[owner,other]}}});await prisma.$disconnect();});
@@ -60,7 +60,7 @@ describe("Atomic hall editor persistence",()=>{
  });
  it("round trips a 2,000-seat document within the bounded transaction",async()=>{
   const largeEvent=randomUUID();
-  await prisma.event.create({data:{id:largeEvent,organizerId:owner,title:"Large hall",date:new Date("2027-07-01"),time:new Date("1970-01-01T20:00:00Z"),timezone:"Asia/Almaty",venueName:"Hall",address:"Address",status:"draft"}});
+  await prisma.event.create({data:{id:largeEvent,organizerId:owner,title:"Large hall",date:new Date("2027-07-01"),time:new Date("1970-01-01T20:00:00Z"),timezone:"Asia/Almaty",address:"Address",status:"draft"}});
   const empty=await service.createForEvent(owner,largeEvent,{layoutJson:{version:2,room:{widthM:30,heightM:30},tables:[],rows:[]}});
   const editor={version:1 as const,tariffs:[],objects:Array.from({length:2000},(_,i)=>({...newHallObject(randomUUID(),"seat",1+(i%50)*.5,1+Math.floor(i/50)*.5),number:i+1,price:100000}))};
   const saved=await writeUpdate(owner,empty.id,{revision:empty.revision,layoutJson:{version:2,room:{widthM:30,heightM:30},tables:[],rows:[],editor}});

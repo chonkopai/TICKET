@@ -26,8 +26,8 @@ beforeAll(async () => {
     { id: guest, telegramId: base + 3n, telegramChatId: base + 3n, role: "guest" },
   ] });
   await prisma.event.createMany({ data: [
-    { id: eventId, organizerId: organizer, title: "Тестовое событие", date: new Date("2035-02-01"), time: new Date("1970-01-01T19:00:00Z"), venueName: "Зал", address: "Адрес", status: "published" },
-    { id: otherEventId, organizerId: otherOrganizer, title: "Чужое событие", date: new Date("2035-02-02"), time: new Date("1970-01-01T19:00:00Z"), venueName: "Зал", address: "Адрес", status: "published" },
+    { id: eventId, organizerId: organizer, title: "Тестовое событие", date: new Date("2035-02-01"), time: new Date("1970-01-01T19:00:00Z"), address: "Адрес", status: "published" },
+    { id: otherEventId, organizerId: otherOrganizer, title: "Чужое событие", date: new Date("2035-02-02"), time: new Date("1970-01-01T19:00:00Z"), address: "Адрес", status: "published" },
   ] });
   await prisma.ticketType.createMany({ data: [
     { id: ticketTypeId, eventId, name: "Тест", price: 1000, currency: "KZT", quantityTotal: 5 },

@@ -37,7 +37,7 @@ export interface QuickOrderStatus {
   deliveryStatus: "pending" | "confirmed" | "unavailable";
   emailDelivery: { status: string; address: string | null; acceptedAt: string | null };
   walletAvailable: boolean;
-  event: { date: string; time: string; timezone: string; venueName: string; address: string } | null;
+  event: { date: string; time: string; timezone: string; address: string } | null;
   tickets: Array<{ id: string; name: string; seatLabel: string | null; status: string }>;
   booking: { id: string; status: string; table: { number: number; name: string | null } } | null;
   deposit: { amount: number; status: string } | null;

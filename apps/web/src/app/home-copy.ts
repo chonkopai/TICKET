@@ -3,7 +3,7 @@ import type { EventCategory, EventLocale, PublicSaleStatus } from "@event-platfo
 interface HomeCopy {
   online: string; heading: string; headingCity: string; searchLabel: string; searchPlaceholder: string;
   search: string; categoriesLabel: string; all: string; allCategories: string; results: string;
-  current: string; liveBooking: string; emptyResults: string; loading: string; showMore: string; previousPage: string; nextPage: string; pageLabel: string;
+  otherCities: string; current: string; liveBooking: string; emptyResults: string; loading: string; showMore: string; previousPage: string; nextPage: string; pageLabel: string;
   editorsChoice: string; featuredList: string; featuredHint: string; previousEvent: string;
   nextEvent: string; event: string; of: string; deposit: string; tickets: string; chooseSeats: string;
   filters: string; free: string; currency: string; exchangeRates: string; loadingRates: string; paymentCurrency: string;
@@ -24,7 +24,7 @@ export const HOME_COPY: Record<EventLocale, HomeCopy> = {
     online: "событий онлайн", heading: "Афиша событий", headingCity: "Афиша событий в",
     searchLabel: "Поиск событий", searchPlaceholder: "Найти концерт, спектакль, выставку или вечеринку...",
     search: "Искать", categoriesLabel: "Категории событий", all: "Все", allCategories: "Все категории",
-    results: "Результаты поиска", current: "Актуальные события", liveBooking: "Живое бронирование мест",
+    results: "Результаты поиска", otherCities: "События в других городах", current: "Актуальные события", liveBooking: "Живое бронирование мест",
     emptyResults: "По выбранным фильтрам событий не найдено.", loading: "Загрузка…", showMore: "Показать ещё события", previousPage: "Предыдущая страница", nextPage: "Следующая страница", pageLabel: "Страница",
     editorsChoice: "Выбор редакции", featuredList: "Рекомендуемые события", featuredHint: "Проведите в сторону для просмотра",
     previousEvent: "Предыдущее событие", nextEvent: "Следующее событие", event: "Событие", of: "из",
@@ -44,6 +44,7 @@ export const HOME_COPY: Record<EventLocale, HomeCopy> = {
     saleStatuses: { available: "Есть билеты", few_left: "Осталось мало", sold_out: "Продано", temporarily_unavailable: "Временно занято", sales_not_started: "Продажи ещё не начались", sales_ended: "Продажи завершены" },
   },
   kk: {
+    otherCities: "Басқа қалалардағы іс-шаралар",
     online: "іс-шара онлайн", heading: "Іс-шаралар афишасы", headingCity: "Іс-шаралар —",
     searchLabel: "Іс-шараларды іздеу", searchPlaceholder: "Концерт, қойылым, көрме немесе кеш іздеңіз...",
     search: "Іздеу", categoriesLabel: "Іс-шара санаттары", all: "Барлығы", allCategories: "Барлық санаттар",
@@ -67,6 +68,7 @@ export const HOME_COPY: Record<EventLocale, HomeCopy> = {
     saleStatuses: { available: "Билеттер бар", few_left: "Аз қалды", sold_out: "Сатылып кетті", temporarily_unavailable: "Уақытша бос емес", sales_not_started: "Сатылым әлі басталмады", sales_ended: "Сатылым аяқталды" },
   },
   en: {
+    otherCities: "Events in other cities",
     online: "events online", heading: "Events", headingCity: "Events in",
     searchLabel: "Search events", searchPlaceholder: "Find a concert, play, exhibition, or party...",
     search: "Search", categoriesLabel: "Event categories", all: "All", allCategories: "All categories",

@@ -29,7 +29,7 @@ const tickets = new TicketsService(prisma, events, { isConfigured: () => false, 
 
 beforeAll(async () => {
   await prisma.user.createMany({ data: [{ id: organizerId, role: "organizer", telegramId: telegramId + 1n }, { id: userId, telegramId }, { id: otherId, telegramId: telegramId + 2n }] });
-  await prisma.event.create({ data: { id: eventId, organizerId, title: "Anonymous acceptance", date: new Date("2035-02-01T00:00:00Z"), time: new Date("1970-01-01T18:00:00Z"), timezone: "Asia/Almaty", venueName: "Venue", address: "Almaty", status: "published", paymentMode: "full_payment", depositTerms: "Deposit terms", cancellationTerms: "Cancellation terms", showFullAmountForDeposit: false } });
+  await prisma.event.create({ data: { id: eventId, organizerId, title: "Anonymous acceptance", date: new Date("2035-02-01T00:00:00Z"), time: new Date("1970-01-01T18:00:00Z"), timezone: "Asia/Almaty", address: "Almaty", status: "published", paymentMode: "full_payment", depositTerms: "Deposit terms", cancellationTerms: "Cancellation terms", showFullAmountForDeposit: false } });
   await prisma.venueLayout.create({ data: { id: layoutId, eventId, templateName: "Quick test", layoutJson: { version: 1, canvas: { width: 800, height: 600 }, tables: [] } } });
 });
 afterAll(async () => {
@@ -115,7 +115,7 @@ describe("anonymous checkout and claims (PostgreSQL)", () => {
     const event = await pay(result.orderId);
     await booking.handlePaymentWebhook(event);
     const status = await quick.status(s.accessToken);
-    expect(status).toMatchObject({ status: "paid", fullAmount: 100000, deliveryStatus: "pending", event: { date: "2035-02-01", time: "18:00", timezone: "Asia/Almaty", venueName: "Venue" }, tickets: [{ status: "active", seatLabel: null }] });
+    expect(status).toMatchObject({ status: "paid", fullAmount: 100000, deliveryStatus: "pending", event: { date: "2035-02-01", time: "18:00", timezone: "Asia/Almaty", }, tickets: [{ status: "active", seatLabel: null }] });
     expect(JSON.stringify(status)).not.toMatch(/qrToken|chatId|telegramId|guestContact|unitFullAmount|holdToken/);
     expect(await prisma.outboxEvent.count({ where: { aggregateId: result.orderId, eventType: "checkout.paid" } })).toBe(1);
   });

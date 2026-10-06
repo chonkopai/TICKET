@@ -4,7 +4,7 @@ import { EVENT_AGE_RESTRICTIONS, EVENT_CATEGORIES, EVENT_LOCALES, type EventLoca
 import { hallEditorSchema, hallObjectSchema } from "./hall-editor.js";
 
 export const EVENT_TEXT_LIMITS = {
-  title: 100, summary: 240, description: 10_000, venueName: 120, address: 250,
+  title: 100, description: 10_000, address: 250,
   refundConditions: 2_000, ticketName: 60, ticketDescription: 300, caption: 160, city: 80,
 } as const;
 const segmenter = new Intl.Segmenter("ru", { granularity: "grapheme" });
@@ -46,8 +46,8 @@ export const currencyChangeSchema = z.object({ currency: z.string().regex(/^[A-Z
 
 const localized = <T extends z.ZodType>(schema: T) => z.object({ ru: schema.optional(), en: schema.optional(), kk: schema.optional() }).strict();
 export const eventContentV2Schema = z.object({
-  title: limitedText(100).optional(), summary: limitedText(240).optional(), description: limitedText(10_000).optional(),
-  venueName: limitedText(120).optional(), address: limitedText(250).optional(), refundConditions: limitedText(2_000).optional(),
+  title: limitedText(100).optional(), description: limitedText(10_000).optional(),
+  address: limitedText(250).optional(), refundConditions: limitedText(2_000).optional(),
 }).strict();
 export const saleContentV2Schema = z.object({ name: limitedText(60).optional(), description: limitedText(300).optional() }).strict();
 export const translationFieldMetadataSchema = z.object({
@@ -210,7 +210,7 @@ export function selectedSaleRows(draft: EventCreationDraftV2) {
   return draft.paidSeated?.tariffs.filter(row => row.active && tariffIds.has(row.id)) ?? [];
 }
 export function localeComplete(draft: EventCreationDraftV2, locale: EventLocale): boolean {
-  const fields = ["title", "summary", "description", "venueName", "address"] as const;
+  const fields = ["title", "description", "address"] as const;
   if (fields.some(field => !draft.content[locale]?.[field]?.trim() || draft.metadata[locale]?.[field]?.stale)) return false;
   if (draft.refundsAvailable && draft.selectedMode !== "free" && (!draft.content[locale]?.refundConditions?.trim() || draft.metadata[locale]?.refundConditions?.stale)) return false;
   return selectedSaleRows(draft).every(row => !!row.content[locale]?.name?.trim() && !draft.metadata[locale]?.[`sale.${row.id}.name`]?.stale);
@@ -268,7 +268,7 @@ export type PublishReadyDraftV2 = z.infer<ReturnType<typeof publishReadyDraftSch
 const snapshotItem = z.object({ resourceId: uuid, kind: z.enum(["ticket", "seat", "table"]), name: z.string(), quantity: z.number().int().positive(), unitAmount: minorAmountSchema }).strict();
 export const purchaseSnapshotV2Schema = z.object({
   version: z.literal(2), eventId: uuid, sourceLocale: eventLocaleSchema, contentLocale: eventLocaleSchema,
-  title: z.string(), venueName: z.string(), address: z.string(), startsAt: z.iso.datetime(), endsAt: z.iso.datetime().nullable(), timezone: z.string(),
+  title: z.string(), venueName: z.string().optional(), address: z.string(), startsAt: z.iso.datetime(), endsAt: z.iso.datetime().nullable(), timezone: z.string(),
   saleMode: eventSaleModeSchema, amount: minorAmountSchema, currency: z.string().regex(/^[A-Z]{3}$/), acceptedAt: z.iso.datetime(),
   refund: z.object({ available: z.boolean(), conditions: z.string().nullable(), revision: z.number().int().positive(), locale: eventLocaleSchema, freeCancellation: z.boolean() }).strict(),
   items: z.array(snapshotItem).min(1),

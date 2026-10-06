@@ -11,7 +11,7 @@ test('source/targets retain every section with labels in all locales',()=>{
     const merged=mergeDescription(row,locale);for(const text of Object.values(row))assert.ok(merged.includes(text));
   }
   const graph=fixture();graph.translations=[{locale:'en',title:'EN',announcement:'Summary EN',description:'Description EN',program:'Program EN',venueName:'Venue EN',address:'Address EN',sourceHash:'old',origin:'machine'}];
-  const plan=planLegacyEvent(graph);assert.equal(plan.contents[0].values.summary,'Summary');assert.ok(plan.contents[1].values.description.includes('Program:\nProgram EN'));assert.equal(plan.contents[1].fieldMetadata.title.stale,true);assert.equal(plan.contents[1].fieldMetadata.title.sourceHash,null);
+  const plan=planLegacyEvent(graph);assert.equal(plan.contents[0].values.address,'Address');assert.equal('summary' in plan.contents[0].values,false);assert.equal('venueName' in plan.contents[0].values,false);assert.ok(plan.contents[1].values.description.includes('Program:\nProgram EN'));assert.equal(plan.contents[1].fieldMetadata.title.stale,true);assert.equal(plan.contents[1].fieldMetadata.title.sourceHash,null);
 });
 test('overlength grapheme text is flagged and retained exactly',()=>{
   const graph=fixture();graph.event.title='👩🏽‍💻'.repeat(101);graph.event.description='a'.repeat(10001);graph.ticketTypes[0].name='T'.repeat(61);

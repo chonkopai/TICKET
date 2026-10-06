@@ -11,11 +11,11 @@ describe('normalized compatibility rollout',()=>{
     expect(findUnique).not.toHaveBeenCalled();
   });
   it('requires complete source and derives legacy display time from canonical UTC',async()=>{
-    const findUnique=vi.fn().mockResolvedValueOnce({title:'partial'}).mockResolvedValueOnce({title:'Normalized',summary:'Summary',description:'Merged',venueName:'Venue',address:'Address',refundConditions:'Policy'});
+    const findUnique=vi.fn().mockResolvedValueOnce({title:'partial'}).mockResolvedValueOnce({title:'Normalized',description:'Merged',address:'Address',refundConditions:'Policy'});
     const db={eventContent:{findUnique}} as unknown as Pick<PrismaClient,'eventContent'>;
     expect(await eventV2CompatibilityRead(db,event,true)).toBe(event);
     const read=await eventV2CompatibilityRead(db,event,true);
-    expect(read.title).toBe('Normalized');expect(read.announcement).toBe('Summary');
+    expect(read.title).toBe('Normalized');expect(read.address).toBe('Address');
     expect(read.program).toBeNull();expect(read.time.toISOString()).toBe('1970-01-01T17:00:00.000Z');
   });
   it('blocks writes when rollout is disabled before touching the database',async()=>{

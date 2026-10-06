@@ -353,7 +353,6 @@ async function seed(): Promise<void> {
       city: "Алматы",
       posterUrl: stockImage("photo-1501386761578-eac5c94b800a"),
       galleryUrls: galleryUrlsFor(seedIds.event, "festival", stockImage("photo-1501386761578-eac5c94b800a")),
-      announcement: "Один вечер музыки, гастрономии и новых знакомств.",
       description: "Демонстрационное опубликованное мероприятие для локальной разработки.",
       program: "19:00 — открытие; 20:00 — концерт; 23:00 — завершение.",
       rules: "Вход по действующему QR-билету.",
@@ -367,7 +366,6 @@ async function seed(): Promise<void> {
       time: eventTime,
       timezone: "Asia/Almaty",
       ageRestriction: 18,
-      venueName: "Event Hall Almaty",
       address: "проспект Абая, 1, Алматы",
       status: EventStatus.published,
     },
@@ -380,7 +378,6 @@ async function seed(): Promise<void> {
       city: "Алматы",
       posterUrl: stockImage("photo-1501386761578-eac5c94b800a"),
       galleryUrls: galleryUrlsFor(seedIds.event, "festival", stockImage("photo-1501386761578-eac5c94b800a")),
-      announcement: "Один вечер музыки, гастрономии и новых знакомств.",
       description: "Демонстрационное опубликованное мероприятие для локальной разработки.",
       program: "19:00 — открытие; 20:00 — концерт; 23:00 — завершение.",
       rules: "Вход по действующему QR-билету.",
@@ -394,7 +391,6 @@ async function seed(): Promise<void> {
       showFullAmountForDeposit: false,
       depositTerms: null,
       extraConditions: "Мероприятие предназначено для гостей старше 18 лет.",
-      venueName: "Event Hall Almaty",
       address: "проспект Абая, 1, Алматы",
       status: EventStatus.published,
     },
@@ -403,7 +399,6 @@ async function seed(): Promise<void> {
   for (const locale of ["kk", "en"] as const) {
     const translation = localizedDemoContent("seed", locale, {
       paymentMode: "full_payment",
-      venueName: "Event Hall Almaty",
       address: "проспект Абая, 1, Алматы",
     });
     await prisma.eventTranslation.upsert({
@@ -561,7 +556,6 @@ async function seed(): Promise<void> {
       city: demo.city,
       posterUrl: demo.posterUrl,
       galleryUrls: galleryUrlsFor(demo.id, demo.category, demo.posterUrl),
-      announcement: demo.announcement,
       description: demo.description,
       program: demo.program,
       rules: demo.rules,
@@ -575,7 +569,6 @@ async function seed(): Promise<void> {
       time: new Date(`1970-01-01T${demo.time}:00.000Z`),
       timezone: demo.timezone,
       ageRestriction: demo.ageRestriction,
-      venueName: demo.venueName,
       address: demo.address,
       status,
       publishedAt: status === EventStatus.draft ? null : new Date(demo.publishedAt),

@@ -3,7 +3,7 @@ import { DraftAutosave,creationDraftRequest,DraftRequestError } from "./creation
 import type { apiRequest } from "../app/(auth)/_lib/api";
 export function draftHallPresentation(client:DraftAutosave,locale:EventLocale):VenueLayout{
   const hall=client.aggregate.paidSeated??{version:3 as const,room:{widthM:24,heightM:16},objects:[],tariffs:[]};
-  return {id:client.saved.id,eventId:null,organizerId:null,templateName:client.aggregate.content[client.aggregate.sourceLocale]?.venueName??"",layoutJson:{version:2,room:hall.room,editor:hallV3Editor(hall,locale),tables:[],rows:[]},revision:client.saved.revision,tables:[],rows:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+  return {id:client.saved.id,eventId:null,organizerId:null,templateName:client.aggregate.content[client.aggregate.sourceLocale]?.title??"",layoutJson:{version:2,room:hall.room,editor:hallV3Editor(hall,locale),tables:[],rows:[]},revision:client.saved.revision,tables:[],rows:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
 }
 /** Reuses the studio's geometry/undo/revision flow, with capability-scoped I/O. */
 export function draftHallAdapter(client:DraftAutosave,locale:EventLocale):typeof apiRequest{
@@ -17,7 +17,7 @@ export function draftHallAdapter(client:DraftAutosave,locale:EventLocale):typeof
         const draft=await creationDraftRequest<CreationDraftResponse>(`/api/creation-drafts/${id}`,{method:"PATCH",headers:{"content-type":"application/json","x-draft-csrf":saved.csrfToken},body:JSON.stringify({revision:saved.revision,patch:{paidSeated}})});return{draft};
       });return draftHallPresentation(client,locale) as T;
     }
-    if(path===`/api/organizer/events/${id}`){await client.reload();return{status:["active","claimed"].includes(client.saved.state)?"draft":"published",venueName:client.aggregate.content[locale]?.venueName??"",currency:client.aggregate.currency} as T;}
+    if(path===`/api/organizer/events/${id}`){await client.reload();return{status:["active","claimed"].includes(client.saved.state)?"draft":"published",title:client.aggregate.content[locale]?.title??"",currency:client.aggregate.currency} as T;}
     if(path===`/api/organizer/events/${id}/venue-layout`)return draftHallPresentation(client,locale) as T;
     if(path==="/api/organizer/venue-layout-templates?limit=50")return{items:[]} as T;
     throw new Error("DRAFT_HALL_OPERATION_UNAVAILABLE");

@@ -30,7 +30,7 @@ beforeAll(async () => {
   await prisma.event.create({ data: {
     id: eventId, organizerId, title: "Событие для избранного", category: "music", city: "Алматы",
     date: new Date("2030-01-01T00:00:00.000Z"), time: new Date("1970-01-01T18:00:00.000Z"),
-    timezone: "Asia/Almaty", venueName: "Зал", address: "Алматы", status: EventStatus.published,
+    timezone: "Asia/Almaty", address: "Алматы", status: EventStatus.published,
   } });
 });
 

@@ -21,7 +21,7 @@ beforeAll(async () => {
     { id: otherId, telegramId: chatId + 2n, role: "guest" },
   ] });
   await prisma.userNotificationPreference.create({ data: { userId: guestId, eventReminders: false } });
-  await prisma.event.create({ data: { id: eventId, organizerId, title: "Тест R2", date: new Date("2035-04-02T00:00:00Z"), time: new Date("1970-01-01T09:00:00Z"), timezone: "Asia/Almaty", venueName: "Зал", address: "Адрес", status: "published" } });
+  await prisma.event.create({ data: { id: eventId, organizerId, title: "Тест R2", date: new Date("2035-04-02T00:00:00Z"), time: new Date("1970-01-01T09:00:00Z"), timezone: "Asia/Almaty", address: "Адрес", status: "published" } });
   await prisma.ticketType.create({ data: { id: typeId, eventId, name: "Вход", price: 1000, currency: "KZT", quantityTotal: 5 } });
   await prisma.order.create({ data: { id: orderId, type: "ticket", buyerUserId: guestId, amount: 1000, currency: "KZT", paymentStatus: "paid" } });
   await prisma.ticket.create({ data: { ticketTypeId: typeId, orderId, ownerUserId: guestId, qrToken: randomUUID(), status: "active", paidAt: now } });
@@ -74,12 +74,12 @@ describe("R2 transactional inbox and reminders", () => {
     await dispatcher.tick(now);
     expect((await account.notifications(guestId, { page: 1, limit: 20 })).items.some((item) => item.type === "purchase.confirmed")).toBe(true);
 
-    const changed = await prisma.event.update({ where: { id: eventId }, data: { venueName: "Новый зал" } });
-    await prisma.outboxEvent.create({ data: { eventType: "event.updated", aggregateType: "event", aggregateId: eventId, payload: { changedFields: ["venueName"], eventUpdatedAt: changed.updatedAt.toISOString() } } });
+    const changed = await prisma.event.update({ where: { id: eventId }, data: { address: "Новый адрес" } });
+    await prisma.outboxEvent.create({ data: { eventType: "event.updated", aggregateType: "event", aggregateId: eventId, payload: { changedFields: ["address"], eventUpdatedAt: changed.updatedAt.toISOString() } } });
     await prisma.user.update({ where: { id: guestId }, data: { telegramChatId: chatId } });
     await dispatcher.tick(now);
     const inbox = await account.notifications(guestId, { page: 1, limit: 20 });
-    expect(inbox.items.some((item) => item.type === "event.change" && item.text.includes("Новый зал"))).toBe(true);
+    expect(inbox.items.some((item) => item.type === "event.change" && item.text.includes("Новый адрес"))).toBe(true);
     const send = vi.fn(async () => "telegram-accepted");
     await delivery.tick(send);
     expect(send).toHaveBeenCalled();

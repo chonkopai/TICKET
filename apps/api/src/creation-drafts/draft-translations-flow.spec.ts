@@ -10,7 +10,7 @@ import { DraftTranslationsService } from "./draft-translations.service.js";
 function fixture(output: string[] | Promise<string[]>) {
   const aggregate = newEventCreationDraft("00000000-0000-4000-8000-000000000002", "en");
   aggregate.content.en = { title: "Music concert", description: wrapRichDescription("<h1>Programme</h1><p><strong>Live music</strong></p>") };
-  aggregate.content.ru = { title: "Existing manual title", description: "Existing description", summary: "No source summary" };
+  aggregate.content.ru = { title: "Existing manual title", description: "Existing description", address: "No source address" };
   const original: CreationDraftResponse = { id: "00000000-0000-4000-8000-000000000001", revision: 1, state: "active", aggregate, expiresAt: "2026-12-01T00:00:00Z", owned: false, csrfToken: "test-csrf", resultEventId: null };
   let saved = structuredClone(original);
   const mutate = vi.fn(async (_id: string, _access: unknown, revision: number, change: (draft: EventCreationDraftV2) => EventCreationDraftV2, origin: "manual" | "machine", translated?: AppliedTranslation) => {
@@ -31,7 +31,7 @@ describe("one-click draft translation", () => {
     const description = wrapRichDescription("<h1>Программа</h1><p><strong>Живая музыка</strong></p>"), f = fixture(["Музыкальный концерт", description]);
     const result = await f.service.translate(f.original.id, {}, 1, "ru");
     expect(result.translated).toBe(2);
-    expect(result.draft.aggregate.content.ru).toEqual({ title: "Музыкальный концерт", description, summary: "No source summary" });
+    expect(result.draft.aggregate.content.ru).toEqual({ title: "Музыкальный концерт", description, address: "No source address" });
     expect(result.draft.aggregate.content.en).toEqual(f.original.aggregate.content.en);
     expect(result.draft.aggregate.classification).toEqual(f.original.aggregate.classification);
     expect(result.draft.aggregate.sourceLocale).toBe("en");

@@ -3,9 +3,7 @@ export const EVENT_LOCALES = ["ru", "kk", "en"] as const;
 export type EventLocale = (typeof EVENT_LOCALES)[number];
 export interface EventLocalizedContent {
   title: string;
-  venueName: string;
   address: string;
-  announcement: string | null;
   description: string | null;
   program: string | null;
   rules: string | null;
@@ -58,7 +56,6 @@ export interface OrganizerEvent {
   countryCode: string;
   city: string;
   posterUrl: string | null;
-  announcement: string | null;
   description: string | null;
   program: string | null;
   rules: string | null;
@@ -72,7 +69,6 @@ export interface OrganizerEvent {
   time: string;
   timezone: string;
   ageRestriction: EventAgeRestriction;
-  venueName: string;
   address: string;
   status: EventStatus;
   createdAt: string;
@@ -138,7 +134,7 @@ export interface PublicPaymentOption {
 export interface PublicEventMedia {id:string;slot:number;kind:"image"|"video";width:number;height:number;url:string;posterUrl:string|null;isCard:boolean;isBackground:boolean;galleryVisible:boolean;caption:string|null;crops:import("./event-creation-v2.js").EventCreationDraftV2["media"]["crops"]}
 
 export interface PublicEvent {
-  creationVersion?:2; saleMode?:import("./event-creation-v2.js").EventSaleMode;currency?:string;summary?:string;endsAt?:string|null;refundsAvailable?:boolean;refundPolicyRevision?:number;media?:PublicEventMedia[];
+  creationVersion?:2; saleMode?:import("./event-creation-v2.js").EventSaleMode;currency?:string;endsAt?:string|null;refundsAvailable?:boolean;refundPolicyRevision?:number;media?:PublicEventMedia[];
   id: string;
   contentLocale?: EventLocale;
   sourceLocale?: EventLocale;
@@ -148,7 +144,6 @@ export interface PublicEvent {
   city: string;
   posterUrl: string | null;
   galleryUrls?: string[];
-  announcement: string | null;
   description: string | null;
   program: string | null;
   rules: string | null;
@@ -163,7 +158,6 @@ export interface PublicEvent {
   timezone: string;
   ageRestriction: EventAgeRestriction;
   startsAt: string;
-  venueName: string;
   address: string;
   ticketTypes: PublicTicketType[];
   tables: PublicTable[];
@@ -180,13 +174,11 @@ export interface PublicEventSummary {
   countryCode: string;
   city: string;
   posterUrl: string | null;
-  announcement: string | null;
   date: string;
   time: string;
   timezone: string;
   ageRestriction: EventAgeRestriction;
   startsAt: string;
-  venueName: string;
   address: string;
   paymentMode: EventPaymentMode;
   paymentLabel: PaymentLabel;

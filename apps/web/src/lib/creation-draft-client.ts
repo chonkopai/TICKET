@@ -105,7 +105,15 @@ export function draftRecovery(){if(typeof window==="undefined")return null;try{r
 
 function parseRecovery(value:unknown):DraftRecovery|null{
   if(!value||typeof value!=="object")return null;
-  const record=value as Record<string,unknown>,patch=creationDraftPatchSchema.safeParse(record.patch);
+  const record=value as Record<string,unknown>;
+  // Older browser backups may contain retired fields alongside useful unsaved text.
+  // Strip only those fields; keep strict validation for every other patch key.
+  let input=record.patch;
+  if(input && typeof input==="object" && !Array.isArray(input)) {
+    const data=input as Record<string,unknown>,content=data.content;
+    if(content && typeof content==="object" && !Array.isArray(content)) input={...data,content:Object.fromEntries(Object.entries(content).map(([locale,fields])=>[locale,fields && typeof fields==="object" && !Array.isArray(fields) ? Object.fromEntries(Object.entries(fields).filter(([key])=>key!=="summary" && key!=="venueName")) : fields]))};
+  }
+  const patch=creationDraftPatchSchema.safeParse(input);
   if(typeof record.id!=="string"||!Number.isSafeInteger(record.baseRevision)||(record.baseRevision as number)<1||!patch.success||!Object.keys(patch.data).length)return null;
   return {id:record.id,baseRevision:record.baseRevision as number,patch:patch.data};
 }

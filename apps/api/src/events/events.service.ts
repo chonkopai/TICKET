@@ -330,7 +330,7 @@ export class EventsService {
           timezone: event.timezone,
           date: event.date.toISOString().slice(0, 10),
           time: event.time.toISOString().slice(11, 16),
-          venueName: event.venueName,
+
           address: event.address,
           salesModes,
         },
@@ -1521,7 +1521,6 @@ function assertPublishable(event: Event): void {
   if (!event.title.trim()) missingFields.push("title");
   if (!event.category) missingFields.push("category");
   if (!event.city.trim()) missingFields.push("city");
-  if (!event.venueName.trim()) missingFields.push("venueName");
   if (!event.address.trim()) missingFields.push("address");
   if (!event.description?.trim()) missingFields.push("description");
   if (!event.cancellationTerms?.trim()) missingFields.push("cancellationTerms");

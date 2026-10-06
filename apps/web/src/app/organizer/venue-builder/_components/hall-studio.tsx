@@ -39,10 +39,10 @@ type Gesture = { kind: "pan" | "move" | "resize" | "rotate" | "marquee" | "row" 
 export function HallStudio({ eventId }: { eventId: string }) {
   return <ProtectedRoute><Studio eventId={eventId} /></ProtectedRoute>;
 }
-export function Studio({ eventId, initial, request = apiRequest,draftStudio }: { eventId: string; initial?: { layout: VenueLayout; event: Pick<OrganizerEvent,"status"|"venueName"|"currency"|"sourceLocale"> }; request?: typeof apiRequest;draftStudio?:DraftStudioOptions }) {
+export function Studio({ eventId, initial, request = apiRequest,draftStudio }: { eventId: string; initial?: { layout: VenueLayout; event: Pick<OrganizerEvent,"status"|"title"|"currency"|"sourceLocale"> }; request?: typeof apiRequest;draftStudio?:DraftStudioOptions }) {
   const router = useRouter();
   const [layout, setLayout] = useState<VenueLayout | null>(initial?.layout ?? null);
-  const [event, setEvent] = useState<Pick<OrganizerEvent,"status"|"venueName"|"currency"|"sourceLocale"> | null>(initial?.event ?? null);
+  const [event, setEvent] = useState<Pick<OrganizerEvent,"status"|"title"|"currency"|"sourceLocale"> | null>(initial?.event ?? null);
   const [state, setState] = useState<HallState>(() => initial ? importLayout(initial.layout) : { room: { widthM: 24, heightM: 16 }, editor: { version: 1, objects: [], tariffs: [] } });
   const stateRef = useRef(state); stateRef.current = state;
   const [view, setView] = useState<View>({ pxPerMetre: 20, panX: 0, panY: 0 });
@@ -396,7 +396,7 @@ export function Studio({ eventId, initial, request = apiRequest,draftStudio }: {
   if (loading) return <main className="p-8"><div className="flex justify-end"><ThemeToggle /></div><p role="status">Загружаем конструктор…</p></main>;
   if (!layout) return <main className="p-8"><div className="flex justify-end"><ThemeToggle /></div><p role="alert">{error}</p><button className={button} onClick={() => void load()}>Повторить</button></main>;
   const worldLeft = -view.panX / view.pxPerMetre, worldTop = -view.panY / view.pxPerMetre;
-  const hallName = layout.templateName?.trim() || event?.venueName?.trim() || "Основной зал";
+  const hallName = layout.templateName?.trim() || event?.title?.trim() || "Основной зал";
   const saveStatus = busy ? "Сохранение…" : dirty ? "Есть изменения" : savedAt ? `Автосохранение ${Math.max(0, Math.floor((now - savedAt) / 1000))} сек назад` : "Схема загружена";
   return <main className="bg-[#f8f9ff] dark:bg-ticket-bg text-[#0b1c30] dark:text-ticket-text">
     <header className="flex h-14 items-center justify-between gap-2 border-b border-[#e5eefe] dark:border-ticket-border bg-white/95 dark:bg-ticket-surface/95 px-3 shadow-[0_1px_8px_rgba(11,28,48,0.06)] backdrop-blur-xl md:px-4">

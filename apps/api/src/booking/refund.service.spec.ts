@@ -25,7 +25,7 @@ const service = new RefundService(prisma, provider, new DomainEventsService(), c
 beforeAll(async () => {
   const base = BigInt(Date.now()) * 100_000n;
   await prisma.user.createMany({ data: [{ id: organizerId, telegramId: base + 9101n, role: "organizer" }, { id: otherOrganizerId, telegramId: base + 9102n, role: "organizer" }] });
-  await prisma.event.create({ data: { id: eventId, organizerId, title: "Refund fixture", date: new Date("2030-10-20T00:00:00Z"), time: new Date("1970-01-01T19:00:00Z"), timezone: "Asia/Almaty", venueName: "Test hall", address: "Test", status: "published" } });
+  await prisma.event.create({ data: { id: eventId, organizerId, title: "Refund fixture", date: new Date("2030-10-20T00:00:00Z"), time: new Date("1970-01-01T19:00:00Z"), timezone: "Asia/Almaty", address: "Test", status: "published" } });
   await prisma.ticketType.create({ data: { id: typeId, eventId, name: "Admission", price: 50_000, currency: "KZT", quantityTotal: 100, status: "active" } });
 });
 

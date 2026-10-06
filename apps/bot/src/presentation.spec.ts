@@ -78,8 +78,8 @@ describe("Telegram presentation", () => {
 
 function summary(title: string): PublicEventSummary {
   return {
-    id: crypto.randomUUID(), title, category: "music", countryCode: "KZ", city: "Алматы", posterUrl: null, announcement: null, ageRestriction: 0, date: "2026-12-20", time: "19:00",
-    timezone: "Asia/Almaty", startsAt: "2026-12-20T13:00:00.000Z", venueName: "Площадка", address: "Алматы",
+    id: crypto.randomUUID(), title, category: "music", countryCode: "KZ", city: "Алматы", posterUrl: null, ageRestriction: 0, date: "2026-12-20", time: "19:00",
+    timezone: "Asia/Almaty", startsAt: "2026-12-20T13:00:00.000Z", address: "Алматы",
     paymentMode: "full_payment", paymentLabel: "full_payment", startingAmount: 500_000, startingFullAmount: 500_000, startingCurrency: "KZT", startingUnit: "ticket", startingPrices: [{ amount: 500_000, fullAmount: 500_000, currency: "KZT", unit: "ticket" }], remainingTickets: 10, remainingTables: 0, remainingSeats: 0, saleStatus: "available",
     organizer: { name: "Организатор", photoUrl: null },
   };
@@ -87,10 +87,10 @@ function summary(title: string): PublicEventSummary {
 
 function eventFixture(overrides: Partial<PublicEvent> = {}): PublicEvent {
   const base: PublicEvent = {
-    id: crypto.randomUUID(), title: "Тестовое мероприятие", category: "music", countryCode: "KZ", city: "Алматы", posterUrl: null, announcement: "Анонс", ageRestriction: 0, description: null,
+    id: crypto.randomUUID(), title: "Тестовое мероприятие", category: "music", countryCode: "KZ", city: "Алматы", posterUrl: null, ageRestriction: 0, description: null,
     program: null, rules: null, visitTerms: null, cancellationTerms: null, paymentMode: "full_payment",
     showFullAmountForDeposit: false, depositTerms: null, extraConditions: null, date: "2026-12-20", time: "19:00",
-    timezone: "Asia/Almaty", startsAt: "2026-12-20T13:00:00.000Z", venueName: "Площадка", address: "Алматы",
+    timezone: "Asia/Almaty", startsAt: "2026-12-20T13:00:00.000Z", address: "Алматы",
     ticketTypes: [], tables: [], organizer: { name: "Организатор", personName: null, photoUrl: null, contact: null },
   };
   return { ...base, ...overrides };

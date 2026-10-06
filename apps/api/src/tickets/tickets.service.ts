@@ -266,7 +266,7 @@ export class TicketsService {
       eventTitle: saved.eventTitle??event.title,
       ticketTypeName: acceptedTicketName(ticket),
       seatLabel: ticket.seatLabelSnapshot ?? ticket.seatAllocation?.seat.label ?? null,
-      venueName: saved.venueName??event.venueName,
+      venueName: saved.venueName??saved.address??event.address,
       address: saved.address??event.address,
       eventDate: saved.eventDate??event.date.toISOString().slice(0,10),
       eventTime: saved.eventTime??event.time.toISOString().slice(11,16),

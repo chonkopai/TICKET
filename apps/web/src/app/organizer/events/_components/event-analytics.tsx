@@ -131,7 +131,7 @@ function Analytics({ eventId }: { eventId: string }) {
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-violet-700 dark:text-ticket-accent">{copy.eventAnalytics}</p>
           <h1 className="mt-2 break-words text-3xl font-bold tracking-tight text-zinc-950 dark:text-ticket-text sm:text-4xl">{summary.event.title}</h1>
-          <p className="mt-3 text-sm text-zinc-600 dark:text-ticket-muted sm:text-base">{eventDate} · {summary.event.time} · {summary.event.timezone}<br />{summary.event.venueName}, {summary.event.address}</p>
+          <p className="mt-3 text-sm text-zinc-600 dark:text-ticket-muted sm:text-base">{eventDate} · {summary.event.time} · {summary.event.timezone}<br />{summary.event.address}, {summary.event.address}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button className="rounded-xl border border-violet-200 dark:border-ticket-accent bg-violet-50 dark:bg-ticket-accent-soft px-4 py-2 text-sm font-semibold text-violet-900 dark:text-ticket-accent disabled:opacity-50" disabled={Boolean(downloading)} onClick={() => void download("analytics")} type="button">{downloading === "analytics" ? copy.preparing : copy.financialCsv}</button>

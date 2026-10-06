@@ -115,8 +115,8 @@ export class TicketEmailDeliveryService implements OnModuleInit, OnModuleDestroy
     const payment = snapshot.paymentMode === "deposit" ? "Оплачен депозит" : "Покупка оплачена";
     const date = [snapshot.eventDate, snapshot.eventTime, snapshot.eventTimezone].filter(Boolean).join(" · ");
     const labels = snapshot.items?.map(item => `${item.name} × ${item.quantity}`).join(", ") ?? `${snapshot.itemName} × ${snapshot.quantity}`;
-    const text = `${payment}: ${snapshot.eventTitle}\n${date}\n${snapshot.venueName ?? ""}\nБилеты: ${labels}\nОткрыть покупку и QR-коды: ${accessUrl}\nСсылка действует 30 дней. Не пересылайте её другим.`;
-    const html = `<p>${escapeHtml(payment)}: <strong>${escapeHtml(snapshot.eventTitle)}</strong></p><p>${escapeHtml(date)}<br>${escapeHtml(snapshot.venueName ?? "")}</p><p>Билеты: ${escapeHtml(labels)}</p><p><a href="${escapeHtml(accessUrl)}">Открыть покупку и QR-коды</a></p><p>Ссылка действует 30 дней. Не пересылайте её другим.</p>`;
+    const text = `${payment}: ${snapshot.eventTitle}\n${date}\n${snapshot.address ?? snapshot.venueName ?? ""}\nБилеты: ${labels}\nОткрыть покупку и QR-коды: ${accessUrl}\nСсылка действует 30 дней. Не пересылайте её другим.`;
+    const html = `<p>${escapeHtml(payment)}: <strong>${escapeHtml(snapshot.eventTitle)}</strong></p><p>${escapeHtml(date)}<br>${escapeHtml(snapshot.address ?? snapshot.venueName ?? "")}</p><p>Билеты: ${escapeHtml(labels)}</p><p><a href="${escapeHtml(accessUrl)}">Открыть покупку и QR-коды</a></p><p>Ссылка действует 30 дней. Не пересылайте её другим.</p>`;
     return { to: row.recipient, subject: `Билеты TICKET — ${snapshot.eventTitle}`, text, html, idempotencyKey: `ticket-email/${row.orderId}/${row.generation}` };
   }
 
@@ -148,7 +148,7 @@ export class TicketEmailDeliveryService implements OnModuleInit, OnModuleDestroy
     const order = delivery.order;
     const snapshot = readCheckoutSnapshot(order.checkoutSnapshot);
     const event = typeof snapshot.eventId === "string" ? await this.db.event.findUnique({ where: { id: snapshot.eventId }, select: { sourceLocale: true } }) : null;
-    return { orderId: order.id, title: snapshot.eventTitle, sourceLocale: snapshot.contentLocale??event?.sourceLocale ?? "ru", date: snapshot.eventDate ?? null, time: snapshot.eventTime ?? null, timezone: snapshot.eventTimezone ?? null, venue: snapshot.venueName ?? null,
+    return { orderId: order.id, title: snapshot.eventTitle, sourceLocale: snapshot.contentLocale??event?.sourceLocale ?? "ru", date: snapshot.eventDate ?? null, time: snapshot.eventTime ?? null, timezone: snapshot.eventTimezone ?? null, venue: snapshot.address ?? snapshot.venueName ?? null,
       paymentMode: snapshot.paymentMode, amountPaid: order.amount, currency: order.currency.trim(), status: order.paymentStatus,
       items: snapshot.items ?? [{ kind: snapshot.itemKind, name: snapshot.itemName, quantity: snapshot.quantity }],
       tickets: order.tickets.map(ticket => ({ id: ticket.id, name: acceptedResourceName(snapshot,[ticket.ticketTypeId,ticket.seatAllocation?.seatId,ticket.seatAllocation?.seat.tableId],ticket.ticketType.isInternal ? ticket.seatLabelSnapshot ?? "Место за столом" : ticket.ticketType.name), seatLabel: ticket.seatLabelSnapshot, status: ticket.status })),

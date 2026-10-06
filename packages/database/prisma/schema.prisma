@@ -396,7 +396,6 @@ model Event {
   city              String      @default("Алматы")
   posterUrl         String?
   galleryUrls       String[]    @default([])
-  announcement      String?     @db.Text
   description       String?     @db.Text
   program           String?     @db.Text
   rules             String?     @db.Text
@@ -410,7 +409,6 @@ model Event {
   time              DateTime    @db.Time(0)
   timezone          String      @default("Asia/Almaty")
   ageRestriction    Int         @default(0)
-  venueName         String
   address           String
   status            EventStatus @default(draft)
   publishedAt       DateTime?   @db.Timestamptz(3)
@@ -459,9 +457,7 @@ model EventTranslation {
   eventId           String   @db.Uuid
   locale            String   @db.VarChar(2)
   title             String
-  venueName         String
   address           String
-  announcement      String?  @db.Text
   description       String?  @db.Text
   program           String?  @db.Text
   rules             String?  @db.Text
@@ -667,9 +663,7 @@ model EventContent {
   eventId String @db.Uuid
   locale String @db.VarChar(2)
   title String?
-  summary String? @db.Text
   description String? @db.Text
-  venueName String?
   address String?
   refundConditions String? @db.Text
   revision Int @default(1)

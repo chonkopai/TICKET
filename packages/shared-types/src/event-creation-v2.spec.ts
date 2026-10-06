@@ -11,7 +11,7 @@ function valid() {
   draft.selectedMode = "free";
   draft.free.capacity = 20;
   draft.free.content.ru = { name: "Регистрация" };
-  draft.content.ru = { title: "Название", summary: "Анонс", description: "Описание", venueName: "Зал", address: "Адрес" };
+  draft.content.ru = { title: "Название", description: "Описание", address: "Адрес" };
   draft.classification = { category: "music", countryCode: "KZ", city: "Алматы", ageRestriction: 0 };
   draft.schedule = { startLocal: "2027-10-20T20:00", endLocal: "2027-10-21T01:00", timezone: "Asia/Almaty", startChoice: null, endChoice: null };
   draft.refundsAvailable = false;
@@ -116,7 +116,7 @@ describe("historical and new purchase promises",()=>{
     expect(parseHistoricalPurchaseSnapshot(null)).toEqual({version:1,raw:null});expect(()=>parseHistoricalPurchaseSnapshot({version:3})).toThrow();
   });
   it("validates the charged amount against frozen line items",()=>{
-    const snapshot={version:2,eventId:id(8),sourceLocale:"ru",contentLocale:"ru",title:"Event",venueName:"Venue",address:"Address",startsAt:"2027-01-01T20:00:00Z",endsAt:null,timezone:"UTC",saleMode:"paid_general",amount:100,currency:"KZT",acceptedAt:"2026-10-02T10:00:00Z",refund:{available:false,conditions:null,revision:1,locale:"ru",freeCancellation:false},items:[{resourceId:id(1),kind:"ticket",name:"Entry",quantity:1,unitAmount:100}]};
+    const snapshot={version:2,eventId:id(8),sourceLocale:"ru",contentLocale:"ru",title:"Event",address:"Address",startsAt:"2027-01-01T20:00:00Z",endsAt:null,timezone:"UTC",saleMode:"paid_general",amount:100,currency:"KZT",acceptedAt:"2026-10-02T10:00:00Z",refund:{available:false,conditions:null,revision:1,locale:"ru",freeCancellation:false},items:[{resourceId:id(1),kind:"ticket",name:"Entry",quantity:1,unitAmount:100}]};
     expect(purchaseSnapshotV2Schema.safeParse(snapshot).success).toBe(true);expect(purchaseSnapshotV2Schema.safeParse({...snapshot,amount:99}).success).toBe(false);
   });
 });

@@ -20,7 +20,7 @@ beforeAll(async () => {
     { id: otherId, telegramId: telegramBase + 2n, role: "guest", name: "Другой" },
     { id: organizerId, telegramId: telegramBase + 3n, role: "organizer", name: "Организатор" },
   ] });
-  await prisma.event.create({ data: { id: eventId, organizerId, title: "Тестовое событие", category: "music", city: "Алматы", date: new Date("2027-04-20T00:00:00Z"), time: new Date("1970-01-01T19:00:00Z"), timezone: "Asia/Almaty", venueName: "Зал", address: "Адрес" } });
+  await prisma.event.create({ data: { id: eventId, organizerId, title: "Тестовое событие", category: "music", city: "Алматы", date: new Date("2027-04-20T00:00:00Z"), time: new Date("1970-01-01T19:00:00Z"), timezone: "Asia/Almaty", address: "Адрес" } });
   const type = await prisma.ticketType.create({ data: { eventId, name: "Стандарт", price: 100_000, currency: "KZT", quantityTotal: 10, quantitySold: 3, status: "active" } });
   const activeOrder = await prisma.order.create({ data: { type: "ticket", buyerUserId: guestId, amount: 100_000, currency: "KZT", paymentStatus: "paid", checkoutSnapshot: { eventId, eventTitle: "Историческое название", itemName: "Стандарт", quantity: 1 } } });
   const usedOrder = await prisma.order.create({ data: { type: "ticket", buyerUserId: guestId, amount: 200_000, currency: "KZT", paymentStatus: "paid", checkoutSnapshot: { eventId, eventTitle: "Тестовое событие", itemName: "Стандарт", quantity: 2 } } });

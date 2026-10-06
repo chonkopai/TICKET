@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import sanitizeHtml from "sanitize-html";
+import { richDescriptionBody } from "@event-platform/shared-types";
 import type { PublicEvent } from "@event-platform/shared-types";
 import { isLocale, localeUrl } from "../../../lib/locale";
 import PublicEventClient from "./event-client";
@@ -25,11 +27,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     if (!response.ok) return { alternates };
     const event = await response.json() as PublicEvent;
     const fallback = event.contentLocale && event.contentLocale !== locale ? ` [${event.contentLocale.toUpperCase()}]` : "";
+    const description = event.description ? sanitizeHtml(richDescriptionBody(event.description) ?? event.description, { allowedTags: [], allowedAttributes: {} }).replace(/\s+/g, " ").trim().slice(0, 160) : undefined;
     return {
       title: `${event.title}${fallback} | TICKET`,
-      description: event.announcement ?? event.description ?? undefined,
+      description,
       alternates,
-      openGraph: { title: `${event.title}${fallback}`, description: event.announcement ?? undefined, images: event.posterUrl ? [new URL(event.posterUrl,API_URL).toString()] : [] },
+      openGraph: { title: `${event.title}${fallback}`, description, images: event.posterUrl ? [new URL(event.posterUrl,API_URL).toString()] : [] },
     };
   } catch {
     return { alternates };

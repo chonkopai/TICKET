@@ -55,7 +55,7 @@ export async function persistSelectedSale(tx:Prisma.TransactionClient,eventId:st
   await tx.ticketType.updateMany({where:{eventId},data:{status:"draft"}});
   await tx.table.updateMany({where:{venueLayout:{eventId}},data:{status:"unavailable"}});
   if(draft.selectedMode==="paid_seated"){
-    const layout=await tx.venueLayout.upsert({where:{eventId},create:{eventId,templateName:draft.content[draft.sourceLocale]?.venueName??"Hall",layoutJson:{version:1,canvas:{width:1000,height:700},tables:[]}},update:{}});
+    const layout=await tx.venueLayout.upsert({where:{eventId},create:{eventId,templateName:draft.content[draft.sourceLocale]?.title??"Hall",layoutJson:{version:1,canvas:{width:1000,height:700},tables:[]}},update:{}});
     await tx.$queryRaw`SELECT id FROM "VenueLayout" WHERE id=${layout.id}::uuid FOR UPDATE`;
     await persistCanonicalHall(tx,eventId,layout.id,draft.paidSeated!,draft.sourceLocale,draft.currency);return{mode:draft.selectedMode,layoutId:layout.id};
   }

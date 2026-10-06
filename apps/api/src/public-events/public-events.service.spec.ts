@@ -35,7 +35,7 @@ beforeAll(async () => {
     { id: guestId, telegramId: telegramBase + 702n, role: "guest", name: "Гость" },
   ] });
   await prisma.event.create({ data: {
-    id: publishedId, organizerId, title: "Открытый концерт", category: "music", city: "Алматы", posterUrl: "https://example.com/poster.jpg", announcement: "Анонс", description: "Описание", program: "Программа", rules: "Правила", visitTerms: "Условия посещения", cancellationTerms: "Условия отмены", paymentMode: "deposit", showFullAmountForDeposit: true, depositTerms: "Депозит", extraConditions: "18+", date: new Date("2027-01-01T00:00:00.000Z"), time: new Date("1970-01-01T18:00:00.000Z"), timezone: "Asia/Almaty", ageRestriction: 18, venueName: "Зал", address: "Алматы", status: EventStatus.published,
+    id: publishedId, organizerId, title: "Открытый концерт", category: "music", city: "Алматы", posterUrl: "https://example.com/poster.jpg", description: "Описание", program: "Программа", rules: "Правила", visitTerms: "Условия посещения", cancellationTerms: "Условия отмены", paymentMode: "deposit", showFullAmountForDeposit: true, depositTerms: "Депозит", extraConditions: "18+", date: new Date("2027-01-01T00:00:00.000Z"), time: new Date("1970-01-01T18:00:00.000Z"), timezone: "Asia/Almaty", ageRestriction: 18, address: "Алматы", status: EventStatus.published,
   } });
   await prisma.event.createMany({ data: hiddenIds.map((id, index) => ({ ...eventData(id, `Скрытое ${index}`), status: [EventStatus.draft, EventStatus.cancelled, EventStatus.completed][index]! })) });
 
@@ -73,7 +73,7 @@ describe("PublicEventsService", () => {
   it("searches displayed translations and falls back when a generated version becomes stale", async () => {
     await prisma.event.create({ data: { ...eventData(localizedId, "Исходное название"), status: EventStatus.published } });
     await prisma.eventTranslation.create({ data: {
-      eventId: localizedId, locale: "en", title: "Community gathering", venueName: "Community hall", address: "Almaty",
+      eventId: localizedId, locale: "en", title: "Community gathering", address: "Almaty",
       origin: "manual",
     } });
     const translated = await service.list({ page: 1, limit: 12, sort: "recent", locale: "en", search: "Community gathering" });
@@ -209,5 +209,5 @@ describe("PublicEventsService", () => {
 });
 
 function eventData(id: string, title: string) {
-  return { id, organizerId, title, date: new Date("2027-01-01T00:00:00.000Z"), time: new Date("1970-01-01T18:00:00.000Z"), timezone: "Asia/Almaty", venueName: "Зал", address: "Алматы" };
+  return { id, organizerId, title, date: new Date("2027-01-01T00:00:00.000Z"), time: new Date("1970-01-01T18:00:00.000Z"), timezone: "Asia/Almaty", address: "Алматы" };
 }

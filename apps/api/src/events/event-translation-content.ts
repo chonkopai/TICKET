@@ -3,7 +3,7 @@ import type { Event } from "@event-platform/database";
 import type { EventLocalizedContent } from "@event-platform/shared-types";
 
 export const TRANSLATABLE_EVENT_FIELDS = [
-  "title", "venueName", "address", "announcement", "description", "program",
+  "title", "address", "description", "program",
   "rules", "visitTerms", "cancellationTerms", "depositTerms", "extraConditions",
 ] as const satisfies readonly (keyof EventLocalizedContent)[];
 

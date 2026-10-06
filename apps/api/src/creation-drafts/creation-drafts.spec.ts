@@ -16,7 +16,7 @@ describe.runIf(draftDatabaseTests)("durable capability-scoped creation drafts",(
   beforeAll(async()=>{const user=await prisma.user.create({data:{}});users.push(user.id);});
   it("round trips incomplete locales/hall/inactive modes without a placeholder event",async()=>{
     const {draft,access}=await fixture("en"),before=await prisma.event.count();
-    const saved=await service.update(draft.id,access,draft.revision,{content:{en:{title:"Saved source"},kk:{summary:"Partial target"}},paidGeneral:[{id:randomUUID(),active:true,amount:null,capacity:null,content:{}}],step:"details"});
+    const saved=await service.update(draft.id,access,draft.revision,{content:{en:{title:"Saved source"},kk:{}},paidGeneral:[{id:randomUUID(),active:true,amount:null,capacity:null,content:{}}],step:"details"});
     const read=await service.read(draft.id,access);expect(read.aggregate).toEqual(saved.aggregate);expect(read.aggregate.content.ru).toBeUndefined();expect(read.aggregate.currency).toBe("KZT");expect(await prisma.event.count()).toBe(before);
   });
   it("persists after authentication cancellation and denies guessed/wrong capabilities",async()=>{

@@ -82,7 +82,7 @@ export default function QuickStatusPage() {
     <BackLink href="/events" label={copy.back} />
     <h1 className="text-3xl font-semibold">{status?.title ?? text.title}</h1>
     {status ? <ContentLanguageNote contentLocale={status.sourceLocale} /> : null}
-    {status?.event ? <p className="text-sm text-zinc-700 dark:text-ticket-muted">{status.event.date} · {status.event.time} ({status.event.timezone})<br />{status.event.venueName} · {status.event.address}</p> : null}
+    {status?.event ? <p className="text-sm text-zinc-700 dark:text-ticket-muted">{status.event.date} · {status.event.time} ({status.event.timezone})<br />{status.event.address}</p> : null}
     {error && <p role="alert" className="rounded-xl bg-red-50 dark:bg-ticket-danger-soft p-4 text-red-800 dark:text-ticket-danger">{error}</p>}
     {status && <>
       <p role="status" className="rounded-xl bg-zinc-100 dark:bg-ticket-raised p-5">{paymentCopy.statuses[status.status] ?? status.status}<br />{status.paymentMode === "deposit" ? text.deposit : text.full}: {money(status.amountDue, status.currency)}{displayCurrency !== "KZT" ? <span className="mt-1 block text-xs text-zinc-600 dark:text-ticket-muted">{copy.approximate} {formatDisplayMoney(status.amountDue, status.currency)} · {copy.paymentIn} {status.currency}</span> : null}</p>

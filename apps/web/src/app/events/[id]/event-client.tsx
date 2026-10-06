@@ -123,7 +123,6 @@ export default function PublicEventPage({ id }: { id: string }) {
     </>}>
       <h1 className="max-w-4xl font-bold tracking-[-0.035em]">{event.title}</h1>
       <div className="mt-2"><ContentLanguageNote contentLocale={event.contentLocale} /></div>
-      {event.announcement ? <p className="event-hero-announcement mt-3 max-w-2xl text-sm leading-6 text-white/85 sm:text-base">{event.announcement}</p> : null}
       <EventHeroDetails event={event} locale={locale} />
     </EventHero>
 
@@ -131,7 +130,7 @@ export default function PublicEventPage({ id }: { id: string }) {
       {syncError ? <div aria-live="polite" className="mb-4 rounded-xl bg-amber-50 dark:bg-ticket-warning-soft px-4 py-3 text-sm text-amber-900 dark:text-ticket-warning">{copy.syncFailed} <button className="font-bold underline" onClick={() => void refreshAvailability().catch(() => setSyncError(true))} type="button">{copy.retry}</button></div> : null}
       <div className="event-details-grid items-start">
         <div>
-          {event.creationVersion===2?<EventStory description={event.description} venueName="" address="" refundConditions={event.cancellationTerms} refundsAvailable={event.refundsAvailable??false} free={event.saleMode==="free"} locale={locale} showRefund={false}/>:event.description||event.announcement?<ContentCard icon="spark" title={copy.about}><RichText text={event.description ?? event.announcement} /></ContentCard>:null}
+          {event.creationVersion===2?<EventStory description={event.description} address="" refundConditions={event.cancellationTerms} refundsAvailable={event.refundsAvailable??false} free={event.saleMode==="free"} locale={locale} showRefund={false}/>:event.description?<ContentCard icon="spark" title={copy.about}><RichText text={event.description} /></ContentCard>:null}
         </div>
         {hasHall && layout ? <VenueSection layout={layout} event={event} selectedSeatIds={selectedSeatIds} onChange={setSelectedSeatIds} selectedTableId={selectedTableId} onTableChange={setSelectedTableId} ticketQuantities={ticketQuantities} onTicketChange={changeTicket} /> : null}
         <div className="event-checkout"><CheckoutPanel event={event} layout={layout} selectedSeatIds={selectedSeatIds} selectedTableId={selectedTableId} onTableChange={setSelectedTableId} ticketQuantities={ticketQuantities} onTicketChange={changeTicket} onClearSeats={() => setSelectedSeatIds([])} onRefreshAvailability={refreshAvailability} /></div>
@@ -320,15 +319,15 @@ function ProgramCard({ text, eventTime }: { text: string | null; eventTime: stri
 
 function LocationCard({ event }: { event: PublicEvent }) {
   const copy = useEventCopy();
-  const query = [event.address || event.venueName, event.city, event.countryCode].filter(Boolean).join(", ");
+  const query = [event.address, event.city, event.countryCode].filter(Boolean).join(", ");
   const encodedQuery = encodeURIComponent(query);
   const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_API_KEY;
   const embedUrl = mapsKey
     ? `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(mapsKey)}&q=${encodedQuery}`
     : `https://www.google.com/maps?q=${encodedQuery}&output=embed`;
   return <section className="flex flex-col">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-2xl font-bold">{copy.location}</h2><p className="mt-1 text-sm text-[#4a4453] dark:text-ticket-muted">{event.venueName} · {event.address}</p></div><a className="rounded-full bg-[#5b21b6] dark:bg-ticket-primary px-4 py-2 text-sm font-semibold text-white" href={`https://www.google.com/maps/search/?api=1&query=${encodedQuery}`} rel="noreferrer" target="_blank">{copy.openMap}</a></div>
-    <div className="relative mt-5 min-h-64 flex-1 overflow-hidden rounded-xl bg-[#f0f3ff] dark:bg-ticket-raised"><iframe className="absolute inset-0 h-full w-full border-0" loading="lazy" referrerPolicy="strict-origin-when-cross-origin" src={embedUrl} title={`${copy.location}: ${event.venueName}`} /></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-2xl font-bold">{copy.location}</h2><p className="mt-1 text-sm text-[#4a4453] dark:text-ticket-muted">{event.address}</p></div><a className="rounded-full bg-[#5b21b6] dark:bg-ticket-primary px-4 py-2 text-sm font-semibold text-white" href={`https://www.google.com/maps/search/?api=1&query=${encodedQuery}`} rel="noreferrer" target="_blank">{copy.openMap}</a></div>
+    <div className="relative mt-5 min-h-64 flex-1 overflow-hidden rounded-xl bg-[#f0f3ff] dark:bg-ticket-raised"><iframe className="absolute inset-0 h-full w-full border-0" loading="lazy" referrerPolicy="strict-origin-when-cross-origin" src={embedUrl} title={`${copy.location}: ${event.address}`} /></div>
   </section>;
 }
 

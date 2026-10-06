@@ -3,7 +3,7 @@ import { EVENT_TEXT_LIMITS,eventLocaleSchema,type EventCreationDraftV2 } from ".
 import type { EventLocale } from "./events.js";
 /** Stable field keys are shared by locale metadata, translation and editor controls. */
 export interface DraftLocaleField { key:string; maximum:number; text:string }
-const eventFields=["title","summary","description","venueName","address","refundConditions"] as const;
+const eventFields=["title","description","address","refundConditions"] as const;
 export function draftLocaleFields(draft:EventCreationDraftV2,locale:EventLocale):DraftLocaleField[]{
   const fields:DraftLocaleField[]=eventFields.map(key=>({key,maximum:EVENT_TEXT_LIMITS[key],text:draft.content[locale]?.[key]??""}));
   for(const row of [draft.free,...draft.paidGeneral,...(draft.paidSeated?.tariffs??[])])for(const field of ["name","description"] as const)fields.push({key:`sale.${row.id}.${field}`,maximum:field==="name"?60:300,text:row.content[locale]?.[field]??""});

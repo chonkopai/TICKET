@@ -18,7 +18,6 @@ export interface GuestEvent {
   title: string;
   posterUrl: string | null;
   media?: PublicEventMedia[];
-  announcement: string | null;
   description: string | null;
   program: string | null;
   rules: string | null;
@@ -32,7 +31,6 @@ export interface GuestEvent {
   time: string;
   timezone: string;
   startsAt: string;
-  venueName: string;
   address: string;
   eventStatus: "draft" | "published" | "cancelled" | "completed";
   participationStatus: GuestParticipationStatus;

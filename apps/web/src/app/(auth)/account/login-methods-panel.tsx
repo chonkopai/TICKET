@@ -9,17 +9,21 @@ import { apiRequest } from "../_lib/api";
 import { clearSession } from "../_lib/session";
 import { useLocale } from "../../../components/locale-provider";
 import { localeUrl } from "../../../lib/locale";
+import { AccountIcon } from "../../../components/account-icon";
+import { ACCOUNT_REDESIGN_COPY } from "../../../lib/account-redesign-copy";
 import { LOGIN_METHODS_COPY } from "../../../lib/login-methods-copy";
 
 const PENDING_TELEGRAM_KEY = "event-platform:pending-telegram-identity";
 type Step = "idle" | "code" | "complete";
 
-export function LoginMethodsPanel({ onUpdated }: { onUpdated: () => void }) {
+export function LoginMethodsPanel({ methods, onMethodsChange: setMethods, onUpdated }: { methods: LinkedMethodsResponse | null; onMethodsChange: (methods: LinkedMethodsResponse) => void; onUpdated: () => void }) {
   const locale = useLocale();
   const copy = LOGIN_METHODS_COPY[locale];
+  const design = ACCOUNT_REDESIGN_COPY[locale];
+  const contactForm = useRef<HTMLFormElement>(null);
+  const [showGoogle, setShowGoogle] = useState(false);
   const router = useRouter();
   const sequence = useRef(0);
-  const [methods, setMethods] = useState<LinkedMethodsResponse | null>(null);
   const [method, setMethod] = useState<LoginContactMethod>("email");
   const [step, setStep] = useState<Step>("idle");
   const [target, setTarget] = useState("");
@@ -37,12 +41,9 @@ export function LoginMethodsPanel({ onUpdated }: { onUpdated: () => void }) {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    let active = true;
-    apiRequest<LinkedMethodsResponse>("/me/identities").then(result => { if (active) setMethods(result); }).catch(error => { if (active) setMessage(readError(error, copy.failed)); });
     const pending = window.sessionStorage.getItem(PENDING_TELEGRAM_KEY);
     if (pending) setTelegramToken(pending);
-    return () => { active = false; };
-  }, [copy]);
+  }, []);
 
   useEffect(() => {
     if (!telegramToken) return;
@@ -61,7 +62,7 @@ export function LoginMethodsPanel({ onUpdated }: { onUpdated: () => void }) {
     void check();
     const timer = setInterval(() => { if (document.visibilityState === "visible" && (telegramState === null || telegramState === "waiting")) void check(); }, 5_000);
     return () => { active = false; clearInterval(timer); };
-  }, [telegramToken, telegramState, onUpdated, copy]);
+  }, [telegramToken, telegramState, onUpdated, setMethods, copy]);
 
   useEffect(() => {
     if (!retryAt) return;
@@ -112,7 +113,7 @@ export function LoginMethodsPanel({ onUpdated }: { onUpdated: () => void }) {
     try {
       const link = await apiRequest<TelegramLinkTokenResponse>("/auth/telegram/link-token", { method: "POST" });
       window.sessionStorage.setItem(PENDING_TELEGRAM_KEY, link.token);
-      setTelegramToken(link.token); setTelegramState("waiting");
+      setTelegramToken(link.token); setTelegramState("waiting"); setBusy(false);
       window.location.assign(link.deepLinkUrl);
     } catch (error) { setMessage(readError(error, copy.failed)); setBusy(false); }
   }
@@ -135,30 +136,31 @@ export function LoginMethodsPanel({ onUpdated }: { onUpdated: () => void }) {
     } catch (error) { setMessage(readError(error, copy.failed)); setBusy(false); }
   }
 
-  return <section className="mt-5 rounded-2xl border border-[#ded8e7] dark:border-ticket-border bg-white dark:bg-ticket-surface p-6">
-    <h2 className="text-xl font-bold">{copy.title}</h2>
-    <p className="mt-2 text-sm text-[#665d70] dark:text-ticket-muted">{copy.intro}</p>
-    {methods ? <div className="mt-5 grid gap-3 sm:grid-cols-3"><Status label="Telegram" value={methods.telegram.linked ? copy.linked : copy.unlinked} /><Status label="Email" value={methods.email.address ?? copy.unlinked} /><Status label={copy.phone} value={methods.phone.number ?? copy.unlinked} /></div> : <p className="mt-4 text-sm text-[#665d70] dark:text-ticket-muted">{copy.loading}</p>}
-    {methods ? <div className="mt-4 max-w-sm">{methods.google?.linked ? <Status label="Google" value={methods.google.email ?? copy.linked} /> : <GoogleLoginButton link onLinked={() => { void apiRequest<LinkedMethodsResponse>("/me/identities").then(setMethods).catch(error => setMessage(readError(error, copy.failed))); onUpdated(); }} />}</div> : null}
-    {methods && (!methods.email.linked || !methods.phone.linked) ? <div className="mt-6 border-t border-[#ece7f1] dark:border-ticket-border pt-6">
-      <h3 className="font-bold">{copy.connectContact}</h3>
-      <div className="mt-3 flex gap-2" role="group" aria-label={copy.contactGroup}>{(["email", "phone"] as const).filter(item => !methods[item].linked).map(item => <button key={item} type="button" aria-pressed={method === item} onClick={() => reset(item)} className={`rounded-full px-4 py-2 text-sm font-semibold ${method === item ? "bg-[#5b21b6] dark:bg-ticket-primary text-white" : "border border-[#d2cadc] dark:border-ticket-border"}`}>{item === "email" ? "Email" : copy.phone}</button>)}</div>
-      {method === "phone" ? <p className="mt-3 text-sm text-amber-900 dark:text-ticket-warning">{copy.smsUnavailable}</p> : null}
-      <form className="mt-4 grid max-w-lg gap-3" onSubmit={submitLink}>
-        {step === "idle" ? <label className="grid gap-2 text-sm font-semibold">{method === "email" ? copy.emailAddress : copy.intlPhone}<input required className={fieldClass} type={method === "email" ? "email" : "tel"} autoComplete={method === "email" ? "email" : "tel"} value={target} onChange={event => { sequence.current++; setTarget(event.target.value); }} disabled={method === "phone"} placeholder={method === "phone" ? "+77011234567" : "name@example.com"} /></label> : <div className="flex justify-between gap-3 text-sm"><span className="break-all">{maskTarget(target, method)}</span><button type="button" onClick={() => reset(method)} className="font-semibold text-[#5b21b6] dark:text-ticket-accent">{copy.change}</button></div>}
-        {step === "code" ? <><label className="grid gap-2 text-sm font-semibold">{copy.code}<input required className={fieldClass} inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={event => setCode(event.target.value.replace(/\D/g, ""))} /></label><button type="button" disabled={busy || remaining > 0} className="justify-self-start text-sm font-semibold text-[#5b21b6] dark:text-ticket-accent disabled:opacity-50" onClick={() => void requestCode(true)}>{remaining > 0 ? `${copy.resendIn} ${remaining} s` : copy.resend}</button></> : null}
-        {step === "complete" && !methods.passwordSet ? <label className="grid gap-2 text-sm font-semibold">{copy.setPassword}<input required className={fieldClass} type="password" autoComplete="new-password" minLength={12} maxLength={1024} value={password} onChange={event => setPassword(event.target.value)} /><span className="text-xs font-normal text-[#665d70] dark:text-ticket-muted">{copy.minPassword}</span></label> : null}
-        <button type="submit" disabled={busy || method === "phone"} className="rounded-xl bg-[#5b21b6] dark:bg-ticket-primary px-5 py-3 font-bold text-white disabled:opacity-50">{busy ? copy.wait : step === "idle" ? copy.getCode : step === "code" ? copy.confirmCode : copy.connect}</button>
+  return <section className="account-card account-methods">
+    <div><h2>{copy.title}</h2><p className="account-subtitle">{copy.intro}</p></div>
+    {methods ? <div className="account-method-grid">
+      <div className="account-method"><h3><AccountIcon name="mail" />Email</h3><p className={methods.email.linked ? "account-method-value" : ""}>{methods.email.address ?? copy.unlinked}</p>{methods.email.linked ? <span className="account-connected"><AccountIcon name="circle-check" />{copy.linked}</span> : <button className="account-text-link" type="button" onClick={() => { reset("email"); contactForm.current?.querySelector("input")?.focus(); }}>{copy.connectContact}<AccountIcon name="arrow-right" /></button>}</div>
+      <div className="account-method"><h3><AccountIcon name="smartphone" />{copy.phone}</h3><p>{methods.phone.number ?? copy.unlinked}</p>{methods.phone.linked ? <span className="account-connected">{copy.linked}</span> : <button className="account-text-link" type="button" onClick={() => reset("phone")}>{design.connectPhone}<AccountIcon name="arrow-right" /></button>}</div>
+      <div className="account-method"><h3><AccountIcon name="send" />Telegram</h3><p>{methods.telegram.linked ? copy.linked : copy.unlinked}</p>{!methods.telegram.linked ? <button className="account-text-link" disabled={busy} type="button" onClick={() => void startTelegram()}>{design.connectTelegram}<AccountIcon name="arrow-right" /></button> : null}</div>
+      <div className="account-method"><h3>Google</h3><p>{methods.google?.linked ? methods.google.email ?? copy.linked : copy.unlinked}</p>{!methods.google?.linked ? <button className="account-text-link" type="button" onClick={() => setShowGoogle(value => !value)}>{design.connectGoogle}<AccountIcon name="arrow-right" /></button> : null}</div>
+    </div> : <p className="account-muted" role="status">{copy.loading}</p>}
+    {showGoogle ? <div className="account-method-extra">{process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? <GoogleLoginButton link onLinked={() => { void apiRequest<LinkedMethodsResponse>("/me/identities").then(setMethods).catch(error => setMessage(readError(error, copy.failed))); onUpdated(); }} /> : <p role="status">{design.googleUnavailable}</p>}</div> : null}
+    {methods ? <div className="account-verification">
+      <form onSubmit={submitLink} ref={contactForm}><div className="account-card-toolbar"><h3>{copy.connectContact}</h3><div className="account-method-selector" role="group" aria-label={copy.contactGroup}>{(["email", "phone"] as const).map(item => <button key={item} type="button" aria-pressed={method === item} onClick={() => reset(item)}>{item === "email" ? "Email" : copy.phone}</button>)}</div></div>
+        {method === "phone" ? <p className="account-muted" role="status">{copy.smsUnavailable}</p> : null}
+        {step === "idle" ? <label className="account-field">{method === "email" ? copy.emailAddress : copy.intlPhone}<input required className="account-input" type={method === "email" ? "email" : "tel"} autoComplete={method === "email" ? "email" : "tel"} value={target} onChange={event => { sequence.current++; setTarget(event.target.value); }} disabled={busy || method === "phone"} placeholder={method === "phone" ? "+77011234567" : "name@example.com"} /></label> : <div className="account-card-toolbar"><span className="account-muted">{maskTarget(target, method)}</span><button type="button" onClick={() => reset(method)} className="account-text-link">{copy.change}</button></div>}
+        {step === "code" ? <><label className="account-field">{copy.code}<input required className="account-input" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={event => setCode(event.target.value.replace(/\D/g, ""))} /></label><button type="button" disabled={busy || remaining > 0} className="account-text-link" onClick={() => void requestCode(true)}>{remaining > 0 ? `${copy.resendIn} ${remaining} s` : copy.resend}</button></> : null}
+        {step === "complete" && !methods.passwordSet ? <label className="account-field">{copy.setPassword}<input required className="account-input" type="password" autoComplete="new-password" minLength={12} maxLength={1024} value={password} onChange={event => setPassword(event.target.value)} /><span className="account-muted">{copy.minPassword}</span></label> : null}
+        <button type="submit" disabled={busy || method === "phone"} className="account-button account-button-primary">{busy ? copy.wait : step === "idle" ? copy.getCode : step === "code" ? copy.confirmCode : copy.connect}</button>
       </form>
+      <div className="account-verification-guidance"><h3><AccountIcon name="shield-check" />{design.confirmation}</h3><p>{design.verificationHint}</p><p>{design.phoneHint}</p></div>
     </div> : null}
-    {methods && !methods.telegram.linked ? <div className="mt-6 border-t border-[#ece7f1] dark:border-ticket-border pt-6"><h3 className="font-bold">{copy.connectTelegram}</h3><p className="mt-2 text-sm text-[#665d70] dark:text-ticket-muted">{copy.telegramHint}</p><button type="button" disabled={busy} className="mt-3 rounded-xl border border-[#5b21b6] dark:border-ticket-accent px-4 py-2 font-bold text-[#5b21b6] dark:text-ticket-accent disabled:opacity-50" onClick={() => void startTelegram()}>{copy.openTelegram}</button>{telegramState === "waiting" ? <p className="mt-3 text-sm">{copy.telegramWaiting}</p> : null}{telegramState === "ready" ? <button type="button" disabled={busy} className="mt-3 ml-2 rounded-xl bg-[#5b21b6] dark:bg-ticket-primary px-4 py-2 font-bold text-white disabled:opacity-50" onClick={() => void confirmTelegram()}>{copy.confirmTelegram}</button> : null}{telegramState === "expired" ? <p className="mt-3 text-sm text-red-700 dark:text-ticket-danger">{copy.telegramExpired}</p> : null}</div> : null}
-    {methods?.passwordSet ? <form className="mt-6 grid max-w-lg gap-3 border-t border-[#ece7f1] dark:border-ticket-border pt-6" onSubmit={changePassword}><h3 className="font-bold">{copy.changePassword}</h3><label className="grid gap-2 text-sm font-semibold">{copy.currentPassword}<input required className={fieldClass} type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} /></label><label className="grid gap-2 text-sm font-semibold">{copy.newPassword}<input required className={fieldClass} type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={event => setNewPassword(event.target.value)} /></label><p className="text-xs text-[#665d70] dark:text-ticket-muted">{copy.passwordHint}</p><button disabled={busy} type="submit" className="rounded-xl border border-[#5b21b6] dark:border-ticket-accent px-5 py-3 font-bold text-[#5b21b6] dark:text-ticket-accent disabled:opacity-50">{copy.submitPassword}</button></form> : null}
-    {message ? <p role="status" aria-live="polite" className="mt-5 rounded-xl bg-[#f2edff] dark:bg-ticket-raised p-3 text-sm text-[#3b176f] dark:text-ticket-accent">{message}</p> : null}
+    {telegramState ? <div className="account-method-extra">{telegramState === "waiting" ? <p role="status">{copy.telegramWaiting}</p> : null}{telegramState === "ready" ? <><p>{copy.telegramHint}</p><button type="button" disabled={busy} className="account-button account-button-primary" onClick={() => void confirmTelegram()}>{copy.confirmTelegram}</button></> : null}{telegramState === "expired" ? <><p>{copy.telegramExpired}</p><button className="account-button" type="button" disabled={busy} onClick={() => void startTelegram()}>{copy.openTelegram}</button></> : null}</div> : null}
+    {methods?.passwordSet ? <details className="account-method-extra"><summary className="account-text-link">{copy.changePassword}</summary><form onSubmit={changePassword}><label className="account-field">{copy.currentPassword}<input required className="account-input" type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} /></label><label className="account-field">{copy.newPassword}<input required className="account-input" type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={event => setNewPassword(event.target.value)} /></label><p>{copy.passwordHint}</p><button disabled={busy} type="submit" className="account-button">{copy.submitPassword}</button></form></details> : null}
+    {message ? <p role="status" className="account-message">{message}</p> : null}
   </section>;
 }
 
-function Status({ label, value }: { label: string; value: string }) { return <div className="min-w-0 rounded-xl bg-[#f7f4fb] dark:bg-ticket-raised p-4"><p className="text-xs font-semibold text-[#665d70] dark:text-ticket-muted">{label}</p><p className="mt-1 break-all font-bold">{value}</p></div>; }
-const fieldClass = "w-full rounded-xl border border-[#d2cadc] dark:border-ticket-border bg-white dark:bg-ticket-surface px-4 py-3 font-normal outline-none focus:border-[#713dcc] dark:focus:border-ticket-accent focus:ring-2 focus:ring-[#e4d7fa] dark:focus:ring-ticket-border";
 function readError(error: unknown, fallback: string): string { return error instanceof Error ? error.message : fallback; }
 function maskTarget(target: string, method: LoginContactMethod): string {
   if (method === "email") { const [local, domain] = target.split("@"); return domain ? `${(local ?? "").slice(0, 1)}***@${domain}` : target; }

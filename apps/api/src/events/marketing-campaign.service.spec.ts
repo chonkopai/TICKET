@@ -31,8 +31,8 @@ beforeAll(async () => {
     { userId: buyer, marketingAnnouncements: true }, { userId: buyer2, marketingAnnouncements: true }, { userId: optedOut, marketingAnnouncements: false },
   ] });
   await prisma.event.createMany({ data: [
-    { id: eventId, organizerId: owner, title: "Событие кампании", date: new Date("2035-03-01"), time: new Date("1970-01-01T19:00:00Z"), venueName: "Зал", address: "Адрес", status: "published" },
-    { id: otherEventId, organizerId: other, title: "Чужое событие", date: new Date("2035-03-02"), time: new Date("1970-01-01T19:00:00Z"), venueName: "Зал", address: "Адрес", status: "published" },
+    { id: eventId, organizerId: owner, title: "Событие кампании", date: new Date("2035-03-01"), time: new Date("1970-01-01T19:00:00Z"), address: "Адрес", status: "published" },
+    { id: otherEventId, organizerId: other, title: "Чужое событие", date: new Date("2035-03-02"), time: new Date("1970-01-01T19:00:00Z"), address: "Адрес", status: "published" },
   ] });
   await prisma.ticketType.createMany({ data: [
     { id: typeId, eventId, name: "Билет", price: 1000, currency: "KZT", quantityTotal: 10 },

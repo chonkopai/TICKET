@@ -105,14 +105,14 @@ function localizedTables<T extends PublicEvent["tables"]>(tables: T, locale: Eve
 }
 
 function localizedFields(translation: {
-  title: string; venueName: string; address: string; announcement: string | null;
+  title: string; address: string;
   description: string | null; program: string | null; rules: string | null;
   visitTerms: string | null; cancellationTerms: string | null; depositTerms: string | null;
   extraConditions: string | null;
 }) {
   return {
-    title: translation.title, venueName: translation.venueName, address: translation.address,
-    announcement: translation.announcement, description: translation.description,
+    title: translation.title, address: translation.address,
+    description: translation.description,
     program: translation.program, rules: translation.rules, visitTerms: translation.visitTerms,
     cancellationTerms: translation.cancellationTerms, depositTerms: translation.depositTerms,
     extraConditions: translation.extraConditions,
@@ -166,16 +166,12 @@ export class PublicEventsService {
     const search = query.search?.trim();
     if (search) {
       where.OR = [
-        { contents:{some:{locale:query.locale??"ru",OR:[{title:{contains:search,mode:"insensitive"}},{summary:{contains:search,mode:"insensitive"}},{venueName:{contains:search,mode:"insensitive"}},{address:{contains:search,mode:"insensitive"}}]}} },
+        { contents:{some:{locale:query.locale??"ru",OR:[{title:{contains:search,mode:"insensitive"}},{address:{contains:search,mode:"insensitive"}}]}} },
         { title: { contains: search, mode: "insensitive" } },
-        { announcement: { contains: search, mode: "insensitive" } },
         { city: { contains: search, mode: "insensitive" } },
-        { venueName: { contains: search, mode: "insensitive" } },
         { address: { contains: search, mode: "insensitive" } },
         { translations: { some: { locale: query.locale ?? "ru", OR: [
           { title: { contains: search, mode: "insensitive" } },
-          { announcement: { contains: search, mode: "insensitive" } },
-          { venueName: { contains: search, mode: "insensitive" } },
           { address: { contains: search, mode: "insensitive" } },
         ] } } },
       ];
@@ -249,7 +245,7 @@ export class PublicEventsService {
       const localized = await this.localizeSummaries(summaries, query.locale);
       const needle = search.toLocaleLowerCase();
       const visibleIds = new Set(localized.filter((item) =>
-        [item.title, item.announcement, item.venueName, item.address, item.city]
+        [item.title, item.address, item.city]
           .some((value) => value?.toLocaleLowerCase().includes(needle)),
       ).map((item) => item.id));
       summaries = summaries.filter((item) => visibleIds.has(item.id));
@@ -329,7 +325,7 @@ export class PublicEventsService {
       const translation = candidate && source && (candidate.origin === "manual" || candidate.sourceHash === eventContentHash(eventContent(source))) ? candidate : null;
       return {
         ...item,
-        ...(translation ? { title: translation.title, announcement: translation.announcement, venueName: translation.venueName, address: translation.address } : {}),
+        ...(translation ? { title: translation.title, address: translation.address } : {}),
         city: localizedCity(item.city, requested),
         contentLocale: translation ? requested : sourceLocale,
         sourceLocale,
@@ -389,7 +385,6 @@ export class PublicEventsService {
       countryCode: event.countryCode,
       posterUrl: event.posterUrl,
       galleryUrls: event.galleryUrls,
-      announcement: event.announcement,
       description: event.description,
       program: event.program,
       rules: event.rules,
@@ -404,7 +399,6 @@ export class PublicEventsService {
       timezone: event.timezone,
       ageRestriction: event.ageRestriction as PublicEvent["ageRestriction"],
       startsAt: zonedInputToIso(`${date}T${time}`, event.timezone),
-      venueName: event.venueName,
       address: event.address,
       ticketTypes,
       tables,
@@ -426,12 +420,10 @@ export class PublicEventsService {
     countryCode: string;
     city: string;
     posterUrl: string | null;
-    announcement: string | null;
     date: Date;
     time: Date;
     timezone: string;
     ageRestriction: number;
-    venueName: string;
     address: string;
     paymentMode: "deposit" | "full_payment";
     showFullAmountForDeposit: boolean;
@@ -481,13 +473,11 @@ export class PublicEventsService {
       city: event.city,
       countryCode: event.countryCode,
       posterUrl: event.posterUrl,
-      announcement: event.announcement,
       date,
       time,
       timezone: event.timezone,
       ageRestriction: event.ageRestriction as PublicEventSummary["ageRestriction"],
       startsAt: zonedInputToIso(`${date}T${time}`, event.timezone),
-      venueName: event.venueName,
       address: event.address,
       paymentMode: event.paymentMode,
       paymentLabel: event.paymentMode,

@@ -25,7 +25,6 @@ export interface ManagementEventMetadata {
   timezone: string;
   date: string;
   time: string;
-  venueName: string;
   address: string;
   salesModes: Array<"ordinary" | "per_seat" | "whole_table">;
 }

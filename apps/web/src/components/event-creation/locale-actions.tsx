@@ -21,6 +21,7 @@ export function LocaleActions({ client, locale, contentLocale, onLocale }: { cli
   useEffect(() => { setError(""); }, [contentLocale]);
 
   async function translate() {
+    if (contentLocale === source || !configured || loading) return;
     setLoading(true); setError("");
     const target = contentLocale;
     try {
@@ -34,11 +35,10 @@ export function LocaleActions({ client, locale, contentLocale, onLocale }: { cli
   }
 
   return <section className="space-y-3">
-    <div className="creation-locale-row"><span>{c.language}</span><div role="group" aria-label={c.language} className="creation-locale-tabs">{(["ru", "en", "kk"] as const).map(value => <button key={value} type="button" aria-pressed={value === contentLocale} disabled={loading} onClick={() => onLocale(value)}>{languageNames[value]}</button>)}</div><p className="creation-source-note">{c.source}: {languageNames[source]}</p></div>
-    {contentLocale !== source ? <>
-      <button type="button" className="rounded-lg bg-violet-100 dark:bg-ticket-accent-soft px-3 py-2 text-sm text-violet-900 dark:text-ticket-accent disabled:opacity-50" disabled={!configured || loading || /REVISION|EXPIRED|NOT_FOUND/.test(client.error?.message ?? "")} onClick={() => void translate()}>{loading ? c.translating : c.translate}</button>
-      {configured === false ? <p role="status" className="text-sm text-slate-600 dark:text-ticket-muted">{c.unavailable}</p> : null}
-    </> : null}
+    <div className="creation-locale-row"><span>{c.language}</span><div className="creation-locale-control-row"><div className="creation-locale-switcher"><div role="group" aria-label={c.language} className="creation-locale-tabs">{(["ru", "en", "kk"] as const).map(value => <button key={value} type="button" aria-pressed={value === contentLocale} disabled={loading} onClick={() => onLocale(value)}>{languageNames[value]}</button>)}</div><p className="creation-source-note">{c.source}: {languageNames[source]}</p></div>
+      <button type="button" className="creation-translate-button" disabled={contentLocale === source || !configured || loading || /REVISION|EXPIRED|NOT_FOUND/.test(client.error?.message ?? "")} onClick={() => void translate()}>{loading ? c.translating : c.translate}</button>
+    </div></div>
+    {contentLocale !== source && configured === false ? <p role="status" className="text-sm text-slate-600 dark:text-ticket-muted">{c.unavailable}</p> : null}
     {error ? <p role="alert" className="text-sm text-red-700 dark:text-ticket-danger">{error}</p> : null}
   </section>;
 }

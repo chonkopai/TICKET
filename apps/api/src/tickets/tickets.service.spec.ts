@@ -46,7 +46,6 @@ beforeAll(async () => {
     date: new Date("2027-03-21T00:00:00.000Z"),
     time: new Date("1970-01-01T19:30:00.000Z"),
     timezone: "Asia/Almaty",
-    venueName: "Большой зал",
     address: "Абая 10",
     status: "published",
   } });

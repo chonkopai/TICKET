@@ -150,7 +150,7 @@ export class BookingService {
           ...seats.map((seat) => ({ kind: "seat" as const, id: seat.id, name: seat.label, quantity: 1, amountDue: seat.ticketType!.price })),
           ...(table ? [{ kind: "table" as const, id: table.id, name: table.name ?? `Стол №${table.number}`, quantity: 1, amountDue: table.price }] : []),
         ];
-        const snapshot: CheckoutSnapshot = { eventId: event.id, eventTitle: event.title, eventDate: event.date.toISOString().slice(0, 10), eventTime: event.time.toISOString().slice(11, 16), eventTimezone: event.timezone, venueName: event.venueName, itemId: itemLabels[0]!.id, itemName: itemLabels.map((item) => item.name).join(", "), itemKind: "cart", quantity: itemLabels.reduce((sum, item) => sum + item.quantity, 0), paymentMode: event.paymentMode, paymentLabel: event.paymentMode, unitFullAmount: full, fullAmount, amountDue: due, currency, cancellationTerms: event.cancellationTerms, depositTerms: event.depositTerms, items: itemLabels,
+        const snapshot: CheckoutSnapshot = { eventId: event.id, eventTitle: event.title, eventDate: event.date.toISOString().slice(0, 10), eventTime: event.time.toISOString().slice(11, 16), eventTimezone: event.timezone, address: event.address, itemId: itemLabels[0]!.id, itemName: itemLabels.map((item) => item.name).join(", "), itemKind: "cart", quantity: itemLabels.reduce((sum, item) => sum + item.quantity, 0), paymentMode: event.paymentMode, paymentLabel: event.paymentMode, unitFullAmount: full, fullAmount, amountDue: due, currency, cancellationTerms: event.cancellationTerms, depositTerms: event.depositTerms, items: itemLabels,
           seatIds: [...seatIds, ...includedSeats.map((seat) => seat.id)], groupPass: Boolean(table) };
         const deliveryEmail = await this.resolveEmail(transaction, userId, input.emailDelivery, sessionFamilyId, anonymous);
         const frozen=await acceptedSnapshot(transaction,event,snapshot,input,now);
@@ -237,7 +237,7 @@ export class BookingService {
           eventDate: ticketType.event.date.toISOString().slice(0, 10),
           eventTime: ticketType.event.time.toISOString().slice(11, 16),
           eventTimezone: ticketType.event.timezone,
-          venueName: ticketType.event.venueName,
+          address: ticketType.event.address,
           itemId: ticketType.id,
           itemName: ticketType.name,
           itemKind: "ticket",
@@ -357,7 +357,7 @@ export class BookingService {
           eventDate: event.date.toISOString().slice(0, 10),
           eventTime: event.time.toISOString().slice(11, 16),
           eventTimezone: event.timezone,
-          venueName: event.venueName,
+          address: event.address,
           itemId: table.id,
           itemName: table.name ?? `Стол №${table.number}`,
           itemKind: "table",
@@ -506,7 +506,7 @@ export class BookingService {
           eventDate: event.date.toISOString().slice(0, 10),
           eventTime: event.time.toISOString().slice(11, 16),
           eventTimezone: event.timezone,
-          venueName: event.venueName,
+          address: event.address,
           itemId: seatIds[0]!,
           itemName: `${seats.length} мест`,
           itemKind: "ticket",

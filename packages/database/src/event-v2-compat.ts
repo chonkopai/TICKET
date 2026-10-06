@@ -5,9 +5,9 @@ import type { Event, Prisma, PrismaClient } from "./generated/prisma/client.js";
 export async function eventV2CompatibilityRead(database: Pick<PrismaClient, "eventContent">, event: Event, enabled = process.env.EVENT_CONTENT_V2_ENABLED === "true"): Promise<Event> {
   if (!enabled || event.v2State !== "reconciled") return event;
   const content = await database.eventContent.findUnique({where:{eventId_locale:{eventId:event.id,locale:event.sourceLocale}}});
-  if (!content || ![content.title,content.summary,content.description,content.venueName,content.address].every(value=>value?.trim())) return event;
+  if (!content || ![content.title,content.description,content.address].every(value=>value?.trim())) return event;
   const local = event.startsAt ? isoToZonedInput(event.startsAt.toISOString(),event.timezone) : null;
-  return {...event,title:content.title!,announcement:content.summary,description:content.description,venueName:content.venueName!,address:content.address!,
+  return {...event,title:content.title!,description:content.description,address:content.address!,
     cancellationTerms:content.refundConditions,program:null,rules:null,visitTerms:null,extraConditions:null,
     ...(local?{date:new Date(`${local.slice(0,10)}T00:00:00Z`),time:new Date(`1970-01-01T${local.slice(11)}:00Z`)}:{})};
 }
@@ -21,7 +21,7 @@ export async function saveEventContentV2(transaction: Prisma.TransactionClient, 
   if(event.revision!==expectedRevision)throw new Error("DRAFT_REVISION_CONFLICT");
   const existing=await transaction.eventContent.findUnique({where:{eventId_locale:{eventId,locale}}});
   if(locale===event.sourceLocale&&!existing)throw new Error("EVENT_V2_RECONCILIATION_REQUIRED");
-  const values={title:patch.title??existing?.title??null,summary:patch.summary??existing?.summary??null,description:patch.description??existing?.description??null,venueName:patch.venueName??existing?.venueName??null,address:patch.address??existing?.address??null,refundConditions:patch.refundConditions??existing?.refundConditions??null};
+  const values={title:patch.title??existing?.title??null,description:patch.description??existing?.description??null,address:patch.address??existing?.address??null,refundConditions:patch.refundConditions??existing?.refundConditions??null};
   const fieldMetadata=(existing?.fieldMetadata&&typeof existing.fieldMetadata==="object"&&!Array.isArray(existing.fieldMetadata)?{...existing.fieldMetadata}:{}) as Record<string,Prisma.JsonValue>;
   const changed=Object.keys(patch).filter(field=>values[field as keyof typeof values]!==existing?.[field as keyof typeof values]);
   for(const field of changed){
@@ -44,11 +44,11 @@ export async function saveEventContentV2(transaction: Prisma.TransactionClient, 
   if(locale===event.sourceLocale){
     // A partial source edit must not synthesize missing required legacy values.
     await transaction.event.update({where:{id:eventId},data:{
-      ...(values.title?.trim()?{title:values.title}:{}),...(values.venueName?.trim()?{venueName:values.venueName}:{}),...(values.address?.trim()?{address:values.address}:{}),
-      announcement:values.summary,description:values.description,cancellationTerms:values.refundConditions,program:null,rules:null,visitTerms:null,extraConditions:null,
+      ...(values.title?.trim()?{title:values.title}:{}),...(values.address?.trim()?{address:values.address}:{}),
+      description:values.description,cancellationTerms:values.refundConditions,program:null,rules:null,visitTerms:null,extraConditions:null,
     }});
-  } else if(values.title?.trim()&&values.venueName?.trim()&&values.address?.trim()) {
-    const content={title:values.title,venueName:values.venueName,address:values.address,announcement:values.summary,description:values.description,cancellationTerms:values.refundConditions,program:null,rules:null,visitTerms:null,extraConditions:null,depositTerms:null,origin:"manual",sourceHash:null,translatedFrom:null};
+  } else if(values.title?.trim()&&values.address?.trim()) {
+    const content={title:values.title,address:values.address,description:values.description,cancellationTerms:values.refundConditions,program:null,rules:null,visitTerms:null,extraConditions:null,depositTerms:null,origin:"manual",sourceHash:null,translatedFrom:null};
     await transaction.eventTranslation.upsert({where:{eventId_locale:{eventId,locale}},create:{eventId,locale,...content},update:content});
   } else await transaction.eventTranslation.deleteMany({where:{eventId,locale}});
   // The SQL invalidators may already have advanced revision. Advance exactly once

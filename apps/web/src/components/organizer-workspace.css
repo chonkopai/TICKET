@@ -1,0 +1,140 @@
+/* Layout only: typography, controls, icons and theme tokens come from TICKET. */
+.organizer-content { container-type: inline-size; }
+.organizer-sidebar { min-height: 640px; }
+.organizer-existing-icon { display: block; flex: none; max-width: none; }
+:root[data-theme=dark] .organizer-existing-icon { filter: brightness(1.7) saturate(.7); }
+.organizer-eyebrow { color: var(--ticket-dim); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.organizer-navigation a > span:first-of-type { min-width: 0; }
+.organizer-nav-count { margin-left: auto; color: var(--ticket-accent); }
+.organizer-contact-status h2 { overflow-wrap: anywhere; }
+.organizer-guest-link { padding: 0 8px; flex-wrap: wrap; }
+.organizer-page-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.organizer-page-heading > .account-button { flex: none; }
+.organizer-overview { display: flex; align-items: center; gap: 16px; padding: 20px 24px; }
+.organizer-overview > div { min-width: 0; flex: 1; }
+.organizer-overview h2 { overflow-wrap: anywhere; }
+.organizer-overview p { margin-top: 6px; font-size: 12px; color: var(--ticket-muted); overflow-wrap: anywhere; }
+.organizer-overview > .account-button { flex: none; }
+.organizer-metrics { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 16px; }
+.organizer-metric { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
+.organizer-metric > div { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.organizer-metric h2 { font-size: 12px; font-weight: 500; color: var(--ticket-muted); }
+.organizer-metric > p { font-size: 26px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+.organizer-metric small { font-size: 12px; line-height: 1.5; color: var(--ticket-muted); margin-top: auto; }
+.organizer-metric .account-icon { width: 18px; height: 18px; color: var(--ticket-muted); }
+.organizer-events { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.organizer-event-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.organizer-filters { display: flex; gap: 4px; max-width: 100%; padding: 4px; border-radius: 12px; background: var(--ticket-raised); overflow-x: auto; }
+.organizer-filters button { display: flex; align-items: center; gap: 6px; min-height: 38px; padding: 8px 12px; border-radius: 8px; color: var(--ticket-muted); font-size: 12px; white-space: nowrap; }
+.organizer-filters button[aria-pressed=true] { background: var(--ticket-surface); color: var(--ticket-accent); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / .05); }
+.organizer-sort { width: 236px; max-width: 100%; margin-left: auto; }
+.organizer-event-list { overflow: hidden; }
+.organizer-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.organizer-table th { padding: 14px 16px; background: var(--ticket-raised); color: var(--ticket-muted); text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+.organizer-table th:nth-child(1) { width: 38%; }
+.organizer-table th:nth-child(2) { width: 16%; }
+.organizer-table th:nth-child(3) { width: 14%; }
+.organizer-table th:nth-child(4) { width: 32%; text-align: right; }
+.organizer-table td { padding: 24px 16px; border-bottom: 1px solid var(--ticket-border); vertical-align: middle; }
+.organizer-event-details { display: flex; align-items: center; gap: 12px; }
+.organizer-event-details > div:last-child { min-width: 0; }
+.organizer-poster { display: grid; place-items: center; width: 56px; height: 76px; flex: none; overflow: hidden; border-radius: 8px; background: var(--ticket-raised); color: var(--ticket-accent); font-size: 24px; font-weight: 700; }
+.organizer-poster img { width: 100%; height: 100%; object-fit: cover; }
+.organizer-event-status { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.organizer-event-status > span:last-child { font-size: 10px; color: var(--ticket-dim); }
+.organizer-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; }
+.organizer-status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.organizer-status-published { color: var(--ticket-success); }
+.organizer-status-draft { color: var(--ticket-warning); }
+.organizer-status-cancelled { color: var(--ticket-danger); }
+.organizer-status-completed { color: var(--ticket-accent); }
+.organizer-event-details h2 { margin-top: 6px; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
+.organizer-event-details p { margin-top: 6px; color: var(--ticket-muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.organizer-event-details .organizer-admission-mode { color: var(--ticket-accent); font-size: 11px; }
+.organizer-sales { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+.organizer-sales small { font-size: 11px; line-height: 1.5; color: var(--ticket-muted); }
+.organizer-sales progress { appearance: none; border: 0; height: 4px; width: 100%; border-radius: 999px; overflow: hidden; background: var(--ticket-raised); color: var(--ticket-primary); }
+.organizer-sales progress::-webkit-progress-bar { background: var(--ticket-raised); }
+.organizer-sales progress::-webkit-progress-value { background: var(--ticket-primary); border-radius: 999px; }
+.organizer-sales progress::-moz-progress-bar { background: var(--ticket-primary); border-radius: 999px; }
+.organizer-row-revenue { font-size: 15px; overflow-wrap: anywhere; }
+.organizer-event-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.organizer-event-actions .account-button { padding: 8px 12px; min-height: 40px; font-size: 12px; }
+.organizer-event-actions .account-icon { width: 16px; height: 16px; }
+.organizer-delete { color: var(--ticket-danger); font-size: 12px; font-weight: 600; }
+.organizer-list-summary { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 16px; font-size: 12px; color: var(--ticket-muted); }
+.organizer-empty { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 40px 24px; text-align: center; }
+.organizer-quick-start { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; padding: 24px; border-radius: 16px; background: var(--ticket-accent-soft); }
+.organizer-quick-start > .account-icon { color: var(--ticket-accent); }
+.organizer-quick-start > div { flex: 1; min-width: 180px; }
+.organizer-quick-start h2 { font-weight: 600; font-size: 14px; }
+.organizer-quick-start p { margin-top: 6px; font-size: 12px; color: var(--ticket-muted); }
+.organizer-resource-error { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; padding: 16px; border: 1px solid var(--ticket-danger-border); border-radius: 12px; background: var(--ticket-danger-soft); color: var(--ticket-danger); font-size: 14px; overflow-wrap: anywhere; }
+.organizer-success { padding: 16px; border-radius: 12px; background: var(--ticket-success-soft); color: var(--ticket-success); font-size: 14px; }
+.organizer-profile-columns { display: grid; grid-template-columns: minmax(0,1fr) 260px; align-items: start; gap: 24px; }
+.organizer-profile-form, .organizer-profile-fields, .organizer-profile-guidance { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.organizer-profile-fields { border: 0; padding: 0; margin: 0; }
+.organizer-form-section { display: flex; flex-direction: column; gap: 24px; padding: 24px; }
+.organizer-photo-upload { display: flex; align-items: center; gap: 16px; padding-bottom: 24px; border-bottom: 1px solid var(--ticket-border); }
+.organizer-profile-avatar { width: 64px; height: 64px; font-size: 26px; }
+.organizer-photo-upload > div { min-width: 0; }
+.organizer-photo-upload p { font-size: 12px; line-height: 1.5; color: var(--ticket-muted); margin-top: 6px; }
+.organizer-upload-label { cursor: pointer; }
+.organizer-upload-label:focus-within { outline: 2px solid var(--ticket-accent); outline-offset: 3px; }
+.organizer-profile-fields:disabled .organizer-upload-label { opacity: .5; cursor: not-allowed; }
+.organizer-field-hint { font-size: 12px; color: var(--ticket-muted); margin-top: 8px; line-height: 1.5; }
+.organizer-visibility-toggle { display: flex; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 12px; background: var(--ticket-accent-soft); font-size: 14px; }
+.organizer-visibility-toggle input { width: 18px; height: 18px; flex: none; margin-top: 2px; accent-color: var(--ticket-primary); }
+.organizer-visibility-toggle strong { display: block; font-weight: 600; }
+.organizer-visibility-toggle small { display: block; margin-top: 7px; font-size: 12px; line-height: 1.6; color: var(--ticket-muted); }
+.organizer-visibility-preview, .organizer-login-guidance { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 24px; }
+.organizer-visibility-preview > .account-icon { color: var(--ticket-accent); }
+.organizer-visibility-preview > div { width: 100%; }
+.organizer-visibility-preview > div + div { border-top: 1px solid var(--ticket-border); padding-top: 16px; }
+.organizer-visibility-preview h2 { font-size: 16px; }
+.organizer-visibility-preview h3 { font-size: 12px; font-weight: 600; }
+.organizer-visibility-preview p { font-size: 13px; line-height: 1.6; margin-top: 6px; overflow-wrap: anywhere; }
+.organizer-visibility-preview .organizer-preview-note { font-size: 12px; color: var(--ticket-muted); margin: 0; }
+.organizer-visible-status { color: var(--ticket-success); }
+.organizer-public-preview { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.organizer-public-preview dl { width: 100%; }
+.organizer-public-preview dl > div + div { margin-top: 10px; }
+.organizer-public-preview dt { font-size: 11px; color: var(--ticket-muted); }
+.organizer-public-preview dd { margin-top: 4px; font-size: 13px; overflow-wrap: anywhere; }
+.organizer-login-guidance { background: var(--ticket-raised); border-radius: 16px; }
+.organizer-login-guidance h2 { font-size: 14px; font-weight: 600; }
+.organizer-login-guidance p { font-size: 12px; line-height: 1.7; color: var(--ticket-muted); }
+.organizer-login-guidance .account-text-link { font-size: 12px; }
+@container (max-width: 800px) {
+  .organizer-table, .organizer-table tbody { display: block; }
+  .organizer-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .organizer-event-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; padding: 24px; border-bottom: 1px solid var(--ticket-border); }
+  .organizer-table td { display: block; padding: 0; border: 0; }
+  .organizer-table td:first-child, .organizer-table td:last-child { grid-column: 1 / -1; }
+  .organizer-table td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 8px; font-size: 11px; color: var(--ticket-muted); }
+  .organizer-event-actions { justify-content: flex-start; }
+  .organizer-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .organizer-profile-columns { grid-template-columns: minmax(0,1fr); }
+  .organizer-profile-guidance { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; }
+}
+@media (max-width: 767px) {
+  .organizer-sidebar { min-height: 0; }
+  .organizer-navigation { margin: 0; padding: 0; overflow: visible; flex-wrap: wrap; }
+  .organizer-navigation .organizer-eyebrow { width: 100%; margin: 0; }
+  .organizer-navigation a { white-space: normal; flex: 1; }
+  .organizer-contact-status { display: flex; align-items: flex-start; }
+  .organizer-contact-status > p { display: block; }
+  .organizer-contact-status .account-text-link { max-width: none; }
+  .organizer-guest-link { padding: 0; }
+  .organizer-page-heading { align-items: flex-start; flex-wrap: wrap; }
+  .organizer-overview { flex-wrap: wrap; padding: 20px; }
+  .organizer-overview > .account-button { margin-left: 64px; }
+  .organizer-event-toolbar { align-items: stretch; }
+  .organizer-sort { width: 100%; }
+  .organizer-profile-guidance { display: flex; }
+  .organizer-form-section { padding: 20px; }
+  .organizer-metric { padding: 16px; }
+  .organizer-metric > p { font-size: 23px; }
+  .organizer-quick-start { padding: 20px; }
+  .organizer-photo-upload { align-items: flex-start; }
+}

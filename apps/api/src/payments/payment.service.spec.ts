@@ -31,7 +31,7 @@ const booking = new BookingService(prisma, tickets, tables, events, { checkoutTt
 beforeAll(async () => {
   const telegram = BigInt(Date.now()) * 100_000n;
   await prisma.user.createMany({ data: [{ id: organizerId, telegramId: telegram + 701n, role: "organizer" }, { id: guestId, telegramId: telegram + 702n, role: "guest" }] });
-  await prisma.event.create({ data: { id: eventId, organizerId, title: "Payment test", date: new Date("2031-05-03T00:00:00.000Z"), time: new Date("1970-01-01T19:00:00.000Z"), timezone: "Asia/Almaty", venueName: "Hall", address: "Address", status: "published" } });
+  await prisma.event.create({ data: { id: eventId, organizerId, title: "Payment test", date: new Date("2031-05-03T00:00:00.000Z"), time: new Date("1970-01-01T19:00:00.000Z"), timezone: "Asia/Almaty", address: "Address", status: "published" } });
   await prisma.ticketType.create({ data: { id: typeId, eventId, name: "Standard", price: 10_000, currency: "KZT", quantityTotal: 2, status: "active" } });
 });
 
