@@ -3,7 +3,7 @@ export const THEME_STORAGE_KEY = "ticket:theme";
 export const isTheme = (value: unknown): value is Theme => value === "light" || value === "dark";
 
 export function usesStandaloneHeader(pathname: string) {
-  return pathname === "/login" || pathname === "/events/create/hall" || pathname.startsWith("/organizer/venue-builder/") || /^\/organizer\/events\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(pathname);
+  return pathname === "/login" || pathname === "/events/create/hall" || pathname.startsWith("/organizer/venue-builder/");
 }
 
 // Run in the document head before the page paints, including on full-page navigation.

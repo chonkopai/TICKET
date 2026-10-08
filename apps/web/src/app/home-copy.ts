@@ -5,7 +5,7 @@ interface HomeCopy {
   search: string; categoriesLabel: string; all: string; allCategories: string; results: string;
   otherCities: string; current: string; liveBooking: string; emptyResults: string; loading: string; showMore: string; previousPage: string; nextPage: string; pageLabel: string;
   editorsChoice: string; featuredList: string; featuredHint: string; previousEvent: string;
-  nextEvent: string; event: string; of: string; deposit: string; tickets: string; chooseSeats: string;
+  nextEvent: string; event: string; of: string; deposit: string; tickets: string; buyTicket: string; chooseSeats: string;
   filters: string; free: string; currency: string; exchangeRates: string; loadingRates: string; paymentCurrency: string;
   appliedFilters: string; applied: string; city: string; allCities: string; allCountries: string; allEvents: string;
   searchTerm: string; today: string; weekend: string; andLater: string; freeEvents: string;
@@ -28,7 +28,7 @@ export const HOME_COPY: Record<EventLocale, HomeCopy> = {
     emptyResults: "По выбранным фильтрам событий не найдено.", loading: "Загрузка…", showMore: "Показать ещё события", previousPage: "Предыдущая страница", nextPage: "Следующая страница", pageLabel: "Страница",
     editorsChoice: "Выбор редакции", featuredList: "Рекомендуемые события", featuredHint: "Проведите в сторону для просмотра",
     previousEvent: "Предыдущее событие", nextEvent: "Следующее событие", event: "Событие", of: "из",
-    deposit: "Депозит", tickets: "Билеты", chooseSeats: "Выбрать места на схеме",
+    deposit: "Депозит", tickets: "Билеты", buyTicket: "Купить билет", chooseSeats: "Выбрать места на схеме",
     filters: "Фильтры событий", free: "Бесплатно", currency: "Валюта отображения",
     exchangeRates: "Ориентировочные курсы Нацбанка Казахстана на", loadingRates: "Загружаем курсы Нацбанка Казахстана", paymentCurrency: "Оплата в валюте события.",
     appliedFilters: "Применённые фильтры", applied: "Применено:", city: "Город:", allCities: "Все города", allCountries: "Все страны",
@@ -52,7 +52,7 @@ export const HOME_COPY: Record<EventLocale, HomeCopy> = {
     emptyResults: "Таңдалған сүзгілер бойынша іс-шара табылмады.", loading: "Жүктелуде…", showMore: "Тағы іс-шараларды көрсету", previousPage: "Алдыңғы бет", nextPage: "Келесі бет", pageLabel: "Бет",
     editorsChoice: "Редакция таңдауы", featuredList: "Ұсынылған іс-шаралар", featuredHint: "Көру үшін сырғытыңыз",
     previousEvent: "Алдыңғы іс-шара", nextEvent: "Келесі іс-шара", event: "Іс-шара", of: "/",
-    deposit: "Депозит", tickets: "Билеттер", chooseSeats: "Сызбадан орын таңдау",
+    deposit: "Депозит", tickets: "Билеттер", buyTicket: "Билет сатып алу", chooseSeats: "Сызбадан орын таңдау",
     filters: "Іс-шара сүзгілері", free: "Тегін", currency: "Көрсету валютасы",
     exchangeRates: "Қазақстан Ұлттық банкінің шамамен бағамы:", loadingRates: "Ұлттық банк бағамдары жүктелуде", paymentCurrency: "Төлем іс-шара валютасымен жүргізіледі.",
     appliedFilters: "Қолданылған сүзгілер", applied: "Қолданылды:", city: "Қала:", allCities: "Барлық қалалар", allCountries: "Барлық елдер",
@@ -76,7 +76,7 @@ export const HOME_COPY: Record<EventLocale, HomeCopy> = {
     emptyResults: "No events match these filters.", loading: "Loading…", showMore: "Show more events", previousPage: "Previous page", nextPage: "Next page", pageLabel: "Page",
     editorsChoice: "Editor's pick", featuredList: "Featured events", featuredHint: "Swipe to browse",
     previousEvent: "Previous event", nextEvent: "Next event", event: "Event", of: "of",
-    deposit: "Deposit", tickets: "Tickets", chooseSeats: "Choose seats on the map",
+    deposit: "Deposit", tickets: "Tickets", buyTicket: "Buy ticket", chooseSeats: "Choose seats on the map",
     filters: "Event filters", free: "Free", currency: "Display currency",
     exchangeRates: "Indicative National Bank of Kazakhstan rates as of", loadingRates: "Loading National Bank rates", paymentCurrency: "Payment uses the event currency.",
     appliedFilters: "Applied filters", applied: "Applied:", city: "City:", allCities: "All cities", allCountries: "All countries",

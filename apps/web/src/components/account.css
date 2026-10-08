@@ -23,10 +23,14 @@
 .account-utilities button { display: flex; align-items: center; gap: 9px; font-size: 14px; text-align: left; color: var(--ticket-muted); }
 .account-utilities p { font-size: 12px; color: var(--ticket-dim); }
 .account-content { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 24px; padding: 0; }
-.account-heading { display: flex; flex-direction: column; gap: 10px; }
-.account-heading > p:first-child { font-size: 12px; line-height: normal; }
+.account-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.account-heading-copy { display: flex; flex: 1; min-width: 240px; flex-direction: column; gap: 10px; }
+.account-heading-copy > p:first-child { font-size: 12px; line-height: normal; }
 .account-heading h1 { font-size: 32px; line-height: 1.2; font-weight: 700; }
 .account-heading p { color: var(--ticket-muted); font-size: 14px; line-height: 1.5; }
+.account-currency-preference { display: flex; flex-direction: column; gap: 6px; width: 210px; max-width: 100%; flex: none; }
+.account-currency-preference > p:first-child { font-size: 12px; font-weight: 500; }
+.account-currency-preference .account-currency-hint { font-size: 11px; line-height: 1.4; }
 .account-card { border: 1px solid var(--ticket-border); background: var(--ticket-surface); border-radius: 16px; min-width: 0; box-shadow: 0 1px 2px rgb(0 0 0 / .05); }
 .account-card h2 { font-size: 18px; font-weight: 600; line-height: normal; }
 .account-subtitle { margin-top: 6px; font-size: 14px; line-height: 1.5; color: var(--ticket-muted); }

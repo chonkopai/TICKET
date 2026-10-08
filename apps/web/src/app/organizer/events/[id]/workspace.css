@@ -1,0 +1,99 @@
+.organizer-event-workspace {
+  min-height: calc(100vh - 60px);
+  background: var(--ticket-bg);
+  color: var(--ticket-text);
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.organizer-event-workspace .organizer-event-page {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding: 24px 16px 48px;
+}
+
+.organizer-event-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.organizer-event-secondary-button {
+  display: inline-flex;
+  min-height: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--ticket-border);
+  border-radius: 10px;
+  background: var(--ticket-surface);
+  color: var(--ticket-text);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 150ms, border-color 150ms;
+}
+
+.organizer-event-workspace :where(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--ticket-accent);
+  outline-offset: 3px;
+}
+
+.organizer-event-workspace :where(button, input, textarea, select) {
+  font-family: inherit;
+}
+
+.organizer-event-workspace :where(button) {
+  font-size: 14px;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
+}
+
+.organizer-event-workspace :where(button:not(:disabled), a) {
+  cursor: pointer;
+}
+
+.organizer-event-workspace :where(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  background-color: var(--ticket-surface);
+  color: var(--ticket-text);
+  font-size: 14px;
+}
+
+.organizer-event-workspace :where(input, textarea)::placeholder {
+  color: var(--ticket-dim);
+}
+
+.organizer-event-workspace :where(button):disabled {
+  cursor: not-allowed;
+}
+
+.organizer-event-secondary-button:hover:not(:disabled) {
+  background: var(--ticket-hover);
+}
+
+.organizer-event-secondary-button:disabled {
+  opacity: 0.5;
+}
+
+@media (min-width: 640px) {
+  .organizer-event-workspace .organizer-event-page {
+    padding-inline: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .organizer-event-workspace .organizer-event-page {
+    padding-inline: 32px;
+  }
+}
+
+@media (max-width: 639px) {
+  .organizer-event-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+}

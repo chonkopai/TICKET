@@ -107,6 +107,9 @@ export const botEnvSchema = z.object({
 });
 
 export const webEnvSchema = z.object({
+  YANDEX_GEOCODER_API_KEY: z.string().optional(),
+  NEXT_PUBLIC_YANDEX_MAPS_API_KEY: z.string().optional(),
+  NEXT_PUBLIC_YANDEX_SUGGEST_API_KEY: z.string().optional(),
   NEXT_PUBLIC_GOOGLE_CLIENT_ID: z.string().endsWith(".apps.googleusercontent.com").optional(),
   NODE_ENV: nodeEnvironmentSchema,
   NEXT_PUBLIC_API_URL: z.url(),

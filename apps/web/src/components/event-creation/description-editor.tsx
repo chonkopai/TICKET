@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
 import { EditorContent, Extension, useEditor, useEditorState } from "@tiptap/react";
+import { useCreationValidation } from "./creation-validation";
 import StarterKit from "@tiptap/starter-kit";
 import { Plugin } from "@tiptap/pm/state";
 import { DOMSerializer, type Node as ProseMirrorNode } from "@tiptap/pm/model";
@@ -19,9 +20,10 @@ function serializeDescription(doc: ProseMirrorNode): string {
   return encodeDescription(container.innerHTML, doc.textBetween(0, doc.content.size, "\n", node => node.type.name === "hardBreak" ? "\n" : ""));
 }
 
-export function DescriptionEditor({ label, value, max, onChange, placeholder, required, locale, disabled = false }: {
-  label: string; value: string; max: number; onChange: (value: string) => void; placeholder: string; required: boolean; locale: EventLocale; disabled?: boolean;
+export function DescriptionEditor({ label, value, max, onChange, placeholder, required, locale, disabled = false, validationKey }: {
+  label: string; value: string; max: number; onChange: (value: string) => void; placeholder: string; required: boolean; locale: EventLocale; disabled?: boolean; validationKey?: string | undefined;
 }) {
+  const validation = useCreationValidation(validationKey);
   const id = useId(), c = words[locale], dialog = useRef<HTMLDialogElement>(null);
   const selection = useRef({ from: 1, to: 1 });
   const latestChange = useRef(onChange); latestChange.current = onChange;
@@ -60,7 +62,7 @@ export function DescriptionEditor({ label, value, max, onChange, placeholder, re
     if (editor && value !== serializeDescription(editor.state.doc)) editor.commands.setContent(descriptionEditorHtml(value), { emitUpdate: false });
   }, [editor, value]);
   useEffect(() => { editor?.setEditable(!disabled, false); }, [editor, disabled]);
-  useEffect(() => { editor?.setOptions({ editorProps: { ...editor.options.editorProps, attributes: { ...editor.options.editorProps.attributes, "aria-invalid": String(limitError) } } }); }, [editor, limitError]);
+  useEffect(() => { editor?.setOptions({ editorProps: { ...editor.options.editorProps, attributes: { ...editor.options.editorProps.attributes, "aria-invalid": String(limitError || validation.invalid), "aria-describedby": `${id}-count${validation.control["aria-describedby"] ? ` ${validation.control["aria-describedby"]}` : ""}` } } }); }, [editor, limitError, validation.invalid, validation.control["aria-describedby"], id]);
   function openLink() {
     if (!editor) return;
     selection.current = { from: editor.state.selection.from, to: editor.state.selection.to };
@@ -84,12 +86,13 @@ export function DescriptionEditor({ label, value, max, onChange, placeholder, re
     { key: "ordered", label: c.ordered, icon: <svg viewBox="0 0 24 24"><path d="M10 6h11M10 12h11M10 18h11M3 3h1v6M3 9h2M2 15c0-3 4-3 4-1 0 1-1 2-4 5h4" /></svg>, run: () => editor?.chain().focus().toggleOrderedList().run() },
     { key: "link", label: c.link, icon: <svg viewBox="0 0 24 24"><path d="m10 13 4-4m-6 5-2 2a4 4 0 0 0 6 6l4-4a4 4 0 0 0 0-6m0-2 2-2a4 4 0 0 0-6-6L8 6a4 4 0 0 0 0 6" /></svg>, run: openLink },
   ] as const;
-  return <div className="creation-field creation-description-field">
+  return <div {...validation.wrapper} className="creation-field creation-description-field">
     <label htmlFor={id} className="creation-field-label mb-1 flex items-start justify-between gap-3"><span>{label}{required ? <span aria-hidden="true" className="creation-required"> *</span> : null}</span><span id={`${id}-count`} className="creation-counter">{state?.length ?? graphemeLength(value)} / {max}</span></label>
     <div className="creation-description-editor" data-empty={state?.empty ?? !value} data-invalid={limitError}>
       <div className="creation-description-toolbar" role="group" aria-label={c.toolbar}>{tools.map(tool => <button key={tool.key} type="button" disabled={!editor || disabled} aria-label={tool.label} title={tool.label} aria-pressed={state?.[tool.key] ?? false} aria-haspopup={tool.key === "link" ? "dialog" : undefined} onMouseDown={event => event.preventDefault()} onClick={tool.run}><span aria-hidden="true">{tool.icon}</span></button>)}</div>
       <EditorContent editor={editor} />
     </div>
+    {validation.error}
     {limitError ? <p role="alert" className="creation-error">{c.limit}</p> : null}
     <dialog ref={dialog} aria-labelledby={`${id}-link-title`} className="creation-description-link-dialog" onCancel={() => editor?.commands.focus()}>
       <form onSubmit={event => { event.preventDefault(); applyLink(); }}>

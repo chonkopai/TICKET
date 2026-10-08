@@ -5,9 +5,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import { AccountIcon } from "../../../components/account-icon";
+import { useDisplayCurrency } from "../../../components/currency-provider";
 import { FavoritesContent } from "../../../components/favorites-content";
 import { GuestEventCard } from "../../../components/guest-event-card";
 import { useLocale } from "../../../components/locale-provider";
+import { OptionPicker } from "../../../components/option-picker";
+import type { DisplayCurrency } from "../../../lib/display-currency";
 import { ACCOUNT_COPY } from "../../../lib/account-copy";
 import { ACCOUNT_REDESIGN_COPY } from "../../../lib/account-redesign-copy";
 import { INTL_LOCALES, localeUrl } from "../../../lib/locale";
@@ -98,7 +101,7 @@ function Account() {
       <nav className="account-navigation" aria-label={copy.sections}>{TABS.map(item => <Link aria-current={tab === item ? "page" : undefined} className={tab === item ? "is-active" : ""} key={item} href={localeUrl(`/account?tab=${item}`, locale)} onClick={event => followTab(event, item)}><AccountIcon name={NAV_ICONS[item]} />{navLabel(item)}</Link>)}</nav>
       <div className="account-utilities"><button type="button" onClick={() => support.current?.showModal()}><AccountIcon name="circle-help" />{design.help}</button><button disabled={busy} type="button" onClick={() => void logout()}><AccountIcon name="log-out" />{design.logout}</button><p>© {new Date().getFullYear()} TICKET</p></div>
     </aside>
-    <div className="account-content"><header className="account-heading"><p>{design.account}</p><h1>{title}</h1>{description ? <p>{description}</p> : null}</header>
+    <div className="account-content"><header className="account-heading"><div className="account-heading-copy"><p>{design.account}</p><h1>{title}</h1>{description ? <p>{description}</p> : null}</div><DefaultCurrencyPicker /></header>
       {message ? <p className="account-message" role="status">{message}</p> : null}{profile.error ? <ResourceError message={profile.error} onRetry={profile.retry} /> : null}
       {tab === "tickets" ? <><div className="account-summary"><SummaryCard icon="ticket" label={copy.activeTickets} value={dashboard.data?.activeAdmissions ?? "…"} /><SummaryCard icon="calendar-check" label={copy.attendedEvents} value={dashboard.data?.attendedEvents ?? "…"} /></div>{dashboard.error ? <ResourceError message={dashboard.error} onRetry={dashboard.retry} /> : null}
         <TicketsPanel events={events.data} error={events.error} onRetry={events.retry} page={eventPage} status={eventStatus} upcoming={eventStatus === "upcoming" ? events.data?.total : otherEvents.data?.total} past={eventStatus === "past" ? events.data?.total : otherEvents.data?.total} onPage={setEventPage} onStatus={value => { setEventStatus(value); setEventPage(1); }} />
@@ -132,6 +135,19 @@ function PaymentsPanel({ orders, page, onPage }: { orders: AccountOrderList | nu
 function OrderRows({ orders }: { orders: AccountOrderList }) {
   const locale = useLocale(); const copy = ACCOUNT_COPY[locale];
   return <div className="account-order-list">{orders.items.map(order => <article className="account-order" key={order.id}><div><div className="account-order-title"><h3>{order.eventTitle}</h3><span>{copy.paymentStatuses[order.status] ?? order.status}</span></div><p>{order.itemSummary} · {new Intl.DateTimeFormat(INTL_LOCALES[locale], { dateStyle: "medium" }).format(new Date(order.createdAt))}</p><p className="account-receipt">{copy.receiptUnavailable}</p>{order.eventId && ["paid", "refunded", "cancelled"].includes(order.status) ? <Link className="account-text-link" href={localeUrl(`/account/events/${order.eventId}/orders/${order.id}/chat`, locale)}>{copy.writeOrganizer}</Link> : null}</div><strong>{new Intl.NumberFormat(INTL_LOCALES[locale], { style: "currency", currency: order.currency }).format(order.amount / 100)}</strong></article>)}</div>;
+}
+function DefaultCurrencyPicker() {
+  const copy = ACCOUNT_REDESIGN_COPY[useLocale()];
+  const { currency, rates, setCurrency } = useDisplayCurrency();
+  return <div className="account-currency-preference">
+    <p>{copy.defaultCurrency}</p>
+    <OptionPicker label={copy.defaultCurrency} value={currency} options={[
+      { value: "KZT", label: "KZT ₸" },
+      { value: "RUB", label: "RUB ₽", disabled: !rates },
+      { value: "USD", label: "USD $", disabled: !rates },
+    ]} onChange={value => setCurrency(value as DisplayCurrency)} icon={<AccountIcon name="money" />} />
+    <p className="account-currency-hint">{rates ? copy.defaultCurrencyHint : copy.currencyRatesHint}</p>
+  </div>;
 }
 function Field({ label, type = "text", value, onChange }: { label: string; type?: string; value: string; onChange: (value: string) => void }) { return <label className="account-field">{label}<input type={type} value={value} placeholder={ACCOUNT_REDESIGN_COPY[useLocale()].notProvided} onChange={event => onChange(event.target.value)} /></label>; }
 function Pager({ page, hasNext, onPage }: { page: number; hasNext: boolean; onPage: (page: number) => void }) { const copy = ACCOUNT_COPY[useLocale()]; return <nav className="account-pager" aria-label={copy.pages}><button className="account-button" disabled={page === 1} type="button" onClick={() => onPage(Math.max(1, page - 1))}>{copy.back}</button><span>{copy.page} {page}</span><button className="account-button" disabled={!hasNext} type="button" onClick={() => onPage(page + 1)}>{copy.next}</button></nav>; }

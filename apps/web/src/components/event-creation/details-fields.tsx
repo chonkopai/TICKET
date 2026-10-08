@@ -1,6 +1,7 @@
 "use client";
 import { EVENT_TEXT_LIMITS, type EventLocale } from "@event-platform/shared-types";
 import type { DraftAutosave } from "../../lib/creation-draft-client";
+import { AddressField } from "./address-field";
 import { CountedField } from "./counted-field";
 import { DescriptionEditor } from "./description-editor";
 const labels = {
@@ -17,6 +18,7 @@ export function DetailsFields({ client, locale, contentLocale, section = "all", 
   const draft = client.aggregate, fieldLocale = section === "venue" ? locale : contentLocale;
   const fields = section === "venue" ? ["address"] as const : section === "information" ? ["title", "description"] as const : ["title", "description", "address"] as const;
   return <div className="creation-fields">{fields.map(field => field === "description"
-    ? <DescriptionEditor key={`${contentLocale}:${field}`} label={labels[fieldLocale][field]} placeholder={placeholders[fieldLocale][field]} required={contentLocale === draft.sourceLocale} max={EVENT_TEXT_LIMITS[field]} disabled={disabled} locale={fieldLocale} value={draft.content[contentLocale]?.[field] ?? ""} onChange={value => client.patch({ content: { [contentLocale]: { [field]: value } } })} />
-    : <CountedField key={`${contentLocale}:${field}`} label={labels[fieldLocale][field]} placeholder={placeholders[fieldLocale][field]} required={contentLocale === draft.sourceLocale} max={EVENT_TEXT_LIMITS[field]} disabled={disabled} value={draft.content[contentLocale]?.[field] ?? ""} onChange={value => client.patch({ content: { [contentLocale]: { [field]: value } } })} />)}</div>;
+    ? <DescriptionEditor validationKey={contentLocale === draft.sourceLocale ? "content.description" : undefined} key={`${contentLocale}:${field}`} label={labels[fieldLocale][field]} placeholder={placeholders[fieldLocale][field]} required={contentLocale === draft.sourceLocale} max={EVENT_TEXT_LIMITS[field]} disabled={disabled} locale={fieldLocale} value={draft.content[contentLocale]?.[field] ?? ""} onChange={value => client.patch({ content: { [contentLocale]: { [field]: value } } })} />
+    : field === "address" ? <AddressField key={`${contentLocale}:address`} label={labels[fieldLocale].address} value={draft.content[contentLocale]?.address ?? ""} city={draft.classification.city} country={draft.classification.countryCode} locale={locale} required={contentLocale === draft.sourceLocale} disabled={disabled} onChange={(address, city) => client.patch({ content: { [contentLocale]: { address } }, ...(city ? { classification: { city } } : {}) })} />
+    : <CountedField validationKey={contentLocale === draft.sourceLocale ? "content.title" : undefined} key={`${contentLocale}:${field}`} label={labels[fieldLocale][field]} placeholder={placeholders[fieldLocale][field]} required={contentLocale === draft.sourceLocale} max={EVENT_TEXT_LIMITS[field]} disabled={disabled} value={draft.content[contentLocale]?.[field] ?? ""} onChange={value => client.patch({ content: { [contentLocale]: { [field]: value } } })} />)}</div>;
 }

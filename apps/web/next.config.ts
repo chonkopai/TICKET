@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
   distDir: process.env.TICKET_NEXT_DIST_DIR ?? ".next",
   allowedDevOrigins: ["sulphate-shown-subtract.ngrok-free.dev"],
   reactStrictMode: true,
+  env: { NEXT_PUBLIC_YANDEX_GEOCODER_ENABLED: process.env.YANDEX_GEOCODER_API_KEY?.trim() || process.env.NEXT_PUBLIC_YANDEX_GEOCODER_ENABLED === "true" ? "true" : "false" },
   transpilePackages: ["@event-platform/config", "@event-platform/shared-types"],
   async headers() {
     return [{ source: "/:path*", headers: [{ key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" }] }, { source: "/delivery", headers: [{ key: "Cache-Control", value: "no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] }];

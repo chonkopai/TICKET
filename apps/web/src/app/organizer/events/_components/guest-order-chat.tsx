@@ -15,5 +15,5 @@ const COPY = {
 export function GuestOrderChat({ eventId, orderId }: { eventId: string; orderId: string }) {
   const locale = useLocale();
   const copy = COPY[locale];
-  return <ProtectedRoute><main className="min-h-screen bg-[#f9f9ff] dark:bg-ticket-bg px-4 py-6"><div className="mx-auto max-w-2xl rounded-2xl bg-white dark:bg-ticket-surface p-5 shadow-sm sm:p-7"><Link href={localeUrl("/account", locale)} className="text-sm font-semibold text-[#5b21b6] dark:text-ticket-accent">← {copy.account}</Link><h1 className="mt-4 text-2xl font-bold">{copy.title}</h1><OrderChat eventId={eventId} orderId={orderId} mode="guest" /></div></main></ProtectedRoute>;
+  return <ProtectedRoute><main className="min-h-screen bg-ticket-bg px-4 py-6"><div className="mx-auto max-w-2xl rounded-2xl bg-ticket-surface p-5 shadow-sm sm:p-7"><Link href={localeUrl("/account", locale)} className="text-sm font-semibold text-ticket-accent">← {copy.account}</Link><h1 className="mt-4 text-[28px] font-semibold">{copy.title}</h1><OrderChat eventId={eventId} orderId={orderId} mode="guest" /></div></main></ProtectedRoute>;
 }

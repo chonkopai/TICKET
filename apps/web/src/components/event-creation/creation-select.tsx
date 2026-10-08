@@ -1,4 +1,5 @@
 "use client";
+import { useCreationValidation } from "./creation-validation";
 import { createPortal } from "react-dom";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 
@@ -11,10 +12,11 @@ const copy = {
 const normalize = (text: string) => text.normalize("NFKD").toLocaleLowerCase().replace(/ё/g, "е");
 
 /** A searchable select with the same keyboard behavior for country, city and currency. */
-export function CreationSelect({ label, value, options, onChange, placeholder, required = false, disabled = false, searchable = false, locale, searchLabel, counter, className = "", describedBy, menuMinWidth = 0 }: {
+export function CreationSelect({ label, value, options, onChange, placeholder, required = false, disabled = false, searchable = false, locale, searchLabel, counter, className = "", describedBy, menuMinWidth = 0, validationKey }: {
   label: string; value: string; options: CreationOption[]; onChange: (value: string) => void; placeholder: string;
-  required?: boolean; disabled?: boolean; searchable?: boolean; locale: "ru" | "en" | "kk"; searchLabel?: string; counter?: string; className?: string; describedBy?: string; menuMinWidth?: number;
+  required?: boolean; disabled?: boolean; searchable?: boolean; locale: "ru" | "en" | "kk"; searchLabel?: string; counter?: string; className?: string; describedBy?: string; menuMinWidth?: number; validationKey?: string;
 }) {
+  const validation = useCreationValidation(validationKey);
   const id = useId(), root = useRef<HTMLDivElement>(null), trigger = useRef<HTMLButtonElement>(null), panel = useRef<HTMLDivElement>(null), search = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false), [query, setQuery] = useState(""), [active, setActive] = useState(0);
   const [position, setPosition] = useState({ left: 0, top: 0, width: 0, maxHeight: 300 });
@@ -67,11 +69,12 @@ export function CreationSelect({ label, value, options, onChange, placeholder, r
     } else if (open && event.key === "Enter") { event.preventDefault(); const option = matches[active]; if (option) choose(option.value); }
     else if (!open && searchable && event.key.length === 1 && event.key !== " " && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); setQuery(event.key); setActive(0); setOpen(true); }
   }
-  return <div ref={root} className={`creation-field creation-dropdown ${className}`}>
+  return <div {...validation.wrapper} ref={root} className={`creation-field creation-dropdown ${className}`}>
     <div className="creation-field-label creation-dropdown-label"><label id={`${id}-label`} htmlFor={id}>{label}{required ? <span aria-hidden="true" className="creation-required"> *</span> : null}</label>{counter ? <span className="creation-counter">{counter}</span> : null}</div>
-    <button ref={trigger} id={id} type="button" role="combobox" aria-label={label} aria-describedby={describedBy} title={selected?.label} aria-required={required} aria-expanded={open} aria-haspopup="listbox" aria-controls={open ? `${id}-list` : undefined} aria-activedescendant={open && !searchable && matches[active] ? `${id}-option-${active}` : undefined} disabled={disabled} className="creation-dropdown-trigger" data-empty={!value} onClick={() => open ? close() : show()} onKeyDown={keyboard}>
+    <button ref={trigger} id={id} type="button" role="combobox" aria-label={label} aria-invalid={validation.invalid} aria-describedby={[describedBy, validation.control["aria-describedby"]].filter(Boolean).join(" ") || undefined} title={selected?.label} aria-required={required} aria-expanded={open} aria-haspopup="listbox" aria-controls={open ? `${id}-list` : undefined} aria-activedescendant={open && !searchable && matches[active] ? `${id}-option-${active}` : undefined} disabled={disabled} className="creation-dropdown-trigger" data-empty={!value} onClick={() => open ? close() : show()} onKeyDown={keyboard}>
       <span>{selected?.selectedLabel ?? selected?.label ?? (value || placeholder)}</span><svg aria-hidden="true" className="creation-dropdown-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
     </button>
+    {validation.error}
     {open ? createPortal(<div ref={panel} className={`creation-dropdown-panel ${menuMinWidth ? "creation-dropdown-panel-wide" : ""}`} style={position} onKeyDown={keyboard}>
       {searchable ? <div className="creation-dropdown-search"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5" /><path d="m10.5 10.5 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg><input ref={search} role="combobox" aria-label={searchName} aria-expanded aria-controls={`${id}-list`} aria-autocomplete="list" aria-activedescendant={matches[active] ? `${id}-option-${active}` : undefined} placeholder={searchName} value={query} onChange={event => { setQuery(event.target.value); setActive(0); }} /></div> : null}
       <div id={`${id}-list`} role="listbox" aria-labelledby={`${id}-label`} className="creation-dropdown-list">
