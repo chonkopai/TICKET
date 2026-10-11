@@ -83,6 +83,17 @@ intentionally want to delete the local PostgreSQL and Redis data.
 
 ## Telegram login and webhook
 
+The Telegram button supports approval-first OIDC sign-in and a separate **phone-number login**
+through the official legacy widget. OIDC is opt-in; set `TELEGRAM_OIDC_ENABLED=true` only after
+registering the origin and `/login/telegram/callback` URL in BotFather and configuring the
+server-only `TELEGRAM_OIDC_CLIENT_ID` and `TELEGRAM_OIDC_CLIENT_SECRET`. It uses RS256, PKCE,
+browser-bound single-use attempts, and existing account/session identities. See
+[Telegram login setup and verification](docs/telegram-login/README.md).
+
+Staging's working legacy bot-domain registration does not automatically authorize the ngrok
+domain or the new OIDC callback. Keep local OIDC disabled until that environment is registered;
+do not change the staging bot domain/webhook just to test ngrok.
+
 Telegram Login requires a public HTTPS domain registered for the bot through BotFather. For local
 development, expose port 3000 through an HTTPS tunnel and set these values in `.env` without a
 trailing slash:

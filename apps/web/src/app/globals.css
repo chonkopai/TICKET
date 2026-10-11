@@ -156,3 +156,87 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Mobile navigation and catalog layout. */
+@media (max-width: 767px) {
+  /* One visible row of navigation, followed by search and event creation. */
+  .ticket-navbar { padding-inline: 12px; }
+  .ticket-navbar-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 42px repeat(3, 32px); column-gap: 4px; row-gap: 4px; padding: 6px 0 10px; }
+  .ticket-navbar-identity, .ticket-navbar-actions { display: contents; }
+  .ticket-navbar-brand { grid-area: 1 / 1; justify-content: center; min-height: 36px; }
+  .ticket-navbar-brand > span { display: none; }
+  .ticket-navbar-brand .account-icon { width: 24px; height: 24px; }
+  .ticket-navbar .ticket-location-picker-navbar { grid-area: 1 / 2; margin-left: 6px; }
+  .ticket-navbar .ticket-location-picker-navbar > button { width: 100%; max-width: none; min-height: 36px; padding: 0; gap: 3px; font-size: 11px; }
+  .ticket-navbar .ticket-location-label { display: inline; min-width: 0; }
+  .ticket-navbar .ticket-location-picker-navbar > button > svg { width: 13px; height: 13px; }
+  .ticket-navbar-language { display: block; grid-area: 1 / 3; }
+  .ticket-navbar-language button[aria-haspopup=listbox] { min-height: 36px; width: 42px; padding: 0; gap: 2px; justify-content: center; font-size: 10px; }
+  .ticket-navbar-language button[aria-haspopup=listbox] > span { gap: 0; }
+  .ticket-navbar-language button[aria-haspopup=listbox] > span > svg, .ticket-navbar-language .ticket-picker-label { display: none; }
+  .ticket-navbar-language .ticket-picker-compact-label { display: inline; }
+  .ticket-navbar-language button[aria-haspopup=listbox] > svg { width: 12px; height: 12px; }
+  .ticket-navbar-language [role=listbox] { position: fixed; top: 48px; left: auto; right: 12px; }
+  .ticket-navbar-favorites { grid-area: 1 / 4; width: 32px; height: 36px; }
+  .ticket-navbar .ticket-theme-toggle { grid-area: 1 / 5; width: 32px; height: 36px; }
+  .ticket-navbar-profile { display: grid; grid-area: 1 / 6; width: 32px; height: 32px; align-self: center; }
+  .ticket-navbar-menu-toggle, .ticket-navbar-menu, .ticket-navbar-account, .ticket-navbar-logout { display: none; }
+  .ticket-navbar .ticket-header-search { grid-area: 2 / 1 / 3 / -1; order: 0; width: calc((100% - 8px) * 2 / 3); height: 40px; margin: 0; padding-left: 12px; }
+  .ticket-navbar .ticket-header-search input { font-size: 12px; }
+  .ticket-navbar .ticket-header-search button { margin-left: 4px; }
+  .ticket-navbar-create { display: inline-flex; grid-area: 2 / 1 / 3 / -1; justify-self: end; width: calc((100% - 8px) / 3); min-width: 0; min-height: 40px; padding-inline: 7px; gap: 4px; font-size: 11px; }
+  .ticket-navbar-create-label { display: none; }
+  .ticket-navbar-create-compact { display: inline; }
+  .ticket-navbar-create > svg { width: 14px; height: 14px; }
+
+  /* Four compact categories remain visible while the rest scroll within their row. */
+  .ticket-catalog-heading { font-size: clamp(20px, 6vw, 28px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ticket-category-strip { gap: 4px; padding-inline: 0; mask-image: none !important; }
+  .ticket-category-button { flex: 0 0 calc((100% - 12px) / 4); justify-content: center; min-width: 0; min-height: 36px; padding: 4px 2px; gap: 3px; font-size: 12px; }
+  .ticket-category-button > svg { width: 14px; height: 14px; }
+  .ticket-category-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ticket-category-button > span:last-child:not(.ticket-category-label) { font-size: 11px; }
+
+  .ticket-event-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ticket-featured-desktop { display: none; }
+  .ticket-event-card-body { padding: 8px; gap: 8px; }
+  .ticket-event-card-meta { flex-direction: column; gap: 3px; }
+  .ticket-event-card-meta > p { font-size: 9px; line-height: 13px; gap: 3px; }
+  .ticket-event-card-meta > p > svg { width: 11px; height: 11px; }
+  .ticket-event-card-meta > span { max-width: 100%; font-size: 8px; line-height: 11px; text-align: left; }
+  .ticket-event-card h3 { min-height: 32px; font-size: 12px; line-height: 16px; overflow-wrap: anywhere; }
+  .ticket-event-card-location { font-size: 10px; line-height: 14px; gap: 3px; }
+  .ticket-event-card-location > svg { width: 12px; height: 12px; }
+  .ticket-event-card-price { flex-direction: column; align-items: stretch; gap: 7px; }
+  .ticket-event-card-price > div { min-width: 0; }
+  .ticket-event-card-price > div > p:first-child { font-size: 8px; }
+  .ticket-event-card-price > div > p:last-child { font-size: 12px; line-height: 16px; overflow-wrap: anywhere; }
+  .ticket-event-card-price > span { display: flex; min-height: 30px; align-items: center; justify-content: center; padding: 5px 6px; font-size: 10px; text-align: center; }
+  .ticket-event-card > button { right: 3px; top: 2px; width: 32px; height: 32px; }
+  .ticket-event-card > button > svg { width: 18px; height: 18px; }
+  .ticket-catalog-skeleton > div:first-child { height: 220px; }
+  .ticket-catalog-skeleton > div:last-child { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ticket-catalog-skeleton > div:last-child > div { height: 240px; }
+
+  /* Price controls occupy the first row; chips and sorting share the second. */
+  .ticket-catalog-filter-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; }
+  .ticket-catalog-filter-primary { display: contents; }
+  .ticket-catalog-filter-primary > button { grid-area: 1 / 1; padding-inline: 9px; font-size: 10px; }
+  .ticket-catalog-filter-primary > [role=group] { grid-area: 1 / 2; width: 100%; min-width: 0; }
+  .ticket-catalog-filter-primary > [title] { grid-area: 1 / 3; }
+  .ticket-catalog-filter-primary > [title] button[aria-haspopup=listbox] { font-size: 11px; }
+  .ticket-catalog-applied { grid-area: 2 / 1 / 3 / -1; width: calc(100% - 122px); flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; gap: 4px; min-height: 32px; scrollbar-width: none; }
+  .ticket-catalog-applied::-webkit-scrollbar { display: none; }
+  .ticket-catalog-applied > span:first-child { display: none; }
+  .ticket-catalog-applied > * { flex: none; white-space: nowrap; }
+  .ticket-catalog-applied > span, .ticket-catalog-applied > button, .ticket-catalog-applied .ticket-location-picker-filter > button { font-size: 10px; }
+  .ticket-catalog-applied .ticket-location-picker-filter > button { max-width: 150px; padding-inline: 6px; }
+  .ticket-catalog-applied .ticket-location-picker [role=dialog] { position: fixed; top: 112px; left: 12px; right: 12px; width: auto; margin: 0; }
+  .ticket-catalog-sort { grid-area: 2 / 1 / 3 / -1; justify-self: end; align-self: start; width: 114px; margin: 0; gap: 3px; }
+  .ticket-catalog-sort > svg { flex: none; width: 14px; height: 14px; }
+  .ticket-catalog-sort > div { width: calc(100% - 17px); }
+  .ticket-catalog-sort button[aria-haspopup=listbox] { min-height: 32px; padding: 4px; gap: 3px; font-size: 10px; }
+  .ticket-catalog-sort button[aria-haspopup=listbox] > svg { width: 12px; height: 12px; }
+  .ticket-catalog-sort .ticket-picker-label { display: none; }
+  .ticket-catalog-sort .ticket-picker-compact-label { display: inline; }
+}

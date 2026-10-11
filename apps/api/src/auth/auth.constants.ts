@@ -6,6 +6,9 @@ export const ROLES_KEY = "auth:roles";
 
 export interface AuthConfig {
   googleClientId?: string | undefined;
+  telegramOidcEnabled?: boolean;
+  telegramOidcClientId?: string | undefined;
+  telegramOidcClientSecret?: string | undefined;
   webOrigin?: string;
   accessTokenSecret: string;
   refreshTokenSecret: string;

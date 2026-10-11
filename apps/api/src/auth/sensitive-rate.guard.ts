@@ -20,7 +20,7 @@ export class SensitiveRateGuard implements CanActivate {
     if (this.windows.size >= 10_000 && !this.windows.has(key)) throw new HttpException({ code: "RATE_LIMITED" }, 429);
     const window = this.windows.get(key) ?? { count: 0, until: now + 60_000 };
     this.windows.set(key, window);
-    const limit = path.includes("telegram/widget") ? 10 : path.includes("refresh") ? 60 : path.includes("/use") || path.includes("/inspect") ? 120 : 30;
+    const limit = path.includes("telegram/widget") || path.includes("telegram/oidc") ? 10 : path.includes("refresh") ? 60 : path.includes("/use") || path.includes("/inspect") ? 120 : 30;
     if (++window.count > limit) throw new HttpException({ code: "RATE_LIMITED" }, 429);
     return true;
   }

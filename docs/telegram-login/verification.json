@@ -1,0 +1,45 @@
+{
+  "provider": "mocked; no live Telegram approval asserted",
+  "assertions": [
+    "Disabled OIDC keeps phone fallback usable and returns to the original page.",
+    "Approval redirect traverses the real callback page, completes once, saves the session, restores locale/hash, and clears proof.",
+    "User denial does not exchange a code; the callback offers a working phone fallback.",
+    "Missing browser proof cannot exchange a code, and callback query data is removed.",
+    "Russian and Kazakh fallback states fit a 390px mobile viewport.",
+    "Callback is served without a locale redirect, has no-referrer and Cache-Control=no-store, and metadata does not expose code/state."
+  ],
+  "starts": 5,
+  "completions": 1,
+  "fallbackLogins": 2,
+  "errors": [],
+  "verifiedDate": "2026-10-10",
+  "timezone": "Asia/Hong_Kong",
+  "frontendMode": "production",
+  "automatedTests": {
+    "api": 60,
+    "frontend": 22,
+    "configuration": 8,
+    "sharedReturnPaths": 10,
+    "bot": 16,
+    "passedTotal": 116,
+    "unrelatedGoogleDatabaseTestSkipped": 1
+  },
+  "checks": {
+    "apiBuild": "passed",
+    "webProductionBuild": "passed",
+    "typecheck": "passed",
+    "scopedLint": "passed",
+    "prismaValidate": "passed",
+    "gitDiffCheck": "passed",
+    "localMigration": "applied"
+  },
+  "liveTelegramApproval": "not verified; requires environment registration and OIDC credentials",
+  "stagingDeployment": "not performed",
+  "screenshotsReviewed": [
+    "desktop-login.png",
+    "canceled-approval.png",
+    "mobile-kk.png",
+    "mobile-ru.png",
+    "mobile-dark.png"
+  ]
+}

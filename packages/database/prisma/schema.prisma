@@ -386,6 +386,23 @@ model TelegramLinkToken {
   @@index([userId, pendingAt, confirmedAt])
 }
 
+// Anonymous, browser-bound OIDC authorization. Independent of bot account linking.
+model TelegramLoginAttempt {
+  id               String    @id @default(uuid()) @db.Uuid
+  stateHash        String    @unique @db.VarChar(64)
+  browserProofHash String    @db.VarChar(64)
+  nonce            String    @db.VarChar(64)
+  codeVerifier     String    @db.VarChar(128)
+  redirectUri      String    @db.VarChar(2048)
+  returnTo         String    @db.VarChar(2048)
+  locale           String    @db.VarChar(2)
+  expiresAt        DateTime  @db.Timestamptz(3)
+  claimedAt        DateTime? @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([expiresAt])
+}
+
 model Event {
   id                String      @id @default(uuid()) @db.Uuid
   organizerId       String      @db.Uuid

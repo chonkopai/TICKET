@@ -1,4 +1,4 @@
-import type { PrismaClient, User } from "@event-platform/database";
+import { Prisma, type PrismaClient, type User } from "@event-platform/database";
 import type {
   AuthResponse,
   AuthTokens,
@@ -37,18 +37,32 @@ export class AuthService {
     }
 
     const name = [payload.first_name, payload.last_name].filter(Boolean).join(" ");
-    const user = await this.database.user.upsert({
-      where: { telegramId: BigInt(payload.id) },
-      create: {
-        telegramId: BigInt(payload.id),
-        role: "guest",
-        name,
-        photoUrl: payload.photo_url ?? null,
-      },
-      update: {
-        // Keep a name or photo explicitly chosen in the account editor.
-      },
-    });
+    return this.loginWithVerifiedTelegram({ id: BigInt(payload.id), name, photoUrl: payload.photo_url ?? null });
+  }
+
+  /** Internal only: callers must cryptographically verify Telegram's identity first. */
+  async loginWithVerifiedTelegram(identity: { id: bigint; name: string | null; photoUrl: string | null }): Promise<AuthResponse> {
+    let user: User;
+    try {
+      user = await this.database.user.upsert({
+        where: { telegramId: identity.id },
+        create: {
+          telegramId: identity.id,
+          role: "guest",
+          name: identity.name,
+          photoUrl: identity.photoUrl,
+        },
+        update: {
+          // Keep a name or photo explicitly chosen in the account editor.
+        },
+      });
+    } catch (error) {
+      // Empty-update upserts can race when both providers see a new identity at once.
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
+      const existing = await this.database.user.findUnique({ where: { telegramId: identity.id } });
+      if (!existing) throw error;
+      user = existing;
+    }
 
     return { user: presentUser(user), tokens: await this.tokens.issuePair(user) };
   }

@@ -1,5 +1,12 @@
 # Demo deployment on the Azure VM
 
+Telegram approval-first login is opt-in. Apply the additive database migration, then follow
+[Telegram login setup](../docs/telegram-login/README.md) to register the staging callback and
+set the API's server-only OIDC credentials. Keep `TELEGRAM_OIDC_ENABLED=false` until registered;
+the implementation uses the legacy Telegram widget for its phone-number fallback, whose live
+compatibility must be verified after switching the bot to OIDC. Do not redirect staging
+to a local ngrok callback or change its live bot webhook for development testing.
+
 This stack is for testing with mock payments. It does not charge customers. Keep the existing `docker-compose.yml` for local development; use `compose.demo.yml` on the VM.
 
 The VM needs Docker Engine and Compose, outbound access to GitHub/Docker Hub/npm, and inbound TCP 80/443 when HTTPS is enabled. Name.com manages DNS for `ticketron.live`. Keep the existing Resend mail records.

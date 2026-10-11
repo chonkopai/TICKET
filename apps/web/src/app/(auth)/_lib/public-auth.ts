@@ -1,9 +1,14 @@
-import type { EventLocale } from "@event-platform/shared-types";
+import { validatedReturnPath, type EventLocale } from "@event-platform/shared-types";
 import { localeFromBrowser, localeUrl } from "../../../lib/locale";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 const ruMessages = {
+  TELEGRAM_UNAVAILABLE: "Вход с подтверждением в Telegram сейчас недоступен. Войдите через окно Telegram с номером телефона.",
+  TELEGRAM_INVALID: "Подтверждение Telegram недействительно или истекло. Начните вход заново.",
+  TELEGRAM_CANCELED: "Вход через Telegram отменён.",
+  TELEGRAM_BROWSER_REQUIRED: "Вернитесь в браузер, где начали вход, или войдите заново.",
+  RATE_LIMITED: "Слишком много попыток. Повторите позже.",
   GOOGLE_UNAVAILABLE: "Google сейчас недоступен. Выберите другой способ входа.",
   GOOGLE_INVALID: "Не удалось подтвердить вход через Google. Попробуйте снова.",
   GOOGLE_LINK_REQUIRED: "Войдите существующим способом, затем подключите Google в настройках аккаунта.",
@@ -29,6 +34,11 @@ type AuthErrorCode = keyof typeof ruMessages;
 const messages: Record<EventLocale, Record<AuthErrorCode, string>> = {
   ru: ruMessages,
   kk: {
+  TELEGRAM_UNAVAILABLE: "Telegram-да растау арқылы кіру қазір қолжетімсіз. Telegram терезесінде телефон нөмірімен кіріңіз.",
+  TELEGRAM_INVALID: "Telegram растауы жарамсыз немесе мерзімі өткен. Кіруді қайта бастаңыз.",
+  TELEGRAM_CANCELED: "Telegram арқылы кіру тоқтатылды.",
+  TELEGRAM_BROWSER_REQUIRED: "Кіруді бастаған браузерге оралыңыз немесе қайта кіріңіз.",
+  RATE_LIMITED: "Әрекет саны тым көп. Кейінірек қайталаңыз.",
   GOOGLE_UNAVAILABLE: "Google қазір қолжетімсіз. Басқа кіру тәсілін таңдаңыз.",
   GOOGLE_INVALID: "Google арқылы кіру расталмады. Қайталап көріңіз.",
   GOOGLE_LINK_REQUIRED: "Бұрынғы тәсілмен кіріп, аккаунт баптауларында Google қосыңыз.",
@@ -50,6 +60,11 @@ const messages: Record<EventLocale, Record<AuthErrorCode, string>> = {
     VERIFICATION_ATTEMPTS_EXCEEDED: "Әрекет саны таусылды. Жаңа код сұраңыз.",
   },
   en: {
+  TELEGRAM_UNAVAILABLE: "Telegram approval sign-in is currently unavailable. Use Telegram's phone-number login instead.",
+  TELEGRAM_INVALID: "Telegram approval is invalid or expired. Start sign-in again.",
+  TELEGRAM_CANCELED: "Telegram sign-in was canceled.",
+  TELEGRAM_BROWSER_REQUIRED: "Return to the browser where you started sign-in, or start again.",
+  RATE_LIMITED: "Too many attempts. Try again later.",
   GOOGLE_UNAVAILABLE: "Google is currently unavailable. Choose another sign-in method.",
   GOOGLE_INVALID: "Could not verify Google sign-in. Please try again.",
   GOOGLE_LINK_REQUIRED: "Sign in using your existing method, then connect Google in account settings.",
@@ -82,12 +97,13 @@ export function authErrorMessage(code: string | undefined): string | null {
   return code && code in ruMessages ? messages[localeFromBrowser()][code as AuthErrorCode] : null;
 }
 
-export async function publicAuthRequest<T>(path: string, body: unknown): Promise<T> {
+export async function publicAuthRequest<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
   const response = await fetch(new URL(path, API_URL), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
     cache: "no-store",
+    ...(signal ? { signal } : {}),
   });
   if (!response.ok) {
     let code: string | undefined;
@@ -101,7 +117,5 @@ export function safeReturnPath(): string {
   const home = localeUrl("/", localeFromBrowser());
   if (typeof window === "undefined") return home;
   const candidate = new URLSearchParams(window.location.search).get("returnTo");
-  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//") || [...candidate].some(character => character === "\\" || character.charCodeAt(0) < 32)) return home;
-  const resolved = new URL(candidate, window.location.origin);
-  return resolved.origin === window.location.origin ? resolved.pathname + resolved.search + resolved.hash : home;
+  return validatedReturnPath(candidate, window.location.origin, home);
 }

@@ -4,6 +4,15 @@ import { ZodError } from "zod";
 import { loadApiEnv, loadBotEnv, loadWebEnv,loadTranslationEnv } from "./index.js";
 
 describe("environment loaders", () => {
+  it("enables Telegram approval only with explicit server configuration and a canonical origin", () => {
+    const base = { DATABASE_URL: "postgresql://user:password@localhost:5432/test", REDIS_URL: "redis://localhost:6379", JWT_SECRET: "a".repeat(32), JWT_REFRESH_SECRET: "b".repeat(32), BOT_API_SECRET: "c".repeat(32), TELEGRAM_BOT_TOKEN: "123456:test-token", TELEGRAM_BOT_USERNAME: "event_platform_bot", WEB_ORIGIN: "https://staging.ticketron.live" };
+    expect(loadApiEnv(base).TELEGRAM_OIDC_ENABLED).toBe(false);
+    expect(() => loadApiEnv({ ...base, TELEGRAM_OIDC_ENABLED: "true" })).toThrow(ZodError);
+    const enabled = { ...base, TELEGRAM_OIDC_ENABLED: "true", TELEGRAM_OIDC_CLIENT_ID: "123456", TELEGRAM_OIDC_CLIENT_SECRET: "oidc-secret" };
+    expect(loadApiEnv(enabled).TELEGRAM_OIDC_ENABLED).toBe(true);
+    for (const WEB_ORIGIN of ["https://staging.ticketron.live/", "https://staging.ticketron.live/path", "http://staging.ticketron.live"]) expect(() => loadApiEnv({ ...enabled, WEB_ORIGIN })).toThrow(ZodError);
+    expect(loadApiEnv({ ...base, TELEGRAM_OIDC_CLIENT_ID: "", TELEGRAM_OIDC_CLIENT_SECRET: "" }).TELEGRAM_OIDC_ENABLED).toBe(false);
+  });
   it("loads and coerces API configuration", () => {
     const env = loadApiEnv({
       API_PORT: "3101",

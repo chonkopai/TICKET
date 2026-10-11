@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
   env: { NEXT_PUBLIC_YANDEX_GEOCODER_ENABLED: process.env.YANDEX_GEOCODER_API_KEY?.trim() || process.env.NEXT_PUBLIC_YANDEX_GEOCODER_ENABLED === "true" ? "true" : "false" },
   transpilePackages: ["@event-platform/config", "@event-platform/shared-types"],
   async headers() {
-    return [{ source: "/:path*", headers: [{ key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" }] }, { source: "/delivery", headers: [{ key: "Cache-Control", value: "no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] }];
+    return [{ source: "/:path*", headers: [{ key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" }] }, { source: "/login/telegram/callback", headers: [{ key: "Cache-Control", value: "no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] }, { source: "/delivery", headers: [{ key: "Cache-Control", value: "no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] }];
   },
   async rewrites() {
     return [

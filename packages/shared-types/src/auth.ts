@@ -54,6 +54,29 @@ export interface AuthResponse {
   tokens: AuthTokens;
 }
 
+export interface TelegramOidcStartRequest {
+  browserProofHash: string;
+  returnTo: string;
+  locale: "ru" | "kk" | "en";
+}
+
+export interface TelegramOidcStartResponse {
+  authorizationUrl: string;
+  state: string;
+  expiresAt: string;
+}
+
+export interface TelegramOidcCompleteRequest {
+  state: string;
+  code: string;
+  browserProof: string;
+}
+
+export interface TelegramOidcCompleteResponse {
+  session: AuthResponse;
+  returnTo: string;
+}
+
 export interface RefreshResponse {
   tokens: AuthTokens;
 }

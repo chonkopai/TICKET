@@ -12,6 +12,13 @@ export function proxy(request: NextRequest) {
   const requested = url.searchParams.get("lang");
   const cookie = request.cookies.get("ticket-locale")?.value;
   const locale = isLocale(requested) ? requested : isLocale(cookie) ? cookie : DEFAULT_LOCALE;
+  if (path === "/login/telegram/callback") {
+    // OAuth queries must not be redirected or reflected into root-layout alternate URLs.
+    const headers = new Headers(request.headers);
+    headers.set("x-ticket-locale", locale);
+    headers.set("x-ticket-path", path);
+    return NextResponse.next({ request: { headers } });
+  }
   if (requested !== locale) {
     url.searchParams.set("lang", locale);
     return NextResponse.redirect(url);

@@ -64,6 +64,8 @@ services:
       REDIS_URL: redis://redis:6379
       WEB_ORIGIN: https://${SITE_DOMAIN:?Set SITE_DOMAIN in .env.demo}
       POSTER_STORAGE_DIR: /data/posters
+      # OIDC credentials come from the API's runtime env_file, never Docker build args.
+      TELEGRAM_OIDC_ENABLED: ${TELEGRAM_OIDC_ENABLED:-false}
       DRAFT_MEDIA_STORAGE_DIR: /data/draft-media
       PAYMENT_PROVIDER_NAME: mock
       TRANSACTIONAL_NOTIFICATIONS_ENABLED: "false"

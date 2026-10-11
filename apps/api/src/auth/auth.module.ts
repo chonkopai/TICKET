@@ -22,9 +22,11 @@ import { IdentityAuthService } from "./identity-auth.service.js";
 
 import { GoogleAuthController, GoogleLinkController } from "./google-auth.controller.js";
 import { GoogleAuthService } from "./google-auth.service.js";
+import { TelegramOidcController } from "./telegram-oidc.controller.js";
+import { TelegramOidcService } from "./telegram-oidc.service.js";
 
 @Module({
-  controllers: [GoogleAuthController, GoogleLinkController, AuthController, MeController, IdentityAuthController, IdentityMethodsController],
+  controllers: [TelegramOidcController, GoogleAuthController, GoogleLinkController, AuthController, MeController, IdentityAuthController, IdentityMethodsController],
   providers: [
     { provide: DATABASE_CLIENT, useValue: prisma },
     {
@@ -38,6 +40,9 @@ import { GoogleAuthService } from "./google-auth.service.js";
           refreshTokenSecret: env.JWT_REFRESH_SECRET,
           telegramBotToken: env.TELEGRAM_BOT_TOKEN,
           telegramBotUsername: env.TELEGRAM_BOT_USERNAME,
+          telegramOidcEnabled: env.TELEGRAM_OIDC_ENABLED,
+          telegramOidcClientId: env.TELEGRAM_OIDC_CLIENT_ID,
+          telegramOidcClientSecret: env.TELEGRAM_OIDC_CLIENT_SECRET,
           botApiSecret: env.BOT_API_SECRET,
           organizerRequiresApproval: env.ORGANIZER_REQUIRES_APPROVAL,
         };
@@ -61,6 +66,7 @@ import { GoogleAuthService } from "./google-auth.service.js";
     VerificationService,
     IdentityAuthService,
     GoogleAuthService,
+    TelegramOidcService,
     TokenService,
     TelegramLinkService,
     JwtAuthGuard,

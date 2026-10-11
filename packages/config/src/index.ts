@@ -57,6 +57,9 @@ export const apiEnvSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32),
   TELEGRAM_BOT_TOKEN: z.string().min(1),
   TELEGRAM_BOT_USERNAME: z.string().regex(/^[A-Za-z0-9_]{5,32}$/),
+  TELEGRAM_OIDC_ENABLED: booleanSchema,
+  TELEGRAM_OIDC_CLIENT_ID: z.preprocess(value => value === "" ? undefined : value, z.string().regex(/^[1-9][0-9]{0,19}$/).optional()),
+  TELEGRAM_OIDC_CLIENT_SECRET: z.preprocess(value => value === "" ? undefined : value, z.string().min(1).max(512).optional()),
   BOT_API_SECRET: z.string().min(32),
   GOOGLE_CLIENT_ID: z.string().endsWith(".apps.googleusercontent.com").optional(),
   WEB_ORIGIN: z.url().default("http://localhost:3000"),
@@ -82,6 +85,9 @@ export const apiEnvSchema = z.object({
   ...providerSchema.shape,
   ...translationEnvSchema.shape,
 }).superRefine((env, context) => {
+  if (env.TELEGRAM_OIDC_ENABLED && (!env.TELEGRAM_OIDC_CLIENT_ID || !env.TELEGRAM_OIDC_CLIENT_SECRET)) context.addIssue({ code: "custom", path: ["TELEGRAM_OIDC_ENABLED"], message: "Telegram OIDC requires its Client ID and Client Secret" });
+  if (env.TELEGRAM_OIDC_ENABLED && new URL(env.WEB_ORIGIN).origin !== env.WEB_ORIGIN) context.addIssue({ code: "custom", path: ["WEB_ORIGIN"], message: "Telegram OIDC web origin must be a canonical origin without a path or trailing slash" });
+  if (env.TELEGRAM_OIDC_ENABLED && !env.WEB_ORIGIN.startsWith("https://") && !["http://localhost:3000", "http://127.0.0.1:3000"].includes(env.WEB_ORIGIN)) context.addIssue({ code: "custom", path: ["WEB_ORIGIN"], message: "Telegram OIDC requires HTTPS (except local development)" });
   if (env.RESEND_API_KEY && !env.RESEND_FROM_EMAIL) context.addIssue({ code: "custom", path: ["RESEND_FROM_EMAIL"], message: "Resend sender is required with an API key" });
   if (env.RESEND_FROM_EMAIL && !env.RESEND_FROM_EMAIL.toLowerCase().endsWith("@mail.ticketron.live")) context.addIssue({ code: "custom", path: ["RESEND_FROM_EMAIL"], message: "Sender must use the verified mail.ticketron.live domain" });
   if (env.NODE_ENV === "production" && !env.OTP_HMAC_SECRET) context.addIssue({ code: "custom", path: ["OTP_HMAC_SECRET"], message: "OTP HMAC secret is required in production" });

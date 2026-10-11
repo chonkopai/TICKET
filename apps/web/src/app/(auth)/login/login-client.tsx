@@ -11,6 +11,8 @@ import { GoogleLoginButton } from "../_components/google-login-button";
 import { TelegramLoginButton } from "../_components/telegram-login-button";
 import { publicAuthRequest, safeReturnPath } from "../_lib/public-auth";
 import { saveSession } from "../_lib/session";
+import { beginTelegramLogin, cancelTelegramLogin } from "../_lib/telegram-oidc";
+import { TELEGRAM_AUTH_COPY } from "../_lib/telegram-auth-copy";
 import { useLocale } from "../../../components/locale-provider";
 import { AUTH_COPY } from "./auth-copy";
 
@@ -21,6 +23,7 @@ type SocialProvider = "google" | "apple";
 export function LoginClient() {
   const locale = useLocale();
   const copy = AUTH_COPY[locale];
+  const telegramCopy = TELEGRAM_AUTH_COPY[locale];
   const router = useRouter();
   const sequence = useRef(0);
   const [method, setMethod] = useState<LoginContactMethod>("email");
@@ -39,11 +42,40 @@ export function LoginClient() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [telegramOpen, setTelegramOpen] = useState(false);
+  const [telegramPhone, setTelegramPhone] = useState(false);
+  const [telegramBusy, setTelegramBusy] = useState(false);
+  const [telegramError, setTelegramError] = useState<string | null>(null);
+  const telegramSequence = useRef(0);
   const [navigationQuery, setNavigationQuery] = useState("");
 
   useEffect(() => {
     setNavigationQuery(window.location.search.slice(1));
+    if (new URLSearchParams(window.location.search).get("telegram") === "phone") { setTelegramOpen(true); setTelegramPhone(true); }
+    cancelTelegramLogin();
+    const resume = () => { telegramSequence.current++; setTelegramBusy(false); };
+    window.addEventListener("pageshow", resume);
+    return () => { telegramSequence.current++; window.removeEventListener("pageshow", resume); };
   }, []);
+
+  function closeTelegram() {
+    telegramSequence.current++; cancelTelegramLogin(); setTelegramBusy(false); setTelegramOpen(false);
+  }
+
+  function useTelegramPhone() {
+    telegramSequence.current++; cancelTelegramLogin(); setTelegramBusy(false); setTelegramError(null); setTelegramOpen(true); setTelegramPhone(true);
+  }
+
+  async function startTelegram() {
+    if (telegramBusy) return;
+    const ticket = ++telegramSequence.current;
+    setTelegramOpen(true); setTelegramPhone(false); setTelegramBusy(true); setTelegramError(null);
+    try {
+      const url = await beginTelegramLogin(locale, safeReturnPath());
+      if (ticket === telegramSequence.current && url) window.location.assign(url);
+    } catch (error) {
+      if (ticket === telegramSequence.current) { setTelegramError(errorMessage(error, telegramCopy.unavailable)); setTelegramPhone(true); }
+    } finally { if (ticket === telegramSequence.current) setTelegramBusy(false); }
+  }
 
   useEffect(() => {
     if (!retryAt) return;
@@ -168,12 +200,16 @@ export function LoginClient() {
               aria-controls={telegramOpen ? "telegram-login-panel" : undefined}
               aria-expanded={telegramOpen}
               className={classes("flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border px-1.5 py-2 text-[#0b1c30] dark:text-ticket-text shadow-sm transition hover:bg-[#e5eeff] dark:hover:bg-ticket-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] dark:focus-visible:ring-ticket-accent sm:flex-row sm:gap-2 sm:px-3", telegramOpen ? "border-[#6320ee] dark:border-ticket-accent bg-[#eff4ff] dark:bg-ticket-raised" : "border-[#e5eeff] dark:border-ticket-border bg-[#eff4ff] dark:bg-ticket-raised")}
-              onClick={() => setTelegramOpen((open) => !open)}
+              onClick={() => void startTelegram()}
+              disabled={telegramBusy}
+              aria-label={telegramCopy.continue}
               type="button"
             >
               <TelegramIcon /><span className="text-xs font-semibold sm:text-sm">Telegram</span>
             </button>
           </div>
+
+          <button className="mt-3 min-h-10 text-left text-xs font-semibold text-[#4a00c1] dark:text-ticket-accent underline underline-offset-2" type="button" onClick={useTelegramPhone}>{telegramCopy.phone}</button>
 
           <div className="relative my-5 flex items-center justify-center sm:my-6" aria-hidden="true">
             <span className="w-full border-t border-[#dce9ff] dark:border-ticket-border" />
@@ -183,11 +219,14 @@ export function LoginClient() {
           {telegramOpen ? (
             <section className="rounded-2xl border border-[#e5eeff] dark:border-ticket-border bg-[#f8faff] dark:bg-ticket-raised p-5 sm:p-6" id="telegram-login-panel" aria-label={copy.telegramTitle}>
               <div className="mb-3 flex items-start justify-between gap-3">
-                <div><h2 className="text-lg font-bold">{copy.telegramTitle}</h2><p className="mt-1 text-sm leading-5 text-[#625d70] dark:text-ticket-muted">{copy.telegramHint}</p></div>
-                <button className="rounded-full p-1 text-[#625d70] dark:text-ticket-muted hover:bg-[#e5eeff] dark:hover:bg-ticket-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] dark:focus-visible:ring-ticket-accent" onClick={() => setTelegramOpen(false)} type="button" aria-label={copy.telegramClose}><CloseIcon /></button>
+                <div><h2 className="text-lg font-bold">{copy.telegramTitle}</h2><p className="mt-1 text-sm leading-5 text-[#625d70] dark:text-ticket-muted">{telegramPhone ? telegramCopy.phoneHint : telegramCopy.hint}</p></div>
+                <button className="rounded-full p-1 text-[#625d70] dark:text-ticket-muted hover:bg-[#e5eeff] dark:hover:bg-ticket-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] dark:focus-visible:ring-ticket-accent" onClick={closeTelegram} type="button" aria-label={copy.telegramClose}><CloseIcon /></button>
               </div>
-              <TelegramLoginButton />
-              <button className="mt-4 text-sm font-semibold text-[#4a00c1] dark:text-ticket-accent underline underline-offset-2" onClick={() => setTelegramOpen(false)} type="button">{copy.telegramReturn}</button>
+              {telegramBusy ? <p role="status">{telegramCopy.waiting}</p> : null}
+              {telegramError ? <p className="my-3 text-sm text-red-700 dark:text-ticket-danger" role="alert">{telegramError}</p> : null}
+              {telegramPhone ? <TelegramLoginButton /> : <button className="min-h-11 text-sm font-semibold underline underline-offset-2" onClick={useTelegramPhone} type="button">{telegramCopy.phone}</button>}
+              {!telegramBusy ? <button className="mt-3 block min-h-11 text-sm font-semibold text-[#4a00c1] dark:text-ticket-accent" type="button" onClick={() => void startTelegram()}>{telegramCopy.retry}</button> : null}
+              <button className="mt-4 text-sm font-semibold text-[#4a00c1] dark:text-ticket-accent underline underline-offset-2" onClick={closeTelegram} type="button">{copy.telegramReturn}</button>
             </section>
           ) : (
             <>
