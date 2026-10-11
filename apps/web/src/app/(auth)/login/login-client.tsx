@@ -52,7 +52,12 @@ export function LoginClient() {
     setNavigationQuery(window.location.search.slice(1));
     if (new URLSearchParams(window.location.search).get("telegram") === "phone") { setTelegramOpen(true); setTelegramPhone(true); }
     cancelTelegramLogin();
-    const resume = () => { telegramSequence.current++; setTelegramBusy(false); };
+    const resume = (event: PageTransitionEvent) => {
+      // Initial pageshow can follow a click while images/fonts are still loading.
+      // Only a return from the browser's back/forward cache abandons the old request.
+      if (!event.persisted) return;
+      telegramSequence.current++; cancelTelegramLogin(); setTelegramBusy(false);
+    };
     window.addEventListener("pageshow", resume);
     return () => { telegramSequence.current++; window.removeEventListener("pageshow", resume); };
   }, []);
@@ -71,10 +76,12 @@ export function LoginClient() {
     setTelegramOpen(true); setTelegramPhone(false); setTelegramBusy(true); setTelegramError(null);
     try {
       const url = await beginTelegramLogin(locale, safeReturnPath());
-      if (ticket === telegramSequence.current && url) window.location.assign(url);
+      if (ticket !== telegramSequence.current) return;
+      if (url) window.location.assign(url);
+      else setTelegramBusy(false);
     } catch (error) {
-      if (ticket === telegramSequence.current) { setTelegramError(errorMessage(error, telegramCopy.unavailable)); setTelegramPhone(true); }
-    } finally { if (ticket === telegramSequence.current) setTelegramBusy(false); }
+      if (ticket === telegramSequence.current) { setTelegramError(errorMessage(error, telegramCopy.unavailable)); setTelegramPhone(true); setTelegramBusy(false); }
+    }
   }
 
   useEffect(() => {
@@ -202,6 +209,7 @@ export function LoginClient() {
               className={classes("flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border px-1.5 py-2 text-[#0b1c30] dark:text-ticket-text shadow-sm transition hover:bg-[#e5eeff] dark:hover:bg-ticket-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6320ee] dark:focus-visible:ring-ticket-accent sm:flex-row sm:gap-2 sm:px-3", telegramOpen ? "border-[#6320ee] dark:border-ticket-accent bg-[#eff4ff] dark:bg-ticket-raised" : "border-[#e5eeff] dark:border-ticket-border bg-[#eff4ff] dark:bg-ticket-raised")}
               onClick={() => void startTelegram()}
               disabled={telegramBusy}
+              aria-busy={telegramBusy}
               aria-label={telegramCopy.continue}
               type="button"
             >

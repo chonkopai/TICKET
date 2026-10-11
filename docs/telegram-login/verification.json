@@ -41,5 +41,31 @@
     "mobile-kk.png",
     "mobile-ru.png",
     "mobile-dark.png"
-  ]
+  ],
+  "firstClickFix": {
+    "verifiedDate": "2026-10-11",
+    "originalProductionBuild": "Reproduced initial pageshow invalidating the first-click redirect with a delayed image and authorization response.",
+    "fixedProductionBuild": "passed",
+    "frontendAuthenticationTests": 22,
+    "scopedLint": "passed",
+    "gitDiffCheck": "passed",
+    "browser": {
+      "provider": "mocked; no live Telegram approval asserted",
+      "assertions": [
+        "Disabled OIDC keeps phone fallback usable and returns to the original page.",
+        "Approval redirect traverses the real callback page, completes once, saves the session, restores locale/hash, and clears proof.",
+        "User denial does not exchange a code; the callback offers a working phone fallback.",
+        "Missing browser proof cannot exchange a code, and callback query data is removed.",
+        "One click before the first page load completes survives initial pageshow; slow provider navigation stays busy and cannot create duplicate attempts.",
+        "A persisted pageshow resets an abandoned start, clears its browser proof, and leaves sign-in available.",
+        "Russian and Kazakh fallback states fit a 390px mobile viewport.",
+        "Callback is served without a locale redirect, has no-referrer and Cache-Control=no-store, and metadata does not expose code/state."
+      ],
+      "starts": 7,
+      "completions": 2,
+      "fallbackLogins": 2,
+      "errors": []
+    },
+    "stagingDeployment": "not performed"
+  }
 }

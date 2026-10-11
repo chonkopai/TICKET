@@ -17,17 +17,34 @@ page.setDefaultTimeout(15000);
 page.setDefaultNavigationTimeout(20000);
 const errors = []; const assertions = []; const attempts = new Map();
 let mode = "disabled"; let sequence = 0; let completions = 0; let starts = 0; let fallbackLogins = 0;
+let firstLoad = false; let imageGate; let startGate; let providerGate;
+const firstLoadBusyChanges = [];
 const session = { user: { id: "telegram-browser-test", telegramId: "42", telegramChatId: null, role: "guest", name: "Telegram Test", photoUrl: null, phone: null, email: null, defaultCity: null }, tokens: { accessToken: "mock-access", refreshToken: "mock-refresh", accessExpiresInSeconds: 900, refreshExpiresInSeconds: 2592000 } };
 page.on("pageerror", error => errors.push(error.message));
+await page.exposeFunction("recordTelegramBusy", disabled => { if (firstLoad) firstLoadBusyChanges.push(disabled); });
+await page.addInitScript(() => {
+  window.telegramInitialPageShown = false;
+  window.addEventListener("pageshow", event => { if (!event.persisted) window.telegramInitialPageShown = true; });
+  new MutationObserver(records => {
+    for (const record of records) {
+      if (record.target.matches?.('[aria-label="Continue with Telegram"]')) window.recordTelegramBusy(record.target.disabled);
+    }
+  }).observe(document, { subtree: true, attributes: true, attributeFilter: ["disabled"] });
+});
 await context.route("**/*", async route => {
   const request = route.request(); const url = new URL(request.url());
   const headers = { "access-control-allow-origin": request.headers().origin || "*", "access-control-allow-methods": "GET,POST,OPTIONS", "access-control-allow-headers": "content-type,authorization" };
   const json = (data, status = 200) => route.fulfill({ status, contentType: "application/json", headers, body: JSON.stringify(data) });
   if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
+  if (firstLoad && request.resourceType() === "image" && request.url().includes("community-gathering")) {
+    await imageGate;
+    return route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jxZkAAAAASUVORK5CYII=", "base64") });
+  }
   if (url.pathname === "/js/telegram-widget.js") return route.fulfill({ contentType: "text/javascript", body: `(() => { const target = document.currentScript; const callback = target.dataset.onauth; const button = document.createElement('button'); button.textContent = 'Mock Telegram phone sign-in'; button.onclick = () => new Function('user', callback)({id:42,first_name:'Telegram Test',auth_date:1,hash:'mock'}); target.after(button); })();` });
   if (url.pathname === "/auth/telegram/widget") { fallbackLogins++; return json(session); }
   if (url.pathname === "/auth/telegram/oidc/start") {
     starts++;
+    if (firstLoad) await startGate;
     if (mode === "disabled") return json({ code: "TELEGRAM_UNAVAILABLE" }, 503);
     const input = request.postDataJSON();
     assert.match(input.browserProofHash, /^[a-f0-9]{64}$/); assert.equal(input.browserProof, undefined);
@@ -35,6 +52,7 @@ await context.route("**/*", async route => {
     return json({ state, authorizationUrl: `https://oauth.telegram.org/auth?state=${state}`, expiresAt: new Date(Date.now() + 600000).toISOString() });
   }
   if (url.origin === "https://oauth.telegram.org" && url.pathname === "/auth") {
+    if (firstLoad) await providerGate;
     const callback = new URL("/login/telegram/callback", base);
     callback.searchParams.set("state", url.searchParams.get("state"));
     if (mode === "canceled") callback.searchParams.set("error", "access_denied");
@@ -92,6 +110,62 @@ try {
   await page.getByRole("alert").filter({ hasText: "browser" }).waitFor(); assert.equal(completions, 1);
   assert.equal(new URL(page.url()).searchParams.has("code"), false);
   assertions.push("Missing browser proof cannot exchange a code, and callback query data is removed.");
+
+  // A real delayed image keeps the initial pageshow pending after hydration and a click.
+  // The old handler incorrectly treated this initial event as a return from Telegram.
+  mode = "enabled"; firstLoad = true;
+  let releaseImage; let releaseStart; let releaseProvider;
+  imageGate = new Promise(resolve => { releaseImage = resolve; });
+  startGate = new Promise(resolve => { releaseStart = resolve; });
+  providerGate = new Promise(resolve => { releaseProvider = resolve; });
+  const startsBeforeFirstLoad = starts; const completionsBeforeFirstLoad = completions;
+  try {
+    await page.goto(login(), { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => {
+      const button = document.querySelector('[aria-label="Continue with Telegram"]');
+      return button && Object.keys(button).some(key => key.startsWith("__reactProps"));
+    });
+    assert.equal(await page.evaluate(() => document.readyState), "interactive");
+    const startRequest = page.waitForRequest(request => new URL(request.url()).pathname === "/auth/telegram/oidc/start");
+    const telegramButton = page.getByRole("button", { name: "Continue with Telegram", exact: true });
+    await telegramButton.click(); await startRequest;
+    releaseImage();
+    await page.waitForFunction(() => window.telegramInitialPageShown);
+    assert.equal(await telegramButton.isDisabled(), true);
+    await telegramButton.evaluate(button => button.click());
+    await page.getByRole("status").filter({ hasText: "Opening Telegram" }).waitFor();
+    const providerRequest = page.waitForRequest(request => new URL(request.url()).origin === "https://oauth.telegram.org");
+    releaseStart(); await providerRequest;
+    // Observe the old document without browser actions that wait for navigation to finish.
+    // Give an erroneous state reset time to render while the provider response is held.
+    await new Promise(resolve => setTimeout(resolve, 300));
+    releaseProvider();
+    await page.waitForURL("**/favorites?lang=en#tickets");
+    assert.deepEqual(firstLoadBusyChanges, [true]);
+    assert.equal(starts, startsBeforeFirstLoad + 1);
+    assert.equal(completions, completionsBeforeFirstLoad + 1);
+    assertions.push("One click before the first page load completes survives initial pageshow; slow provider navigation stays busy and cannot create duplicate attempts.");
+  } finally { releaseImage(); releaseStart(); releaseProvider(); firstLoad = false; }
+
+  // Returning from the back/forward cache must still invalidate an abandoned request.
+  await page.goto(login(), { waitUntil: "networkidle" });
+  const abandonedStart = starts;
+  await page.route("**/auth/telegram/oidc/start", async route => {
+    if (route.request().method() === "OPTIONS") return route.fallback();
+    starts++;
+    await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })));
+    const state = "r".repeat(43);
+    await route.fulfill({ contentType: "application/json", headers: { "access-control-allow-origin": route.request().headers().origin || "*" }, body: JSON.stringify({ state, authorizationUrl: `https://oauth.telegram.org/auth?state=${state}`, expiresAt: new Date(Date.now() + 600000).toISOString() }) });
+  });
+  const abandonedResponse = page.waitForResponse(response => new URL(response.url()).pathname === "/auth/telegram/oidc/start");
+  await page.getByRole("button", { name: "Continue with Telegram", exact: true }).click();
+  await abandonedResponse;
+  await page.waitForFunction(() => sessionStorage.getItem("event-platform:telegram-login-request") === null);
+  assert.equal(await page.getByRole("button", { name: "Continue with Telegram", exact: true }).isEnabled(), true);
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("event-platform:telegram-login-attempt")), null);
+  assert.equal(new URL(page.url()).pathname, "/login"); assert.equal(starts, abandonedStart + 1);
+  await page.unroute("**/auth/telegram/oidc/start");
+  assertions.push("A persisted pageshow resets an abandoned start, clears its browser proof, and leaves sign-in available.");
 
   mode = "disabled";
   await page.setViewportSize({ width: 390, height: 844 });

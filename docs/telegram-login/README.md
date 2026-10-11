@@ -137,3 +137,17 @@ The temporary server was stopped afterward. See [verification results](verificat
 | Native Telegram app handoff and Telegram Web approval | Requires live verification after BotFather registration and credentials |
 | Staging activation | Not deployed; the existing staging login is left in place |
 | Ngrok live Telegram login | Not enabled or repaired through bot-domain changes; development remains independent of staging |
+
+## First-click fix verified on 11 October 2026
+
+A delayed login-page image reproduced a race in the original production build: clicking before
+the initial `pageshow` event started authorization, but that event invalidated the pending
+redirect. The login page now resets a pending request only when `pageshow.persisted` indicates
+a return from the browser's back/forward cache. It also keeps the Telegram button disabled
+after starting navigation so a slow provider response cannot prompt a second attempt.
+
+The production browser suite now covers the delayed initial page load, slow provider navigation,
+repeated clicks, and a persisted-page return. The production build, 22 frontend authentication
+tests, scoped lint, and whitespace checks passed. Provider responses remain mocked; staging
+needs the updated web image before this fix is active there. No additional database migration
+or configuration change is required.
