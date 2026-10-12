@@ -58,6 +58,96 @@
 .account-ticket-empty h2 { font-size: 20px; }
 .account-ticket-empty p { max-width: 420px; margin-top: 8px; font-size: 14px; line-height: 1.6; color: var(--ticket-muted); }
 .account-event-list { display: grid; gap: 16px; padding: 24px; }
+.account-ticket-tools { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--ticket-border); text-align: left; }
+.account-ticket-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.account-ticket-actions .account-button { justify-content: flex-start; min-width: 0; padding: 12px; font-size: 13px; }
+.account-guest-event { display: grid; grid-template-columns: minmax(240px, 32%) minmax(0, 1fr); align-items: start; overflow: hidden; border: 1px solid var(--ticket-border); border-radius: 16px; background: var(--ticket-surface); box-shadow: 0 1px 2px rgb(0 0 0 / .05); }
+.account-event-identity { min-width: 0; }
+.account-event-poster { display: flex; align-items: center; min-width: 0; background: var(--ticket-raised); overflow: hidden; }
+.account-event-poster-frame { position: relative; flex: none; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; }
+.account-event-poster-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.account-event-poster-placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ticket-accent); font-size: 48px; font-weight: 700; }
+.account-event-body { min-width: 0; align-self: center; padding: 18px; }
+.account-event-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; }
+.account-event-heading h2 { min-width: 0; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; font-weight: 700; line-height: 1.4; }
+.account-event-heading h2 a:hover { color: var(--ticket-accent); }
+.account-event-badges { display: flex; align-items: center; gap: 6px; max-width: 100%; }
+.account-event-badges > span { padding: 6px 9px; font-size: 10px; line-height: 1.4; }
+.account-event-badges .account-event-status { flex: none; white-space: nowrap; }
+.account-event-language { padding: 0 12px 12px; }
+.account-event-details { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 42%); align-items: start; gap: 18px; }
+.account-event-details-no-tickets { grid-template-columns: minmax(0, 1fr); }
+.account-event-summary { min-width: 0; }
+.account-event-meta { display: grid; gap: 8px; color: var(--ticket-muted); font-size: 12px; line-height: 1.5; }
+.account-event-meta > :is(span, a) { display: flex; align-items: center; gap: 7px; min-width: 0; min-height: 36px; padding: 8px 10px; border-radius: 9px; background: var(--ticket-raised); overflow-wrap: anywhere; }
+.account-event-meta a > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.account-event-meta .account-icon { width: 16px; height: 16px; flex-shrink: 0; }
+.account-event-meta a:hover { color: var(--ticket-accent); text-decoration: underline; }
+.account-event-meta a:focus-visible, .account-guest-ticket-title:focus-visible { outline: 2px solid var(--ticket-accent); outline-offset: 3px; border-radius: 4px; }
+.account-event-ticket-info { margin-top: 10px; color: var(--ticket-muted); font-size: 11px; }
+.account-event-status { display: inline-block; border-radius: 999px; background: var(--ticket-accent-soft); color: var(--ticket-accent); font-weight: 600; }
+.account-event-about { display: inline-block; margin-top: 9px; color: var(--ticket-accent); font-size: 12px; font-weight: 600; }
+.account-event-about:hover { text-decoration: underline; }
+p.account-event-about { color: var(--ticket-muted); font-weight: 400; }
+.account-event-bookings { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.account-ticket-tools-organizer { margin-top: 12px; padding-top: 10px; }
+.account-ticket-tools-organizer .account-ticket-actions { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.account-ticket-tools-organizer .account-ticket-actions .account-button { min-height: 30px; padding: 3px 0; border: 0; background: transparent; font-size: 11px; }
+.account-ticket-tools-organizer .account-icon { width: 16px; height: 16px; }
+.account-guest-tickets { display: grid; align-items: start; gap: 14px; }
+.account-guest-ticket { min-width: 0; }
+.account-guest-ticket + .account-guest-ticket { padding-top: 12px; border-top: 1px solid var(--ticket-border); }
+.account-guest-ticket-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--ticket-text); font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.account-guest-ticket-title:hover { color: var(--ticket-accent); }
+.account-guest-ticket-title .account-icon { flex-shrink: 0; width: 16px; height: 16px; }
+.account-guest-ticket-seat { margin-top: 6px; color: var(--ticket-muted); font-size: 13px; overflow-wrap: anywhere; }
+.account-guest-ticket-status { margin-top: 6px; color: var(--ticket-accent); font-size: 13px; }
+.account-ticket-tools-ticket { margin-top: 0; padding-top: 0; border-top: 0; }
+.account-guest-ticket-title ~ .account-ticket-tools-ticket { margin-top: 8px; }
+.account-ticket-tools-ticket .account-ticket-actions { grid-template-columns: 1fr; }
+.account-ticket-tools-ticket .account-ticket-actions { gap: 8px; }
+.account-ticket-tools-ticket .account-ticket-actions .account-button { width: 100%; min-height: 38px; padding: 9px 10px; font-size: 12px; }
+.account-ticket-tools-ticket .account-ticket-actions .account-icon { width: 17px; height: 17px; }
+.account-ticket-tools-ticket .account-ticket-disclosure { padding: 14px; }
+.account-ticket-tools .account-button:disabled { opacity: .5; cursor: not-allowed; }
+.account-ticket-tools .account-button:hover:not(:disabled):not(.account-button-primary) { background: var(--ticket-raised); }
+.account-ticket-tools :is(button, a):focus-visible { outline: 2px solid var(--ticket-accent); outline-offset: 3px; }
+.account-ticket-refund { color: var(--ticket-danger); }
+.account-ticket-note, .account-ticket-disclosure p, .account-ticket-disclosure small { color: var(--ticket-muted); font-size: 13px; line-height: 1.6; }
+.account-ticket-note { margin-top: 12px; }
+.account-ticket-disclosure { margin-top: 16px; border: 1px solid var(--ticket-border); border-radius: 12px; padding: 20px; background: var(--ticket-raised); }
+.account-ticket-disclosure .account-card-toolbar { margin-bottom: 16px; }
+.account-ticket-disclosure h3 { font-size: 15px; font-weight: 600; }
+.account-ticket-dialog { position: fixed; inset: 0; margin: auto; width: min(460px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 24px; border: 1px solid var(--ticket-border); border-radius: 20px; background: var(--ticket-surface); color: var(--ticket-text); box-shadow: 0 24px 80px #1811253d; }
+.account-ticket-dialog::backdrop { background: #18112580; backdrop-filter: blur(3px); }
+.account-ticket-dialog .account-card-toolbar { gap: 16px; margin-bottom: 20px; }
+.account-ticket-dialog h3 { font-size: 18px; font-weight: 600; }
+.account-ticket-dialog :is(p, small) { color: var(--ticket-muted); font-size: 14px; line-height: 1.6; }
+.account-ticket-dialog :is(button, a):focus-visible { outline: 2px solid var(--ticket-accent); outline-offset: 3px; }
+.account-ticket-dialog .account-ticket-error { margin: 0 0 16px; color: var(--ticket-danger); }
+.account-ticket-dialog .account-ticket-success { color: var(--ticket-success); }
+.account-ticket-dialog .account-button:disabled, .account-ticket-dialog button:disabled { opacity: .5; cursor: not-allowed; }
+.account-ticket-dialog .account-ticket-return > .account-button { width: 100%; justify-content: center; margin-top: 8px; }
+.account-ticket-qr { display: grid; justify-items: center; gap: 12px; text-align: center; }
+.account-ticket-qr img { width: min(100%, 280px); height: auto; background: white; border-radius: 12px; padding: 8px; }
+.account-ticket-contact, .account-ticket-return { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; overflow-wrap: anywhere; }
+.account-ticket-contact > a { display: inline-flex; align-items: center; gap: 8px; color: var(--ticket-accent); font-size: 14px; }
+.account-ticket-error { margin-top: 14px; color: var(--ticket-danger); font-size: 13px; }
+.account-ticket-disclosure .account-ticket-success { color: var(--ticket-success); }
+@media (max-width: 480px) {
+  .account-ticket-actions { grid-template-columns: 1fr; }
+  .account-ticket-disclosure { padding: 16px; }
+  .account-ticket-dialog { padding: 20px; }
+}
+@media (max-width: 1100px) {
+  .account-event-details { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+}
+@media (max-width: 640px) {
+  .account-guest-event { grid-template-columns: minmax(0, 1fr); }
+  .account-event-body { padding: 16px; }
+  .account-event-heading { padding: 12px 16px 0; }
+  .account-event-details { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+}
 .account-orders { display: flex; flex-direction: column; gap: 20px; padding: 24px; }
 .account-card-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .account-orders > .account-card-toolbar { padding-bottom: 20px; border-bottom: 1px solid var(--ticket-border); }
@@ -218,3 +308,57 @@
 .account-button:hover:not(:disabled):not(.account-button-primary) { background: var(--ticket-hover); }
 .account-workspace .account-text-link .account-icon { width: 16px; height: 16px; }
 @media (prefers-reduced-motion: reduce) { .account-switch, .account-switch > span { transition: none; } }
+
+/* Account preferences and contact channels use the shared header picker and theme. */
+.account-preferences-form { padding: 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 22px; }
+.account-city-preference { width: min(100%, 360px); display: flex; flex-direction: column; gap: 8px; font-size: 14px; font-weight: 600; }
+.account-method-contact { text-align: left; border: 1px solid transparent; transition: border-color .15s, background .15s; }
+.account-method-contact:hover { border-color: var(--ticket-border); }
+.account-method-contact.is-active { border-color: var(--ticket-accent); background: var(--ticket-accent-soft); }
+.account-method-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.account-method-contact > .account-method-value { font-size: 12px; font-weight: 400; overflow-wrap: anywhere; }
+.account-linked-detail { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.account-utilities a { display: inline-flex; align-items: center; gap: 9px; font-size: 14px; color: var(--ticket-muted); }
+.account-utilities a.is-active { color: var(--ticket-accent); font-weight: 600; }
+.account-support-panel { display: flex; flex-direction: column; gap: 20px; }
+.account-support-panel > div:empty { display: none; }
+.account-support-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.account-support-option { display: flex; align-items: flex-start; gap: 16px; padding: 24px; text-align: left; transition: border-color .15s, background .15s; }
+.account-support-option:hover, .account-support-option.is-active { border-color: var(--ticket-accent); }
+.account-support-option.is-active { background: var(--ticket-accent-soft); }
+.account-support-option > span:last-child { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
+.account-support-option strong { font-size: 16px; font-weight: 600; }
+.account-support-option strong + span { font-size: 14px; line-height: 1.6; color: var(--ticket-muted); }
+.account-support-option .account-text-link { margin-top: 6px; }
+.account-support-empty { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 40px 24px; text-align: center; }
+.account-support-empty h3 { font-size: 18px; font-weight: 600; }
+.account-support-empty p { max-width: 380px; font-size: 14px; line-height: 1.6; color: var(--ticket-muted); }
+.account-support-order { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--ticket-border); }
+.account-support-order:last-child { border-bottom: 0; }
+.account-support-order h3 { font-weight: 600; font-size: 14px; }
+.account-support-order :is(p, small) { color: var(--ticket-muted); font-size: 12px; display: block; margin-top: 7px; }
+.account-support-chat { overflow: hidden; }
+.account-support-chat-heading { display: flex; align-items: center; gap: 12px; }
+.account-support-composer { display: flex; flex-direction: column; gap: 16px; padding: 24px; border-top: 1px solid var(--ticket-border); }
+.account-support-composer > p { padding: 12px 16px; border-radius: 12px; background: var(--ticket-raised); color: var(--ticket-muted); font-size: 13px; line-height: 1.6; }
+.account-support-composer textarea { width: 100%; resize: vertical; border: 1px solid var(--ticket-border); border-radius: 12px; padding: 12px 16px; background: var(--ticket-bg); color: var(--ticket-muted); font-weight: 400; }
+.account-support-composer > button { align-self: flex-end; }
+.account-inbox-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+.ticket-navbar-notifications { position: relative; flex: none; }
+.ticket-notification-badge { position: absolute; top: 0; right: -2px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; background: var(--ticket-primary); color: #fff; font-size: 10px; line-height: 17px; text-align: center; box-shadow: 0 0 0 2px var(--ticket-surface); }
+.ticket-notification-popover { position: absolute; right: 0; top: calc(100% + 12px); z-index: 60; width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 110px); overflow-y: auto; border: 1px solid var(--ticket-border); border-radius: 16px; background: var(--ticket-surface); color: var(--ticket-text); box-shadow: 0 18px 45px rgb(15 23 42 / .16); }
+.ticket-notification-popover-actions { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 20px 0; }
+.ticket-notification-popover-actions .account-text-link { font-size: 12px; }
+.ticket-notification-popover .account-inbox { border: 0; box-shadow: none; min-height: 240px; }
+.ticket-notification-popover .account-inbox-toolbar { padding: 18px 20px; flex-wrap: wrap; gap: 12px; }
+.ticket-notification-popover .account-inbox-error { min-height: 260px; padding: 24px; }
+.ticket-notification-popover .account-inbox-list { padding: 0 20px; }
+.ticket-notification-popover :is(button, a):focus-visible { outline: 2px solid var(--ticket-accent); outline-offset: 3px; }
+.ticket-notification-popover button:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 1150px) { .account-support-options { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 767px) {
+  .account-support-option, .account-preferences-form { padding: 20px; }
+  .ticket-navbar-notifications { grid-area: 1 / 6; align-self: center; width: 32px; height: 36px; }
+  .ticket-navbar-notifications > button { width: 32px; height: 36px; }
+  .ticket-notification-popover { position: fixed; top: 54px; right: 12px; max-height: calc(100dvh - 70px); width: calc(100vw - 24px); }
+}

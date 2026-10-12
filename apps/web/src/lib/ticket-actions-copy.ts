@@ -1,0 +1,32 @@
+export const TICKET_ACTIONS_COPY = {
+  ru: {
+    unavailableStatus: "Недоступен", ended: "Событие завершилось. Билет больше недоступен.", inProgress: "Идёт сейчас",
+    download: "Скачать билет", qr: "Показать QR-код", contacts: "Контакты организатора", address: "Как добраться", refund: "Вернуть билет", chat: "Написать организатору",
+    choose: "Выберите билет", close: "Закрыть", map: "Открыть на карте", noAddress: "Адрес пока не указан. Уточните его у организатора.", noContacts: "Организатор пока не опубликовал контактные данные.",
+    statuses: { created: "Создан", pending_payment: "Ожидает оплаты", paid: "Оплачен", active: "Действителен", used: "Использован", cancelled: "Возвращён", refunded: "Возвращён" },
+    chatUnavailable: "Чат доступен покупателю после оформления заказа.", noTicket: "Билет появится после подтверждения заказа.", invalid: "Этот билет больше не действителен.", used: "Билет уже использован.", pending: "Билет будет доступен после подтверждения оплаты.",
+    qrHint: "Покажите этот код при входе. Каждый билет имеет свой QR-код.", fileHint: "Билет в формате PNG: событие, место, дата и QR-код. Сохраните его для входа без интернета.",
+    confirm: "Подтвердить возврат", processing: "Обрабатываем…", loading: "Загрузка…", failed: "Не удалось выполнить действие. Попробуйте ещё раз.", refundUnavailable: "По условиям покупки денежный возврат не предусмотрен. Обратитесь к организатору.",
+    returned: "Билет возвращён. QR-код больше не действует.", refundPending: "Заявка на возврат создана. Статус можно проверить в истории оплат.", date: "Дата и время", venue: "Адрес", ticket: "Билет", seat: "Место", number: "Номер билета", terms: "Условия возврата", retry: "Повторить попытку",
+  },
+  en: {
+    unavailableStatus: "Unavailable", ended: "The event has ended. This ticket is no longer available.", inProgress: "In progress",
+    download: "Download ticket", qr: "Show QR code", contacts: "Organizer contacts", address: "Directions", refund: "Return ticket", chat: "Message organizer",
+    choose: "Choose a ticket", close: "Close", map: "Open map", noAddress: "The address is not available yet. Please ask the organizer.", noContacts: "The organizer has not published contact details yet.",
+    statuses: { created: "Created", pending_payment: "Awaiting payment", paid: "Paid", active: "Valid", used: "Used", cancelled: "Returned", refunded: "Returned" },
+    chatUnavailable: "Order chat is available to the buyer after checkout.", noTicket: "Your ticket will appear once the order is confirmed.", invalid: "This ticket is no longer valid.", used: "This ticket has already been used.", pending: "Your ticket will be available once payment is confirmed.",
+    qrHint: "Show this code at the entrance. Each ticket has its own QR code.", fileHint: "PNG ticket with event, venue, date and QR code. Save it for offline entry.",
+    confirm: "Confirm return", processing: "Processing…", loading: "Loading…", failed: "Could not complete the action. Please try again.", refundUnavailable: "The purchase policy does not offer monetary refunds. Please contact the organizer.",
+    returned: "Ticket returned. Its QR code is no longer valid.", refundPending: "Refund request created. Check its status in payment history.", date: "Date and time", venue: "Address", ticket: "Ticket", seat: "Seat", number: "Ticket number", terms: "Refund terms", retry: "Try again",
+  },
+  kk: {
+    unavailableStatus: "Қолжетімсіз", ended: "Іс-шара аяқталды. Билет енді қолжетімсіз.", inProgress: "Қазір өтіп жатыр",
+    download: "Билетті жүктеу", qr: "QR-кодты көрсету", contacts: "Ұйымдастырушының байланыстары", address: "Қалай жетуге болады", refund: "Билетті қайтару", chat: "Ұйымдастырушыға жазу",
+    choose: "Билетті таңдаңыз", close: "Жабу", map: "Картада ашу", noAddress: "Мекенжай әлі көрсетілмеген. Ұйымдастырушыдан нақтылаңыз.", noContacts: "Ұйымдастырушы байланыс деректерін әлі жарияламаған.",
+    statuses: { created: "Жасалған", pending_payment: "Төлем күтілуде", paid: "Төленген", active: "Жарамды", used: "Қолданылған", cancelled: "Қайтарылған", refunded: "Қайтарылған" },
+    chatUnavailable: "Чат тапсырыс рәсімделгеннен кейін сатып алушыға қолжетімді.", noTicket: "Билет тапсырыс расталғаннан кейін пайда болады.", invalid: "Бұл билет енді жарамсыз.", used: "Билет қолданылған.", pending: "Билет төлем расталғаннан кейін қолжетімді болады.",
+    qrHint: "Кіргенде осы кодты көрсетіңіз. Әр билеттің өз QR-коды бар.", fileHint: "Іс-шара, орын, күн және QR-коды бар PNG билеті. Интернетсіз кіру үшін сақтаңыз.",
+    confirm: "Қайтаруды растау", processing: "Өңделуде…", loading: "Жүктелуде…", failed: "Әрекетті орындау мүмкін болмады. Қайталап көріңіз.", refundUnavailable: "Сатып алу шарттары бойынша ақша қайтарылмайды. Ұйымдастырушыға хабарласыңыз.",
+    returned: "Билет қайтарылды. QR-коды енді жарамсыз.", refundPending: "Қайтару өтінімі жасалды. Күйін төлемдер тарихынан тексеріңіз.", date: "Күні мен уақыты", venue: "Мекенжай", ticket: "Билет", seat: "Орын", number: "Билет нөмірі", terms: "Қайтару шарттары", retry: "Қайталап көру",
+  },
+};

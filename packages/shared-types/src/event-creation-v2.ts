@@ -188,8 +188,11 @@ export const eventCreationDraftSchema = z.object({
   if (Object.keys(draft.media.assetCrops).some(id => !slots.includes(id))) ctx.addIssue({ code: "custom", path: ["media", "assetCrops"], message: "Crop must reference a saved slot" });
 });
 export type EventCreationDraftV2 = z.infer<typeof eventCreationDraftSchema>;
+export function creationCurrencyForLocale(locale: EventLocale): "RUB" | "KZT" | "USD" {
+  return ({ ru: "RUB", kk: "KZT", en: "USD" } as const)[locale];
+}
 export function newEventCreationDraft(freeTicketId: string, sourceLocale: EventLocale = "ru"): EventCreationDraftV2 {
-  return eventCreationDraftSchema.parse({ version: 2, sourceLocale, selectedMode: null, currency: "KZT", step: "tickets", content: {}, metadata: {},
+  return eventCreationDraftSchema.parse({ version: 2, sourceLocale, selectedMode: null, currency: creationCurrencyForLocale(sourceLocale), step: "tickets", content: {}, metadata: {},
     classification: { category: null, countryCode: null, city: "", ageRestriction: null }, coordinates: null,
     schedule: { startLocal: null, endLocal: null, timezone: "Asia/Almaty", startChoice: null, endChoice: null }, refundsAvailable: null,
     free: { id: freeTicketId, active: true, amount: 0, capacity: null, content: {} }, paidGeneral: [], paidSeated: null,

@@ -21,6 +21,9 @@
   .event-checkout { grid-column: 2; grid-row: 1; }
   .event-details-grid > #venue-plan { grid-column: 1 / -1; }
 }
+@media (min-width: 1280px) {
+  .event-details-grid { grid-template-columns: minmax(0, 1fr) 400px; }
+}
 @media (max-width: 1023px) {
   .event-hero-content > div:first-child { flex: 0 1 auto; }
 }

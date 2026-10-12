@@ -1,10 +1,11 @@
-import type { GuestTicket } from "./tickets.js";
+import type { GuestTicket, GuestOrganizerContact } from "./tickets.js";
 import type { PublicEventMedia, EventLocale } from "./events.js";
 
 export type GuestParticipationStatus = "registered" | "attended" | "no_show" | "cancelled";
 
 export interface GuestBooking {
   id: string;
+  chatPath?: string | null;
   status: "pending" | "confirmed" | "cancelled" | "expired";
   table: { id: string; number: number; name: string | null; seats: number; price: number; deposit: number; currency: string };
   order: { amount: number; currency: string; paymentStatus: string };
@@ -13,6 +14,7 @@ export interface GuestBooking {
 
 export interface GuestEvent {
   id: string;
+  organizer?: GuestOrganizerContact;
   contentLocale?: EventLocale;
   sourceLocale?: EventLocale;
   title: string;
@@ -31,7 +33,9 @@ export interface GuestEvent {
   time: string;
   timezone: string;
   startsAt: string;
+  endsAt?: string | null;
   address: string;
+  coordinates?: { latitude: number; longitude: number } | null;
   eventStatus: "draft" | "published" | "cancelled" | "completed";
   participationStatus: GuestParticipationStatus;
   tickets: Array<GuestTicket & { participationStatus: GuestParticipationStatus }>;

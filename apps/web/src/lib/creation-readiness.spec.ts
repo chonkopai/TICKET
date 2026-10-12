@@ -8,6 +8,7 @@ const imageId = "00000000-0000-4000-8000-000000000003";
 const context = (): PublishValidationContext => ({ draftId, currencies: [{ code: "KZT", exponent: 2 }], assets: [{ id: imageId, draftId, kind: "image", state: "ready", bytes: 1000, width: 1600, height: 1000, durationSeconds: null }] });
 function completeDraft() {
   const draft = newEventCreationDraft("00000000-0000-4000-8000-000000000002", "ru");
+  draft.currency = "KZT";
   draft.content.ru = { title: "Concert", description: "Doors open at 18:00", address: "Test address" };
   draft.classification = { category: "music", countryCode: "KZ", city: "Almaty", ageRestriction: 0 };
   draft.schedule = { startLocal: "2026-11-01T19:00", endLocal: "2026-11-01T21:00", timezone: "Asia/Almaty", startChoice: null, endChoice: null };

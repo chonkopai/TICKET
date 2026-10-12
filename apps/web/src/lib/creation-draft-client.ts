@@ -1,9 +1,13 @@
-import { applyCreationDraftPatch,creationDraftPatchSchema,mergeDraftValues,draftLocaleFields,setDraftLocaleField,EVENT_LOCALES,type CreationDraftPatch,type CreationDraftResponse,type EventCreationDraftV2,type EventLocale } from "@event-platform/shared-types";
+import { creationCurrencyForLocale,applyCreationDraftPatch,creationDraftPatchSchema,mergeDraftValues,draftLocaleFields,setDraftLocaleField,EVENT_LOCALES,type CreationDraftPatch,type CreationDraftResponse,type EventCreationDraftV2,type EventLocale } from "@event-platform/shared-types";
 import { refreshSession } from "../app/(auth)/_lib/api";
 import { getSession } from "../app/(auth)/_lib/session";
 
 const POINTER="ticket.creation.v2.id",RECOVERY="ticket.creation.v2.recovery";
 export interface DraftRecovery {id:string;baseRevision:number;patch:CreationDraftPatch}
+export async function saveContentLanguageCurrency(client: DraftAutosave, locale: EventLocale, locked = false): Promise<void> {
+  if (!locked) client.patch({ currency: creationCurrencyForLocale(locale), acknowledgeCurrencyRelabel: true });
+  await client.flush();
+}
 export class DraftRequestError extends Error {
   constructor(readonly code:string,readonly status:number,readonly currentRevision?:number,readonly fields:Array<{path:string;code:string}>=[]){super(code);}
 }

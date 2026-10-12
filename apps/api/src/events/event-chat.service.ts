@@ -61,7 +61,7 @@ export class EventChatService {
     if (!event) throw new NotFoundException({ code: "ORDER_NOT_FOUND" });
     if (participant.kind === "organizer" && event.organizerId !== participant.userId) throw new NotFoundException({ code: "ORDER_NOT_FOUND" });
     const order = await this.db.order.findUnique({ where: { id: orderId }, select: {
-      buyerUserId: true, paymentStatus: true,
+      buyerUserId: true,
       anonymousSession: { select: { id: true, accessHash: true, accessExpiresAt: true } },
       tickets: { select: { ticketType: { select: { eventId: true } } } },
       reservations: { select: { ticketType: { select: { eventId: true } } } },
@@ -69,7 +69,8 @@ export class EventChatService {
       booking: { select: { table: { select: { venueLayout: { select: { eventId: true } } } } } },
       deposit: { select: { eventId: true } },
     } });
-    if (!order || !["paid", "refunded", "cancelled"].includes(order.paymentStatus)) throw new NotFoundException({ code: "ORDER_NOT_FOUND" });
+    // Conversation access follows ownership, including customers who need help paying.
+    if (!order) throw new NotFoundException({ code: "ORDER_NOT_FOUND" });
     if (!order.buyerUserId && !order.anonymousSession) throw new NotFoundException({ code: "ORDER_NOT_FOUND" });
     const eventIds = new Set<string>();
     order.tickets.forEach((ticket) => eventIds.add(ticket.ticketType.eventId));

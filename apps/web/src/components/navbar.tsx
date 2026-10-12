@@ -7,9 +7,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { getSession } from "../app/(auth)/_lib/session";
+import { getSession, subscribeSession } from "../app/(auth)/_lib/session";
 import { logoutSession } from "../app/(auth)/_lib/api";
 import { OptionPicker } from "./option-picker";
+import { HeaderNotifications } from "./header-notifications";
 import { HeaderSearch } from "./header-search";
 import { CatalogLocationPicker } from "./catalog-location-picker";
 import { useLocale } from "./locale-provider";
@@ -36,8 +37,7 @@ export function Navbar() {
   useEffect(() => {
     const refresh = () => setUser(getSession()?.user ?? null);
     refresh();
-    window.addEventListener("event-platform:session-changed", refresh);
-    return () => window.removeEventListener("event-platform:session-changed", refresh);
+    return subscribeSession(refresh);
   }, []);
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => setPhotoFailed(false), [user?.photoUrl]);
@@ -77,6 +77,7 @@ export function Navbar() {
         <Link aria-label={copy.createEvent} className={`ticket-navbar-create hidden min-h-10 items-center justify-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:focus-visible:ring-ticket-accent md:inline-flex ${onEventHero ? "border-white/40 bg-white/10 text-white hover:bg-white/20" : "border-violet-200 dark:border-ticket-accent text-violet-700 dark:text-ticket-accent hover:bg-violet-50 dark:hover:bg-ticket-accent-soft"}`} href={createHref}><CreateEventIcon /><span className="ticket-navbar-create-label">{copy.createEvent}</span><span className="ticket-navbar-create-compact hidden">{({ ru: "Создать", en: "Create", kk: "Құру" })[locale]}</span></Link>
         <Link href={localeUrl("/favorites", locale)} aria-label={copy.favorites} title={copy.favorites} aria-current={pathname === "/favorites" ? "page" : undefined} className={`ticket-navbar-favorites inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:focus-visible:ring-ticket-accent ${onEventHero ? "text-white hover:bg-white/20" : pathname === "/favorites" ? "bg-violet-100 dark:bg-ticket-accent-soft text-violet-700 dark:text-ticket-accent" : "text-slate-600 dark:text-ticket-muted hover:bg-violet-50 dark:hover:bg-ticket-accent-soft hover:text-violet-700 dark:hover:text-ticket-accent"}`}><svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill={pathname === "/favorites" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" /></svg></Link>
         <ThemeToggle onHero={onEventHero} />
+        {user ? <HeaderNotifications key={user.id} onDark={onEventHero} /> : null}
         <Link aria-label={user ? copy.profile : copy.account} className="ticket-navbar-account hidden items-center gap-2 rounded-full bg-[#6320ee] dark:bg-ticket-primary py-1.5 pl-1.5 pr-3.5 text-sm font-semibold text-white transition hover:bg-[#4f16c8] dark:hover:bg-ticket-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:focus-visible:ring-ticket-accent focus-visible:ring-offset-2 sm:inline-flex" href={user ? "/account" : "/login"}><span aria-hidden="true" className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-white/20 text-xs">{photo}</span>{user ? (user.name || copy.profile) : copy.account}</Link>
         <Link aria-label={copy.profile} className="ticket-navbar-profile grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-[#6320ee] dark:bg-ticket-primary font-semibold text-white sm:hidden" href="/account"><UserIcon /></Link>
         {user ? <button aria-label={copy.logout} className={`ticket-navbar-logout hidden rounded-full p-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:focus-visible:ring-ticket-accent sm:inline-flex ${onEventHero ? "text-white hover:bg-white/20" : "text-slate-500 dark:text-ticket-muted hover:bg-slate-100 dark:hover:bg-ticket-raised hover:text-slate-800 dark:hover:text-ticket-text"}`} onClick={logout} title={copy.logout} type="button"><LogoutIcon /></button> : null}

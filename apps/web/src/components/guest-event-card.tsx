@@ -9,26 +9,65 @@ import { Countdown } from "./countdown";
 import { PublicFramedAsset } from "./public-event-media";
 import { useLocale } from "./locale-provider";
 import { GUEST_COPY, GUEST_EXTRA } from "../lib/guest-copy";
-import { INTL_LOCALES, localeUrl } from "../lib/locale";
+import { localeUrl } from "../lib/locale";
 import { ContentLanguageNote } from "./content-language-note";
+import { GuestTicketActions } from "./guest-ticket-actions";
+import { TICKET_ACTIONS_COPY } from "../lib/ticket-actions-copy";
+import { AccountIcon } from "./account-icon";
+import { eventMapUrl } from "../lib/event-map-url";
+import { guestEventSchedule } from "../lib/guest-event-schedule";
+import { guestEventParticipationLabel, guestTicketParticipationLabel } from "../lib/guest-participation-label";
+import { useEventEnded } from "../lib/use-event-ended";
 
-export function GuestEventCard({ event }: { event: GuestEvent }) {
+export function GuestEventCard({ event, onReturned }: { event: GuestEvent; onReturned?: () => void }) {
   const locale = useLocale();
-  const copy = GUEST_COPY[locale];
   const extra = GUEST_EXTRA[locale];
+  const actionsCopy = TICKET_ACTIONS_COPY[locale];
+  const ended = useEventEnded(event);
+  const details = { startsAt: event.startsAt, endsAt: event.endsAt ?? null, timezone: event.timezone, address: event.address, coordinates: event.coordinates ?? null, organizer: event.organizer ?? { name: null, phone: null, email: null, address: null } };
+  const mapUrl = eventMapUrl(event);
+  const chatPath = event.tickets.find(ticket => ticket.chatPath)?.chatPath ?? event.bookings.find(booking => booking.chatPath)?.chatPath;
   const eventHref = localeUrl(`/events/${event.id}`, locale);
-  const date = new Intl.DateTimeFormat(INTL_LOCALES[locale], { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${event.date}T00:00:00Z`));
-  const canOpenEvent = event.eventStatus === "published" && new Date(event.startsAt) > new Date();
-  return <article className="overflow-hidden rounded-2xl border border-[#ded9e8] dark:border-ticket-border bg-white dark:bg-ticket-surface shadow-sm">
-    <div className="grid gap-0 sm:grid-cols-[160px_1fr]">
-      {canOpenEvent ? <Link aria-label={`${extra.openEvent}: ${event.title}`} className="block self-start aspect-video bg-gradient-to-br from-[#e7ddff] dark:from-ticket-raised via-[#f6f2ff] dark:via-ticket-raised to-[#d9e8ff] dark:to-ticket-raised focus-visible:outline-2 focus-visible:outline-[#713dcc] dark:focus-visible:outline-ticket-accent" href={eventHref}>{event.media?.find(asset => asset.isCard) ? <PublicFramedAsset asset={event.media.find(asset => asset.isCard)!} className="aspect-video w-full" /> : event.posterUrl ? <img alt="" className="h-full w-full object-cover" src={event.posterUrl} /> : <div aria-hidden="true" className="flex h-full min-h-36 items-end p-5 text-3xl font-bold text-[#5b21b6] dark:text-ticket-accent">{event.title.slice(0, 1)}</div>}</Link> : <div className="self-start aspect-video bg-gradient-to-br from-[#e7ddff] dark:from-ticket-raised via-[#f6f2ff] dark:via-ticket-raised to-[#d9e8ff] dark:to-ticket-raised">{event.media?.find(asset => asset.isCard) ? <PublicFramedAsset asset={event.media.find(asset => asset.isCard)!} className="aspect-video w-full" /> : event.posterUrl ? <img alt="" className="h-full w-full object-cover" src={event.posterUrl} /> : <div aria-hidden="true" className="flex h-full min-h-36 items-end p-5 text-3xl font-bold text-[#5b21b6] dark:text-ticket-accent">{event.title.slice(0, 1)}</div>}</div>}
-      <div className="p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div><span className="rounded-full bg-[#f0eaff] dark:bg-ticket-raised px-3 py-1 text-xs font-bold text-[#5b21b6] dark:text-ticket-accent">{copy.states[event.participationStatus]}</span><h2 className="mt-3 text-xl font-bold sm:text-2xl">{canOpenEvent ? <Link className="hover:text-[#5b21b6] dark:hover:text-ticket-accent hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-[#713dcc] dark:focus-visible:outline-ticket-accent" href={eventHref}>{event.title}</Link> : event.title}</h2><div className="mt-2"><ContentLanguageNote contentLocale={event.contentLocale} /></div><p className="mt-2 text-sm text-[#645c70] dark:text-ticket-muted">{date} · {event.time} · {event.address}</p>{canOpenEvent ? <Link className="mt-2 inline-block text-sm font-semibold text-[#5b21b6] dark:text-ticket-accent hover:underline" href={eventHref}>{extra.aboutTickets}</Link> : <p className="mt-2 text-xs text-[#645c70] dark:text-ticket-muted">{extra.pageUnavailable}</p>}</div>
-          <Countdown startsAt={event.startsAt} past={new Date(event.startsAt) <= new Date()} />
+  const schedule = guestEventSchedule(event, locale);
+  const canOpenEvent = event.eventStatus === "published" && !ended;
+  const cardAsset = event.media?.find(asset => asset.isCard);
+  const singleTicket = event.tickets.length === 1 ? event.tickets[0] : null;
+  const poster = cardAsset ? <PublicFramedAsset asset={cardAsset} className="account-event-poster-media" />
+    : event.posterUrl ? <img alt="" className="account-event-poster-media" src={event.posterUrl} />
+    : <span aria-hidden="true" className="account-event-poster-placeholder">{event.title.slice(0, 1)}</span>;
+  return <article className="account-guest-event">
+    <div className="account-event-identity">
+    {canOpenEvent ? <Link aria-label={`${extra.openEvent}: ${event.title}`} className="account-event-poster" href={eventHref}><div className="account-event-poster-frame">{poster}</div></Link> : <div className="account-event-poster"><div className="account-event-poster-frame">{poster}</div></div>}
+      <header className="account-event-heading">
+        <h2 title={event.title}>{canOpenEvent ? <Link href={eventHref}>{event.title}</Link> : event.title}</h2>
+        <div className="account-event-badges">
+          <span className="account-event-status">{guestEventParticipationLabel(event, locale, ended)}</span>
+          <Countdown startsAt={event.startsAt} past={ended} />
         </div>
-        <div className="mt-5 flex flex-wrap gap-3">{event.tickets.map((ticket) => <Link className="rounded-xl border border-[#cfc7da] dark:border-ticket-border px-4 py-2 text-sm font-semibold transition hover:border-[#713dcc] dark:hover:border-ticket-accent" href={localeUrl(`/account/tickets/${ticket.id}`, locale)} key={ticket.id}><span className="block">{ticket.ticketTypeName}</span>{ticket.seatLabel ? <span className="mt-1 block font-normal text-[#645c70] dark:text-ticket-muted">{ticket.seatLabel}</span> : null}<span className="mt-1 block font-normal text-[#5b21b6] dark:text-ticket-accent">{copy.states[ticket.participationStatus]}</span></Link>)}{event.bookings.map((booking) => <BookingChip booking={booking} key={booking.id} />)}</div>
+      </header>
+      {event.contentLocale && event.contentLocale !== locale ? <div className="account-event-language"><ContentLanguageNote contentLocale={event.contentLocale} /></div> : null}
+    </div>
+    <div className="account-event-body">
+      <div className={`account-event-details${event.tickets.length ? "" : " account-event-details-no-tickets"}`}>
+        <div className="account-event-summary">
+          <div className="account-event-meta">
+            <span><AccountIcon name="clock" /><time dateTime={event.startsAt}>{schedule}</time></span>
+            {mapUrl ? <a href={mapUrl} target="_blank" rel="noopener noreferrer" title={`${actionsCopy.map}: ${event.address}`}><AccountIcon name="map-pin" /><span>{event.address || actionsCopy.map}</span><AccountIcon name="arrow-up-right" /></a> : <span><AccountIcon name="map-pin" />{actionsCopy.noAddress}</span>}
+          </div>
+          {singleTicket?.seatLabel ? <p className="account-event-ticket-info">{singleTicket.seatLabel}</p> : null}
+          {canOpenEvent ? <Link className="account-event-about" href={eventHref}>{extra.aboutTickets}</Link> : <p className="account-event-about">{extra.pageUnavailable}</p>}
+          {event.bookings.length ? <div className="account-event-bookings">{event.bookings.map(booking => <BookingChip booking={booking} key={booking.id} />)}</div> : null}
+        </div>
+        {event.tickets.length ? <div className="account-guest-tickets">{event.tickets.map(ticket => <section className="account-guest-ticket" key={ticket.id} aria-label={`${ticket.ticketTypeName}${ticket.seatLabel ? ` · ${ticket.seatLabel}` : ""}`}>
+          {!singleTicket ? <>
+            <Link className="account-guest-ticket-title" href={localeUrl(`/account/tickets/${ticket.id}`, locale)}>{ticket.ticketTypeName}<AccountIcon name="arrow-right" /></Link>
+            {ticket.seatLabel ? <p className="account-guest-ticket-seat">{ticket.seatLabel}</p> : null}
+            <p className="account-guest-ticket-status">{guestTicketParticipationLabel(ticket, locale, ended)}</p>
+          </> : null}
+          <GuestTicketActions variant="ticket" ticket={ticket} details={details} onReturned={onReturned} />
+        </section>)}</div> : null}
       </div>
+      <GuestTicketActions variant="organizer" details={details} chatPath={chatPath} />
     </div>
   </article>;
 }

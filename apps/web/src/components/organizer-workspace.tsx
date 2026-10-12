@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ProtectedRoute } from "../app/(auth)/_components/protected-route";
 import { logoutSession } from "../app/(auth)/_lib/api";
-import { getSession } from "../app/(auth)/_lib/session";
+import { getSession, subscribeSession } from "../app/(auth)/_lib/session";
 import { useAccountResource } from "../app/(auth)/account/use-account-resource";
 import { ORGANIZER_EVENTS_COPY } from "../lib/organizer-events-copy";
 import { ORGANIZER_WORKSPACE_COPY } from "../lib/organizer-workspace-copy";
@@ -39,8 +39,8 @@ function Workspace({ active, children }: { active: "events" | "profile"; childre
   const help = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const refresh = () => setUser(getSession()?.user ?? null);
-    window.addEventListener("event-platform:session-changed", refresh);
-    return () => window.removeEventListener("event-platform:session-changed", refresh);
+    refresh();
+    return subscribeSession(refresh);
   }, []);
   async function logout() {
     if (busy) return;

@@ -113,6 +113,13 @@ export interface UseGroupPassResponse {
   ticketIds: string[];
 }
 
+export interface GuestOrganizerContact {
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+}
+
 export interface GuestTicket {
   id: string;
   eventId: string;
@@ -125,6 +132,9 @@ export interface GuestTicket {
   usedAt: string | null;
   qrPath: string;
   walletPath: string | null;
+  /** Available only to the buyer of a settled order. */
+  chatPath?: string | null;
+  eventDetails?: { startsAt: string; endsAt?: string | null; timezone: string; address: string; coordinates?: { latitude: number; longitude: number } | null; organizer: GuestOrganizerContact };
   createdAt: string;
   updatedAt: string;
 }

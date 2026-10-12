@@ -1,9 +1,10 @@
 import { readCheckoutSnapshot } from "@event-platform/shared-types";
 import type { Prisma } from "@event-platform/database";
 import type { GuestTicket, OrganizerTicket } from "@event-platform/shared-types";
+import { guestOrganizerSelect } from "./guest-ticket-details.js";
 
 export const ticketContextInclude = {
-  ticketType: { include: { event: true } },
+  ticketType: { include: { event: { include: { organizer: { select: guestOrganizerSelect } } } } },
   order: { include: { groupPass: true } },
   seatAllocation: { include: { seat: { include: { table: true, row: true } } } },
 } satisfies Prisma.TicketInclude;

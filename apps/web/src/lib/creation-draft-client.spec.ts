@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { newEventCreationDraft,type CreationDraftResponse,applyCreationDraftPatch } from "@event-platform/shared-types";
-import { DraftAutosave,DraftRequestError,resetCreationDraft,resetDraftBootstrap,openCreationDraft,type DraftTransport } from "./creation-draft-client";
+import { creationCurrencyForLocale,newEventCreationDraft,type CreationDraftResponse,applyCreationDraftPatch } from "@event-platform/shared-types";
+import { DraftAutosave,DraftRequestError,saveContentLanguageCurrency,resetCreationDraft,resetDraftBootstrap,openCreationDraft,type DraftTransport } from "./creation-draft-client";
 
 const saved=():CreationDraftResponse=>({id:"00000000-0000-4000-8000-000000000001",revision:1,state:"active",aggregate:newEventCreationDraft("00000000-0000-4000-8000-000000000002"),expiresAt:"2026-12-01T00:00:00Z",owned:false,resultEventId:null,csrfToken:"csrf-in-memory"});
 test("autosave retains edits entered during a save and serializes revisions",async()=>{
@@ -22,6 +22,25 @@ test("a conflict preserves local text and never rebases automatically",async()=>
 });
 test("currency changes require acknowledgement without converting minor amounts",()=>{
   const autosave=new DraftAutosave(saved());assert.throws(()=>autosave.patch({currency:"USD"}),/CONFIRMATION/);autosave.patch({currency:"USD",acknowledgeCurrencyRelabel:true});assert.equal(autosave.aggregate.currency,"USD");assert.equal(autosave.aggregate.free.amount,0);autosave.dispose();
+});
+test("language currency changes save with pending prices and manual overrides survive reopening",async()=>{
+  let stored=saved();
+  const autosave=new DraftAutosave(stored,async<T>(_path:string,options?:RequestInit)=>{
+    const body=JSON.parse(String(options?.body));
+    assert.equal(body.revision,stored.revision);
+    stored={...stored,revision:stored.revision+1,aggregate:applyCreationDraftPatch(stored.aggregate,body.patch)};
+    return stored as T;
+  });
+  autosave.patch({paidGeneral:[{id:"00000000-0000-4000-8000-000000000003",active:true,amount:12345,capacity:2,content:{ru:{name:"Entry"}}}]});
+  for(const locale of ["en","kk","ru"] as const){
+    await saveContentLanguageCurrency(autosave,locale);
+    assert.equal(stored.aggregate.currency,creationCurrencyForLocale(locale));
+    assert.equal(stored.aggregate.paidGeneral[0]?.amount,12345);
+  }
+  autosave.patch({currency:"KZT",acknowledgeCurrencyRelabel:true});await autosave.flush();autosave.dispose();
+  const reopened=new DraftAutosave(stored);
+  assert.equal(reopened.aggregate.currency,"KZT");assert.equal(reopened.aggregate.sourceLocale,"ru");assert.equal(reopened.dirty,false);
+  await saveContentLanguageCurrency(reopened,"en",true);assert.equal(reopened.aggregate.currency,"KZT");reopened.dispose();
 });
 test("translation preserves edits made while waiting, including whole-row patches and changed-back text",async()=>{
   const original=saved(),id="00000000-0000-4000-8000-000000000003";original.aggregate.paidGeneral=[{id,active:true,amount:100,capacity:1,content:{ru:{name:"Source",description:"Source description"},en:{name:"Manual"}}}];

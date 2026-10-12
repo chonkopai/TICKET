@@ -4,6 +4,7 @@ import { catalogCityOptions } from "@event-platform/shared-types";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { getSession, subscribeSession } from "../app/(auth)/_lib/session";
 import { CATALOG_CITY_SELECTED, CATALOG_QUERY_UPDATED } from "../lib/catalog-query-events";
 import { COUNTRY_CODES, cityName, countryName } from "../lib/countries";
 import { clearCatalogLocation, detectCatalogLocation, rememberCatalogLocation, savedCatalogLocation, validCountryCode } from "../lib/catalog-location";
@@ -16,7 +17,8 @@ const FEATURED_COUNTRIES = ["KZ", "RU", "UZ", "KG", "TR", "AE", "GB", "US"] as c
 function readSelection(): { countryCode: string; city: string } {
   const onCatalog = window.location.pathname === "/";
   const params = new URLSearchParams(onCatalog ? window.location.search : "");
-  const saved = params.has("countryCode") || params.has("city") ? null : savedCatalogLocation();
+  const defaultCity = getSession()?.user.defaultCity;
+  const saved = params.has("countryCode") || params.has("city") ? null : savedCatalogLocation() ?? (defaultCity ? { countryCode: "KZ", city: defaultCity } : null);
   return {
     countryCode: validCountryCode(params.get("countryCode")) ?? saved?.countryCode ?? "",
     city: params.has("city") ? params.get("city") ?? "" : saved?.city ?? "",
@@ -54,7 +56,8 @@ export function CatalogLocationPicker({ onDark = false, appearance = "navbar" }:
     sync();
     const params = new URLSearchParams(window.location.pathname === "/" ? window.location.search : "");
     if (!params.has("countryCode") && !params.has("city")) {
-      const saved = savedCatalogLocation();
+      const defaultCity = getSession()?.user.defaultCity;
+      const saved = savedCatalogLocation() ?? (defaultCity ? { countryCode: "KZ", city: defaultCity } : null);
       if (saved?.countryCode) commit(saved.countryCode, saved.city, true);
       else if (!saved) void detectCatalogLocation().then((detected) => {
         if (!active || !detected || savedCatalogLocation()) return;
@@ -63,11 +66,13 @@ export function CatalogLocationPicker({ onDark = false, appearance = "navbar" }:
         commit(detected.countryCode, detected.city, true);
       });
     }
+    const unsubscribeSession = subscribeSession(sync);
     window.addEventListener("popstate", sync);
     window.addEventListener(CATALOG_QUERY_UPDATED, sync);
     window.addEventListener(CATALOG_CITY_SELECTED, sync);
     return () => {
       active = false;
+      unsubscribeSession();
       window.removeEventListener("popstate", sync);
       window.removeEventListener(CATALOG_QUERY_UPDATED, sync);
       window.removeEventListener(CATALOG_CITY_SELECTED, sync);

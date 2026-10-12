@@ -3,7 +3,14 @@ import type { ReactNode } from "react";
 // Reuse the site's ticket/calendar icons and navbar heart, user and logout paths.
 // Additional account symbols follow the same currentColor, rounded stroke style.
 const ICONS: Record<string, ReactNode> = {
+  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+  download: <path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" />,
+  qr: <><path d="M3 3h6v6H3ZM15 3h6v6h-6ZM3 15h6v6H3ZM15 15h3v3h3v3h-6v-3M21 12v3M12 3v3M12 12h3M3 12h3M12 18v3" /></>,
+  undo: <path d="m8 3-5 5 5 5M3 8h10a7 7 0 0 1 0 14h-2" />,
   // Existing calendar-plus, editor and event-management symbols.
+  "arrow-left": <path d="M20 12H4m6-6-6 6 6 6" />,
+  "map-pin": <><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>,
+  "messages": <><path d="M4 4h16v12H9l-5 4V4Z" /><path d="M8 8h8M8 12h5" /></>,
   plus: <path d="M12 5v14M5 12h14" />,
   pencil: <path d="m4 20 4.5-1 10-10-3.5-3.5-10 10L4 20Zm9-12 3.5 3.5" />,
   eye: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,

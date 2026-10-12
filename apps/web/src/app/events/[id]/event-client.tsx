@@ -26,11 +26,15 @@ function useEventCopy() { return EVENT_COPY[useLocale()]; }
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 type CartPrefill = { tickets?: Array<{ ticketTypeId: string; quantity: number }>; tableId?: string | null; seatIds?: string[] };
 
-export default function PublicEventPage({ id }: { id: string }) {
+export type EventPagePreview = { event: PublicEvent; layout: PublicVenueLayout | null; datePlaceholder?: string | undefined; descriptionPlaceholder: string; emptyTickets: string; showRefund: boolean };
+
+export default function PublicEventPage({ id, preview }: { id: string; preview?: EventPagePreview }) {
   const copy = useEventCopy();
   const locale = useLocale();
-  const [event, setEvent] = useState<PublicEvent | null>(null);
-  const [layout, setLayout] = useState<PublicVenueLayout | null>(null);
+  const [loadedEvent, setEvent] = useState<PublicEvent | null>(null);
+  const [loadedLayout, setLayout] = useState<PublicVenueLayout | null>(null);
+  const event = preview ? preview.event : loadedEvent;
+  const layout = preview ? preview.layout : loadedLayout;
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [ticketQuantities, setTicketQuantities] = useState<Record<string, number>>({});
@@ -44,6 +48,7 @@ export default function PublicEventPage({ id }: { id: string }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    if (preview) return;
     let active = true;
     void (async () => {
       const eventResponse = await fetch(`/api/events/${encodeURIComponent(id)}?locale=${localeFromBrowser()}`);
@@ -64,9 +69,10 @@ export default function PublicEventPage({ id }: { id: string }) {
       }
     })().catch(() => { if (active) setError(true); });
     return () => { active = false; };
-  }, [id,locale]);
+  }, [id,locale,Boolean(preview)]);
 
   async function share(): Promise<void> {
+    if (preview) return;
     if (navigator.share) { await navigator.share(event ? { title: event.title, url: window.location.href } : { url: window.location.href }).catch(() => undefined); return; }
     await navigator.clipboard.writeText(window.location.href);
     setCopied(true);
@@ -74,7 +80,7 @@ export default function PublicEventPage({ id }: { id: string }) {
   }
 
   const refreshAvailability = useCallback(async (): Promise<void> => {
-    if (!event) return;
+    if (!event || preview) return;
     const [eventResponse, nextLayout] = await Promise.all([
       fetch(`/api/events/${encodeURIComponent(event.id)}?locale=${localeFromBrowser()}`, { cache: "no-store" }),
       fetchPublicVenueLayout(event.id),
@@ -88,10 +94,10 @@ export default function PublicEventPage({ id }: { id: string }) {
     setSelectedTableId((current) => current && nextEvent.tables.some((table) => table.id === current && table.availability === "available") ? current : null);
     setTicketQuantities((current) => Object.fromEntries(Object.entries(current).filter(([id, quantity]) => nextEvent.ticketTypes.some((ticket) => ticket.id === id && ticket.status === "active" && ticket.remaining >= quantity))));
     setSyncError(false);
-  }, [event?.id]);
+  }, [event?.id,Boolean(preview)]);
 
   useEffect(() => {
-    if (!event?.id || error) return;
+    if (!event?.id || error || preview) return;
     let active = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let failures = 0;
@@ -116,33 +122,34 @@ export default function PublicEventPage({ id }: { id: string }) {
   if (!event) return <EventPageSkeleton />;
 
   const hasHall = Boolean((!event.saleMode||event.saleMode==="paid_seated")&&layout && (layout.tables.length > 0 || layout.rows.length > 0 || (layout.layoutJson.version === 2 && (layout.layoutJson.editor?.objects.length ?? 0) > 0)));
-  return <main className="min-h-screen bg-white dark:bg-ticket-surface text-[#151c27] dark:text-ticket-text">
+  return <main inert={preview ? true : undefined} className="min-h-screen bg-white dark:bg-ticket-surface text-[#151c27] dark:text-ticket-text">
     <EventHero event={event} galleryLabel={copy.gallery} actions={<>
       <div className="absolute right-16 top-0 z-10 sm:right-20 lg:right-24"><button aria-label={copied ? copy.copied : copy.share} title={copied ? copy.copied : copy.share} className="flex size-11 items-center justify-center rounded-full bg-black/25 text-white transition hover:bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" onClick={() => void share()} type="button"><ShareIcon /></button><span className="sr-only" role="status">{copied ? copy.copied : ""}</span></div>
-      <div className="relative -top-4"><FavoriteButton eventId={event.id} heroOverlay /></div>
+      <div className="relative -top-4"><FavoriteButton eventId={event.id} heroOverlay readOnly={Boolean(preview)} /></div>
     </>}>
       <h1 className="max-w-4xl font-bold tracking-[-0.035em]">{event.title}</h1>
       <div className="mt-2"><ContentLanguageNote contentLocale={event.contentLocale} /></div>
-      <EventHeroDetails event={event} locale={locale} />
+      <EventHeroDetails event={event} locale={locale} datePlaceholder={preview?.datePlaceholder} />
     </EventHero>
 
     <div className="mx-auto max-w-7xl px-4 pb-20 pt-7 sm:pt-10 sm:px-8 lg:px-10">
       {syncError ? <div aria-live="polite" className="mb-4 rounded-xl bg-amber-50 dark:bg-ticket-warning-soft px-4 py-3 text-sm text-amber-900 dark:text-ticket-warning">{copy.syncFailed} <button className="font-bold underline" onClick={() => void refreshAvailability().catch(() => setSyncError(true))} type="button">{copy.retry}</button></div> : null}
       <div className="event-details-grid items-start">
         <div>
+          {preview && !event.description ? <section><h2 className="mb-3 text-xl font-semibold">{copy.about}</h2><p className="text-slate-600 dark:text-ticket-muted">{preview.descriptionPlaceholder}</p></section> : null}
           {event.creationVersion===2?<EventStory description={event.description} address="" refundConditions={event.cancellationTerms} refundsAvailable={event.refundsAvailable??false} free={event.saleMode==="free"} locale={locale} showRefund={false}/>:event.description?<ContentCard icon="spark" title={copy.about}><RichText text={event.description} /></ContentCard>:null}
         </div>
         {hasHall && layout ? <VenueSection layout={layout} event={event} selectedSeatIds={selectedSeatIds} onChange={setSelectedSeatIds} selectedTableId={selectedTableId} onTableChange={setSelectedTableId} ticketQuantities={ticketQuantities} onTicketChange={changeTicket} /> : null}
-        <div className="event-checkout"><CheckoutPanel event={event} layout={layout} selectedSeatIds={selectedSeatIds} selectedTableId={selectedTableId} onTableChange={setSelectedTableId} ticketQuantities={ticketQuantities} onTicketChange={changeTicket} onClearSeats={() => setSelectedSeatIds([])} onRefreshAvailability={refreshAvailability} /></div>
+        <div className="event-checkout"><CheckoutPanel event={event} layout={layout} selectedSeatIds={selectedSeatIds} selectedTableId={selectedTableId} onTableChange={setSelectedTableId} ticketQuantities={ticketQuantities} onTicketChange={changeTicket} onClearSeats={() => setSelectedSeatIds([])} onRefreshAvailability={refreshAvailability} readOnly={Boolean(preview)} emptyMessage={preview?.emptyTickets} /></div>
       </div>
       <div className="mt-12 space-y-10">
-        {event.creationVersion===2?<EventRefund locale={locale} free={event.saleMode==="free"} available={event.refundsAvailable??false} conditions={event.cancellationTerms}/>:<TermsCard event={event}/>}
+        {preview && !preview.showRefund ? null : event.creationVersion===2?<EventRefund locale={locale} free={event.saleMode==="free"} available={event.refundsAvailable??false} conditions={event.cancellationTerms}/>:<TermsCard event={event}/>}
         <Gallery event={event}/>
       </div>
 
       <div className="mt-16 grid gap-12 lg:grid-cols-2">
         {event.program?<ProgramCard text={event.program} eventTime={event.time}/>:null}
-        <LocationCard event={event} />
+        <LocationCard event={event} preview={Boolean(preview)} />
       </div>
 
       <div className="mt-16 grid gap-12 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -317,7 +324,7 @@ function Gallery({event}:{event:PublicEvent}){const copy=useEventCopy(),media=ev
 
 function ProgramCard({ text, eventTime }: { text: string | null; eventTime: string }) { const copy = useEventCopy(); const items = parseProgram(text, eventTime, copy); return <section><div className="flex items-center gap-3"><span className="text-[#713dcc] dark:text-ticket-accent"><EventMetaIcon icon="clock" /></span><div><h2 className="text-2xl font-bold">{copy.program}</h2><p className="text-sm text-[#4a4453] dark:text-ticket-muted">{copy.schedule}</p></div></div><ol className="relative mt-6 space-y-3 border-l-2 border-[#ebddff] dark:border-ticket-border pl-5">{items.map((item, index) => <li className="relative border-b border-slate-100 dark:border-ticket-border px-4 py-3" key={`${item.time}-${index}`}><span className="absolute -left-[27px] top-5 h-3 w-3 rounded-full bg-[#713dcc] dark:bg-ticket-primary ring-4 ring-white dark:ring-ticket-surface" /><div className="flex gap-3"><time className="shrink-0 font-mono text-sm font-bold text-[#581db3] dark:text-ticket-accent">{item.time}</time><span className="text-sm font-semibold">{item.label}</span></div></li>)}</ol></section>; }
 
-function LocationCard({ event }: { event: PublicEvent }) {
+function LocationCard({ event, preview = false }: { event: PublicEvent; preview?: boolean }) {
   const copy = useEventCopy();
   const query = [event.address, event.city, event.countryCode].filter(Boolean).join(", ");
   const encodedQuery = encodeURIComponent(query);
@@ -327,7 +334,7 @@ function LocationCard({ event }: { event: PublicEvent }) {
     : `https://www.google.com/maps?q=${encodedQuery}&output=embed`;
   return <section className="flex flex-col">
     <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-2xl font-bold">{copy.location}</h2><p className="mt-1 text-sm text-[#4a4453] dark:text-ticket-muted">{event.address}</p></div><a className="rounded-full bg-[#5b21b6] dark:bg-ticket-primary px-4 py-2 text-sm font-semibold text-white" href={`https://www.google.com/maps/search/?api=1&query=${encodedQuery}`} rel="noreferrer" target="_blank">{copy.openMap}</a></div>
-    <div className="relative mt-5 min-h-64 flex-1 overflow-hidden rounded-xl bg-[#f0f3ff] dark:bg-ticket-raised"><iframe className="absolute inset-0 h-full w-full border-0" loading="lazy" referrerPolicy="strict-origin-when-cross-origin" src={embedUrl} title={`${copy.location}: ${event.address}`} /></div>
+    <div className="relative mt-5 min-h-64 flex-1 overflow-hidden rounded-xl bg-[#f0f3ff] dark:bg-ticket-raised">{!preview ? <iframe className="absolute inset-0 h-full w-full border-0" loading="lazy" referrerPolicy="strict-origin-when-cross-origin" src={embedUrl} title={`${copy.location}: ${event.address}`} /> : null}</div>
   </section>;
 }
 

@@ -13,8 +13,8 @@ export function eventStartDetails(event: PublicEvent, locale: EventLocale) {
   };
 }
 
-export function EventHeroDetails({ event, locale }: { event: PublicEvent; locale: EventLocale }) {
-  const start = eventStartDetails(event, locale);
+export function EventHeroDetails({ event, locale, datePlaceholder }: { event: PublicEvent; locale: EventLocale; datePlaceholder?: string | undefined }) {
+  const start = datePlaceholder ? { date: datePlaceholder, time: "" } : eventStartDetails(event, locale);
   const place = [event.city ? cityName(event.city, locale) : "", event.countryCode ? countryName(event.countryCode, locale) : ""].filter(Boolean).join(", ");
   return <div className="event-hero-details mt-5 grid grid-cols-2 gap-4 text-xs sm:flex sm:flex-wrap sm:gap-x-8 sm:text-sm">
     <div className="flex min-w-0 items-start gap-2"><svg aria-hidden="true" className="mt-0.5 size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 11h18" /></svg><div className="min-w-0"><p className="font-semibold">{start.date}</p><p className="mt-1 text-white/75">{start.time}</p></div></div>

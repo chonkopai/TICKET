@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { AuthUser, CreationDraftResponse, CurrencyCapability, DraftMediaResponse, EventLocale, PublishValidationContext } from "@event-platform/shared-types";
-import { DraftAutosave, DraftRequestError, creationDraftRequest, openCreationDraft, finishPublishedDraft, resetDraftBootstrap, resetCreationDraft } from "../../../lib/creation-draft-client";
+import { DraftAutosave, DraftRequestError, creationDraftRequest, openCreationDraft, finishPublishedDraft, resetDraftBootstrap, resetCreationDraft, saveContentLanguageCurrency } from "../../../lib/creation-draft-client";
 import { preparePublication, publishIntent, creationContinuation, publicationDestination } from "../../../lib/creation-publication-client";
 import { creationReadiness } from "../../../lib/creation-readiness";
 import { apiRequest } from "../../(auth)/_lib/api";
@@ -95,7 +95,7 @@ export function DraftWorkspace({ eventId }: { eventId?: string }) {
     <p className="creation-mobile-preview-hint">{locale === "ru" ? "Форма · сдвиньте влево для предпросмотра →" : locale === "kk" ? "Пішін · алдын ала қарау үшін солға сырғытыңыз →" : "Form · swipe left for the preview →"}</p>
     <CreationValidation locale={locale} fields={attempted && readiness ? readiness.fields : new Set()}><div className="creation-split-layout"><div className="creation-form-pane"><fieldset key={client.saved.id} disabled={working} className="min-w-0 border-0 p-0">
       <RecoveryNotice client={client} locale={locale} />
-      <div className="creation-top-panels"><div className="creation-language-panel"><LocaleActions client={client} locale={locale} contentLocale={contentLocale} onLocale={value => { void action(async () => { await client.flush(); setContentLocale(value); const url = new URL(window.location.href); url.searchParams.set("contentLocale", value); window.history.replaceState(null, "", url); }); }} /></div></div>
+      <div className="creation-top-panels"><div className="creation-language-panel"><LocaleActions client={client} locale={locale} contentLocale={contentLocale} onLocale={value => { void action(async () => { await saveContentLanguageCurrency(client, value, !!eventId); setContentLocale(value); const url = new URL(window.location.href); url.searchParams.set("contentLocale", value); window.history.replaceState(null, "", url); }); }} /></div></div>
       <p className="creation-privacy"><CreationIcon name="lock-keyhole" size={15} /><span>{l.privacy}</span></p>
       <div className="creation-layout">
         <div className="creation-main-column">

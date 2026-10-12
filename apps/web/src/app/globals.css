@@ -161,7 +161,7 @@ textarea {
 @media (max-width: 767px) {
   /* One visible row of navigation, followed by search and event creation. */
   .ticket-navbar { padding-inline: 12px; }
-  .ticket-navbar-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 42px repeat(3, 32px); column-gap: 4px; row-gap: 4px; padding: 6px 0 10px; }
+  .ticket-navbar-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 42px repeat(4, 32px); column-gap: 4px; row-gap: 4px; padding: 6px 0 10px; }
   .ticket-navbar-identity, .ticket-navbar-actions { display: contents; }
   .ticket-navbar-brand { grid-area: 1 / 1; justify-content: center; min-height: 36px; }
   .ticket-navbar-brand > span { display: none; }
@@ -179,7 +179,7 @@ textarea {
   .ticket-navbar-language [role=listbox] { position: fixed; top: 48px; left: auto; right: 12px; }
   .ticket-navbar-favorites { grid-area: 1 / 4; width: 32px; height: 36px; }
   .ticket-navbar .ticket-theme-toggle { grid-area: 1 / 5; width: 32px; height: 36px; }
-  .ticket-navbar-profile { display: grid; grid-area: 1 / 6; width: 32px; height: 32px; align-self: center; }
+  .ticket-navbar-profile { display: grid; grid-area: 1 / 7; width: 32px; height: 32px; align-self: center; }
   .ticket-navbar-menu-toggle, .ticket-navbar-menu, .ticket-navbar-account, .ticket-navbar-logout { display: none; }
   .ticket-navbar .ticket-header-search { grid-area: 2 / 1 / 3 / -1; order: 0; width: calc((100% - 8px) * 2 / 3); height: 40px; margin: 0; padding-left: 12px; }
   .ticket-navbar .ticket-header-search input { font-size: 12px; }

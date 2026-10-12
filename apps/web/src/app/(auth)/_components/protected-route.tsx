@@ -3,21 +3,25 @@
 import { ru } from "@event-platform/shared-types";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 
-import { getSession } from "../_lib/session";
+import { getSession, subscribeSession } from "../_lib/session";
 import { usesStandaloneHeader } from "../../../lib/theme";
 import { ThemeToggle } from "../../../components/theme-toggle";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [userId, setUserId] = useState<string | null | undefined>(undefined);
   const standalone = usesStandaloneHeader(usePathname());
   const themeControl = standalone ? <div className="flex justify-end p-3"><ThemeToggle /></div> : null;
 
-  useEffect(() => setIsAuthenticated(Boolean(getSession())), []);
+  useEffect(() => {
+    const refresh = () => setUserId(getSession()?.user.id ?? null);
+    refresh();
+    return subscribeSession(refresh);
+  }, []);
 
-  if (isAuthenticated === null) return <>{themeControl}<p className="text-zinc-600 dark:text-ticket-muted">{ru.common.loading}</p></>;
-  if (!isAuthenticated) {
+  if (userId === undefined) return <>{themeControl}<p className="text-zinc-600 dark:text-ticket-muted">{ru.common.loading}</p></>;
+  if (!userId) {
     return (
       <>{themeControl}<div className="rounded-2xl border border-amber-200 dark:border-ticket-warning-border bg-amber-50 dark:bg-ticket-warning-soft p-6">
         <p className="text-amber-950 dark:text-ticket-warning">{ru.auth.loginRequired}</p>
@@ -27,5 +31,5 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
       </div></>
     );
   }
-  return children;
+  return <Fragment key={userId}>{children}</Fragment>;
 }

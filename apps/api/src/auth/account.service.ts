@@ -1,4 +1,4 @@
-import { readCheckoutSnapshot } from "@event-platform/shared-types";
+import { hasEventEnded, readCheckoutSnapshot } from "@event-platform/shared-types";
 import type { Prisma, PrismaClient } from "@event-platform/database";
 import type {
   AccountDashboard,
@@ -12,6 +12,7 @@ import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 
 import { DATABASE_CLIENT } from "./auth.constants.js";
 import type { AccountNotificationQueryDto, AccountOrderQueryDto, UpdateNotificationPreferencesDto, UpdateOrganizerProfileDto } from "./account.dto.js";
+import { guestEventTiming, guestEventTimingSelect } from "../tickets/guest-ticket-details.js";
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
   transactionalTicketDelivery: true,
@@ -23,23 +24,25 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 export class AccountService {
   constructor(@Inject(DATABASE_CLIENT) private readonly database: PrismaClient) {}
 
-  async dashboard(userId: string): Promise<AccountDashboard> {
+  async dashboard(userId: string, now = new Date()): Promise<AccountDashboard> {
     const [activeTickets, activeGroupPasses, usedTickets] = await this.database.$transaction([
-      this.database.ticket.count({
+      this.database.ticket.findMany({
         where: {
           OR: [{ ownerUserId: userId }, { order: { buyerUserId: userId } }],
           status: { in: ["paid", "active"] },
           ticketType: { isInternal: false },
         },
+        select: { ticketType: { select: { event: { select: guestEventTimingSelect } } } },
       }),
-      this.database.groupPass.count({ where: { order: { buyerUserId: userId, paymentStatus: "paid" }, status: "active" } }),
+      this.database.groupPass.findMany({ where: { order: { buyerUserId: userId, paymentStatus: "paid" }, status: "active" }, select: { table: { select: { venueLayout: { select: { event: { select: guestEventTimingSelect } } } } } } }),
       this.database.ticket.findMany({
         where: { OR: [{ ownerUserId: userId }, { order: { buyerUserId: userId } }], status: "used" },
         select: { ticketType: { select: { eventId: true } } },
       }),
     ]);
     return {
-      activeAdmissions: activeTickets + activeGroupPasses,
+      activeAdmissions: activeTickets.filter(ticket => !hasEventEnded(guestEventTiming(ticket.ticketType.event), now)).length
+        + activeGroupPasses.filter(pass => pass.table.venueLayout.event && !hasEventEnded(guestEventTiming(pass.table.venueLayout.event), now)).length,
       attendedEvents: new Set(usedTickets.map(({ ticketType }) => ticketType.eventId)).size,
     };
   }

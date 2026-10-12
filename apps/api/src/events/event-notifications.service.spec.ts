@@ -15,6 +15,7 @@ const ticketTypeId = randomUUID(), otherTypeId = randomUUID();
 const paidOrderId = randomUUID(), pendingOrderId = randomUUID(), crossEventOrderId = randomUUID(), anonOrderId = randomUUID(), anonSessionId = randomUUID();
 const anonToken = "a".repeat(43);
 const activeTicketId = randomUUID();
+const organizerStartedOrders = (["paid", "pending", "failed", "refunded", "cancelled"] as const).map(paymentStatus => ({ id: randomUUID(), paymentStatus }));
 const base = BigInt(Date.now()) * 100_000n;
 const service = new EventNotificationsService(prisma);
 const chat = new EventChatService(prisma);
@@ -53,9 +54,9 @@ afterAll(async () => {
   const broadcasts = await prisma.broadcast.findMany({ where: { eventId }, select: { id: true } });
   await prisma.notification.deleteMany({ where: { broadcastId: { in: broadcasts.map((row) => row.id) } } });
   await prisma.broadcast.deleteMany({ where: { eventId } });
-  await prisma.auditLog.deleteMany({ where: { actorId: { in: [organizer, guest] } } });
+  await prisma.auditLog.deleteMany({ where: { actorId: { in: [organizer, guest, otherOrganizer] } } });
   await prisma.anonymousCheckoutSession.deleteMany({ where: { id: anonSessionId } });
-  await prisma.order.deleteMany({ where: { id: { in: [paidOrderId, pendingOrderId, crossEventOrderId, anonOrderId] } } });
+  await prisma.order.deleteMany({ where: { id: { in: [paidOrderId, pendingOrderId, crossEventOrderId, anonOrderId, ...organizerStartedOrders.map(order => order.id)] } } });
   await prisma.event.deleteMany({ where: { id: { in: [eventId, otherEventId] } } });
   await prisma.user.deleteMany({ where: { id: { in: [organizer, otherOrganizer, guest] } } });
   await prisma.$disconnect();
@@ -126,6 +127,19 @@ describe("event notification audience and worker", () => {
 });
 
 describe("event-bound guest and organizer chat", () => {
+  it("lets the organizer initiate and receive replies from any owned customer, regardless of payment status", async () => {
+    for (const order of organizerStartedOrders) {
+      await prisma.order.create({ data: { id: order.id, type: "ticket", buyerUserId: otherOrganizer, amount: 1000, currency: "KZT", paymentStatus: order.paymentStatus } });
+      await prisma.ticket.create({ data: { ticketTypeId, orderId: order.id, qrToken: randomUUID(), status: "active" } });
+      const sent = await chat.send(eventId, order.id, { kind: "organizer", userId: organizer }, "Can I help with your visit?", randomUUID());
+      expect((await chat.list(eventId, order.id, { kind: "guest", userId: otherOrganizer })).items.map(item => item.id)).toContain(sent.id);
+      const reply = await chat.send(eventId, order.id, { kind: "guest", userId: otherOrganizer }, "Yes, where is the entrance?", randomUUID());
+      expect((await chat.list(eventId, order.id, { kind: "organizer", userId: organizer })).items.map(item => item.id)).toContain(reply.id);
+      expect((await chat.markRead(eventId, order.id, { kind: "organizer", userId: organizer })).marked).toBe(1);
+      await expect(chat.list(eventId, order.id, { kind: "guest", userId: guest })).rejects.toBeInstanceOf(NotFoundException);
+      await expect(chat.send(eventId, order.id, { kind: "organizer", userId: otherOrganizer }, "Wrong organizer", randomUUID())).rejects.toBeInstanceOf(NotFoundException);
+    }
+  });
   it("allows only the order buyer and event owner, paginates real messages and records reading", async () => {
     await expect(chat.list(eventId, paidOrderId, { kind: "organizer", userId: otherOrganizer })).rejects.toBeInstanceOf(NotFoundException);
     await expect(chat.list(eventId, paidOrderId, { kind: "guest", userId: otherOrganizer })).rejects.toBeInstanceOf(NotFoundException);
@@ -143,6 +157,9 @@ describe("event-bound guest and organizer chat", () => {
     await expect(chat.list(eventId, anonOrderId, { kind: "guest", accessToken: "b".repeat(43) })).rejects.toBeInstanceOf(NotFoundException);
     const message = await chat.send(eventId, anonOrderId, { kind: "guest", accessToken: anonToken }, "Нужна помощь", randomUUID());
     expect((await chat.list(eventId, anonOrderId, { kind: "guest", accessToken: anonToken })).items[0]?.id).toBe(message.id);
+    const reply = await chat.send(eventId, anonOrderId, { kind: "organizer", userId: organizer }, "Чем могу помочь?", randomUUID());
+    expect((await chat.list(eventId, anonOrderId, { kind: "guest", accessToken: anonToken })).items.map(item => item.id)).toContain(reply.id);
+    expect((await chat.markRead(eventId, anonOrderId, { kind: "guest", accessToken: anonToken })).marked).toBe(1);
     await expect(chat.list(otherEventId, anonOrderId, { kind: "guest", accessToken: anonToken })).rejects.toBeInstanceOf(NotFoundException);
   });
 });

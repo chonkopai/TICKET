@@ -2,12 +2,13 @@ import { newHallObject } from "./hall-editor.js";
 import { hallV3Editor,editorHallV3 } from "./hall-v3.js";
 import { applyCreationDraftPatch } from "./creation-drafts.js";
 import { describe, expect, it } from "vitest";
-import { checkedOrderTotal, eventCreationDraftSchema, graphemeLength, limitedText, localTimeCandidates, mediaFrame, newEventCreationDraft, parseHistoricalPurchaseSnapshot, parseMinorAmount, publishReadyDraftSchema, resolveLocalTime, resolveSchedule, selectContentLocale, purchaseSnapshotV2Schema, DEFAULT_MEDIA_CROP } from "./event-creation-v2.js";
+import { creationCurrencyForLocale, checkedOrderTotal, eventCreationDraftSchema, graphemeLength, limitedText, localTimeCandidates, mediaFrame, newEventCreationDraft, parseHistoricalPurchaseSnapshot, parseMinorAmount, publishReadyDraftSchema, resolveLocalTime, resolveSchedule, selectContentLocale, purchaseSnapshotV2Schema, DEFAULT_MEDIA_CROP } from "./event-creation-v2.js";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const KZT = { code: "KZT", exponent: 2 };
 function valid() {
   const draft = newEventCreationDraft(id(1));
+  draft.currency = "KZT";
   draft.selectedMode = "free";
   draft.free.capacity = 20;
   draft.free.content.ru = { name: "Регистрация" };
@@ -21,6 +22,15 @@ function valid() {
   return { draft, context };
 }
 describe("v2 incomplete and publish contracts", () => {
+  it("defaults new drafts to the content language currency while preserving manual choices", () => {
+    for (const [locale, currency] of [["ru", "RUB"], ["kk", "KZT"], ["en", "USD"]] as const) {
+      const draft = newEventCreationDraft(id(1), locale);
+      expect(draft.currency).toBe(currency);
+      expect(creationCurrencyForLocale(locale)).toBe(currency);
+      const manual = applyCreationDraftPatch(draft, { currency: "EUR", acknowledgeCurrencyRelabel: true });
+      expect(eventCreationDraftSchema.parse(manual).currency).toBe("EUR");
+    }
+  });
   it("preserves empty target text, shared fields, inactive forms and exact media slots", () => {
     const {draft} = valid();
     draft.content.en = { title: "" };

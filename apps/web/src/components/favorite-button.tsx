@@ -6,10 +6,11 @@ import { useEffect, useState } from "react";
 import { loadFavoriteIds, toggleFavorite } from "../lib/favorites";
 import { readLocalFavoriteIds } from "../lib/local-preferences";
 
-export function FavoriteButton({ eventId, compact = false, heroOverlay = false }: { eventId: string; compact?: boolean; heroOverlay?: boolean }) {
+export function FavoriteButton({ eventId, compact = false, heroOverlay = false, readOnly = false }: { eventId: string; compact?: boolean; heroOverlay?: boolean; readOnly?: boolean }) {
   const [favorite, setFavorite] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
+    if (readOnly) return;
     let active = true;
     void loadFavoriteIds().then((ids) => { if (active) setFavorite(ids.has(eventId)); }).catch(() => {
       if (active) setFavorite(readLocalFavoriteIds().includes(eventId));
@@ -21,10 +22,10 @@ export function FavoriteButton({ eventId, compact = false, heroOverlay = false }
     };
     window.addEventListener("event-platform:favorites-changed", refresh);
     return () => { active = false; window.removeEventListener("event-platform:favorites-changed", refresh); };
-  }, [eventId]);
+  }, [eventId, readOnly]);
 
   async function change(): Promise<void> {
-    if (busy) return;
+    if (busy || readOnly) return;
     const next = !favorite;
     setBusy(true);
     setFavorite(next);

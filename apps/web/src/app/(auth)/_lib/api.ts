@@ -62,20 +62,32 @@ export async function logoutSession(): Promise<void> {
 
 export async function refreshSession(session: BrowserSession): Promise<RefreshResponse["tokens"]> {
   if (!refreshInFlight) {
-    refreshInFlight = fetch(new URL("/auth/refresh", API_URL), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ refreshToken: session.tokens.refreshToken }),
-    }).then(async (response) => {
-      if (!response.ok) throw new Error(SESSION_COPY[localeFromBrowser()].expired);
-      const { tokens } = (await response.json()) as RefreshResponse;
+    const refresh = async (): Promise<RefreshResponse["tokens"]> => {
       const current = getSession();
       if (!current || current.user.id !== session.user.id) throw new Error(SESSION_COPY[localeFromBrowser()].expired);
       if (current.tokens.refreshToken !== session.tokens.refreshToken) return current.tokens;
-      saveSession({ ...current, tokens });
+      const response = await fetch(new URL("/auth/refresh", API_URL), {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ refreshToken: session.tokens.refreshToken }),
+      });
+      const latest = getSession();
+      if (!latest || latest.user.id !== session.user.id) throw new Error(SESSION_COPY[localeFromBrowser()].expired);
+      // Another tab may already have rotated this refresh token.
+      if (latest.tokens.refreshToken !== session.tokens.refreshToken) return latest.tokens;
+      if (!response.ok) throw new Error(SESSION_COPY[localeFromBrowser()].expired);
+      const { tokens } = (await response.json()) as RefreshResponse;
+      const beforeSave = getSession();
+      if (!beforeSave || beforeSave.user.id !== session.user.id) throw new Error(SESSION_COPY[localeFromBrowser()].expired);
+      if (beforeSave.tokens.refreshToken !== session.tokens.refreshToken) return beforeSave.tokens;
+      saveSession({ ...beforeSave, tokens });
       return tokens;
-    }).catch((reason: unknown) => {
-      if (getSession()?.tokens.refreshToken === session.tokens.refreshToken) clearSession();
+    };
+    // Serialize rotation across same-origin tabs; each waiter re-reads shared tokens.
+    const pending = typeof navigator !== "undefined" && navigator.locks
+      ? navigator.locks.request("event-platform:session-refresh", refresh) : refresh();
+    refreshInFlight = pending.catch((reason: unknown) => {
+      const current = getSession();
+      if (current?.user.id === session.user.id && current.tokens.refreshToken === session.tokens.refreshToken) clearSession();
       throw reason;
     }).finally(() => {
       refreshInFlight = null;
