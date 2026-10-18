@@ -75,8 +75,8 @@ export class AccountService {
     ]);
     return {
       items: rows.map((row) => {
-        const payload = row.payload && typeof row.payload === "object" && !Array.isArray(row.payload) ? row.payload as { text?: unknown } : {};
-        return { id: row.id, eventId: row.eventId, eventTitle: row.event?.title ?? null, type: row.type, text: typeof payload.text === "string" ? payload.text : "Уведомление о событии", createdAt: row.createdAt.toISOString(), readAt: row.readAt?.toISOString() ?? null };
+        const payload = row.payload && typeof row.payload === "object" && !Array.isArray(row.payload) ? row.payload as { text?: unknown; orderId?: unknown } : {};
+        return { orderId: typeof payload.orderId === "string" && /^[0-9a-f-]{36}$/.test(payload.orderId) ? payload.orderId : null, id: row.id, eventId: row.eventId, eventTitle: row.event?.title ?? null, type: row.type, text: typeof payload.text === "string" ? payload.text : "Уведомление о событии", createdAt: row.createdAt.toISOString(), readAt: row.readAt?.toISOString() ?? null };
       }),
       page, limit, total, unreadCount, hasNext: page * limit < total,
     };

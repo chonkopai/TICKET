@@ -157,6 +157,17 @@ describe("event-bound guest and organizer chat", () => {
     await expect(chat.list(eventId, anonOrderId, { kind: "guest", accessToken: "b".repeat(43) })).rejects.toBeInstanceOf(NotFoundException);
     const message = await chat.send(eventId, anonOrderId, { kind: "guest", accessToken: anonToken }, "Нужна помощь", randomUUID());
     expect((await chat.list(eventId, anonOrderId, { kind: "guest", accessToken: anonToken })).items[0]?.id).toBe(message.id);
+    expect(await prisma.notification.count({ where: { userId: organizer, type: "chat.guest", payload: { path: ["orderId"], equals: anonOrderId }, readAt: null } })).toBe(1);
+    const repeatedKey = (await prisma.chatMessage.findUniqueOrThrow({ where: { id: message.id } })).clientMessageId!;
+    await chat.send(eventId, anonOrderId, { kind: "guest", accessToken: anonToken }, "Нужна помощь", repeatedKey);
+    expect(await prisma.notification.count({ where: { dedupeKey: `chat:${message.id}` } })).toBe(1);
+    const management = new EventsService(prisma, {} as ObjectStorage, new DomainEventsService());
+    const orders = await management.managementOrders(organizer, eventId, { page: 1, limit: 20, payment: "all", booking: "all", attendance: "all" });
+    expect(orders.items.find(order => order.id === anonOrderId)?.messages).toEqual({ total: 1, unread: 1 });
+    await chat.markRead(eventId, anonOrderId, { kind: "organizer", userId: organizer });
+    expect(await prisma.notification.count({ where: { dedupeKey: `chat:${message.id}`, readAt: null } })).toBe(0);
+    const afterReading = await management.managementOrders(organizer, eventId, { page: 1, limit: 20, payment: "all", booking: "all", attendance: "all" });
+    expect(afterReading.items.find(order => order.id === anonOrderId)?.messages).toEqual({ total: 1, unread: 0 });
     const reply = await chat.send(eventId, anonOrderId, { kind: "organizer", userId: organizer }, "Чем могу помочь?", randomUUID());
     expect((await chat.list(eventId, anonOrderId, { kind: "guest", accessToken: anonToken })).items.map(item => item.id)).toContain(reply.id);
     expect((await chat.markRead(eventId, anonOrderId, { kind: "guest", accessToken: anonToken })).marked).toBe(1);

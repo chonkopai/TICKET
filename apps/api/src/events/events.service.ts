@@ -547,6 +547,16 @@ export class EventsService {
       if (total > skip && items.length < limit) items.push(row);
     });
 
+    if (items.length) {
+      const counts = await this.database.chatMessage.groupBy({
+        by: ["orderId", "sender", "readAt"], where: { eventId: id, orderId: { in: items.map(item => item.id) } }, _count: { _all: true },
+      });
+      for (const item of items) {
+        const rows = counts.filter(row => row.orderId === item.id);
+        item.messages = { total: rows.reduce((sum, row) => sum + row._count._all, 0), unread: rows.filter(row => row.sender === "guest" && row.readAt === null).reduce((sum, row) => sum + row._count._all, 0) };
+      }
+    }
+
     return {
       asOf: asOf.toISOString(),
       items,

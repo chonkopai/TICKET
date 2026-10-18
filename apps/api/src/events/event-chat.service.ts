@@ -36,6 +36,11 @@ export class EventChatService {
       const hourly = await tx.chatMessage.count({ where: { orderId, sender, createdAt: { gte: new Date(Date.now() - 3_600_000) } } });
       if (hourly >= 20) throw new ConflictException({ code: "CHAT_RATE_LIMITED" });
       const saved = await tx.chatMessage.create({ data: { eventId, orderId, clientMessageId: requestKey, organizerId, guestUserId, anonymousSessionId, sender, text }, select: { id: true, eventId: true, orderId: true, sender: true, text: true, createdAt: true, readAt: true } });
+      const recipientId = sender === "guest" ? organizerId : guestUserId;
+      if (recipientId) await tx.notification.create({ data: {
+        userId: recipientId, eventId, channel: "in_app", status: "sent", type: `chat.${sender}`,
+        dedupeKey: `chat:${saved.id}`, payload: { text: `${sender === "guest" ? "Новое сообщение покупателя" : "Ответ организатора"}: ${text}`, orderId },
+      } });
       await tx.auditLog.create({ data: { actorId: participant.userId ?? null, action: "chat.message_sent", entityType: "order", entityId: orderId, meta: { eventId, sender, chatMessageId: saved.id } } });
       return saved;
       });
@@ -53,6 +58,10 @@ export class EventChatService {
     await this.authorize(eventId, orderId, participant);
     const opposite = participant.kind === "guest" ? "organizer" : "guest";
     const changed = await this.db.chatMessage.updateMany({ where: { eventId, orderId, sender: opposite, readAt: null }, data: { readAt: new Date() } });
+    if (participant.userId) await this.db.notification.updateMany({ where: {
+      userId: participant.userId, eventId, type: `chat.${opposite}`, readAt: null,
+      payload: { path: ["orderId"], equals: orderId },
+    }, data: { readAt: new Date() } });
     return { marked: changed.count };
   }
 

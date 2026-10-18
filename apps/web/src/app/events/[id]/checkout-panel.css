@@ -114,3 +114,14 @@
   .checkout-ticket { padding: 14px; }
   .checkout-summary { padding: 16px; }
 }
+
+.checkout-options, .checkout-guest-fields { margin:0; padding:0; border:0; min-width:0; }
+.checkout-guest { display:grid; gap:18px; width:100%; }
+.checkout-guest-name { display:grid; gap:8px; font-size:14px; font-weight:600; }
+.checkout-guest-name input { width:100%; border:1px solid var(--ticket-border); border-radius:12px; background:var(--ticket-surface); color:var(--ticket-text); padding:12px 14px; font:inherit; font-weight:400; }
+.checkout-guest-name input:focus { outline:2px solid var(--ticket-primary); outline-offset:2px; }
+.checkout-guest-name input:disabled { background:var(--ticket-raised); }
+.checkout-guest-recipient h3 { margin:0 0 5px; font-size:14px; }
+.checkout-guest-recipient p, .checkout-telegram p { margin:0; color:var(--ticket-muted); font-size:12px; line-height:1.6; }
+.checkout-telegram { display:grid; gap:10px; }
+.checkout-telegram .checkout-telegram-verified { display:flex; align-items:center; gap:8px; color:var(--ticket-success); font-weight:600; }

@@ -32,7 +32,8 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
 
   if (!response.ok) throw new Error(await errorMessage(response));
   if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
+  const text = await response.text();
+  return (text.trim() ? JSON.parse(text) : null) as T;
 }
 
 export async function apiBlobRequest(path: string, init: RequestInit = {}): Promise<Blob> {

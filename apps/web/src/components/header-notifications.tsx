@@ -36,7 +36,7 @@ export function HeaderNotifications({ onDark = false }: { onDark?: boolean }) {
           if (active) { setUnread(data.unreadCount); failures = 0; }
         } catch { failures = Math.min(failures + 1, 3); }
       }
-      if (active) timer = setTimeout(load, 60_000 * (failures + 1));
+      if (active) timer = setTimeout(load, 15_000 * (failures + 1));
     };
     const changed = (event: Event) => {
       const count = (event as CustomEvent<unknown>).detail;

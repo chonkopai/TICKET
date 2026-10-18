@@ -83,6 +83,16 @@ describe("owner-scoped marketing campaigns", () => {
     expect(photo).toHaveBeenCalledTimes(2);
   });
 
+  it("removes only an owned draft image and keeps its message", async () => {
+    const draft = await campaigns.createDraft(owner, eventId, { message: "Сохранить текст", requestKey: randomUUID() });
+    const image = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
+    const uploaded = await campaigns.uploadImage(owner, eventId, draft.id, { buffer: image, size: image.length, mimetype: "image/png", originalname: "x.png" });
+    await expect(campaigns.removeImage(other, eventId, draft.id)).rejects.toBeInstanceOf(NotFoundException);
+    expect(await campaigns.removeImage(owner, eventId, draft.id)).toMatchObject({ imageUrl: null, message: "Сохранить текст" });
+    expect(images.has(uploaded.imageUrl!.split("/").at(-1)!)).toBe(false);
+    expect(await campaigns.removeImage(owner, eventId, draft.id)).toMatchObject({ imageUrl: null });
+  });
+
   it("rechecks consent at delivery and reports failure without sending", async () => {
     const draft = await campaigns.createDraft(owner, eventId, { message: "Специальное предложение", requestKey: randomUUID() });
     await campaigns.send(owner, eventId, draft.id);

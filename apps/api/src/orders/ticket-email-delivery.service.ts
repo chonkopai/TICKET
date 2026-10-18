@@ -2,7 +2,8 @@ import { readCheckoutSnapshot,acceptedResourceName } from "@event-platform/share
 import { createHash, createHmac } from "node:crypto";
 
 import { type PrismaClient, type TicketEmailDelivery } from "@event-platform/database";
-import type { CheckoutSnapshot } from "@event-platform/shared-types";
+import { renderTicketEmail } from "./ticket-receipt-email.js";
+import { orderTicketDocuments } from "./ticket-document.js";
 import { ConflictException, Inject, Injectable, NotFoundException, OnModuleDestroy, OnModuleInit, ServiceUnavailableException } from "@nestjs/common";
 
 import { DATABASE_CLIENT } from "../auth/auth.constants.js";
@@ -95,9 +96,8 @@ export class TicketEmailDeliveryService implements OnModuleInit, OnModuleDestroy
       await this.db.ticketEmailDelivery.update({ where: { id: row.id }, data: { status: "failed", leaseUntil: null, lastErrorCode: "LINK_EXPIRED" } });
       return;
     }
-    const snapshot = readCheckoutSnapshot(order.checkoutSnapshot);
-    const message = this.compose(row, snapshot);
     try {
+      const message = await this.compose(row);
       const accepted = await this.sender.send(message);
       await this.db.ticketEmailDelivery.updateMany({ where: { id: row.id, status: "sending", generation: row.generation }, data: { status: "accepted", leaseUntil: null, acceptedAt: new Date(), providerMessageId: accepted.id, lastErrorCode: null } });
     } catch (error) {
@@ -110,14 +110,15 @@ export class TicketEmailDeliveryService implements OnModuleInit, OnModuleDestroy
     }
   }
 
-  private compose(row: TicketEmailDelivery, snapshot: CheckoutSnapshot): TicketEmailMessage {
-    const accessUrl = `${this.config.webOrigin.replace(/\/$/, "")}/delivery#token=${this.token(row.orderId, row.generation)}`;
-    const payment = snapshot.paymentMode === "deposit" ? "Оплачен депозит" : "Покупка оплачена";
-    const date = [snapshot.eventDate, snapshot.eventTime, snapshot.eventTimezone].filter(Boolean).join(" · ");
-    const labels = snapshot.items?.map(item => `${item.name} × ${item.quantity}`).join(", ") ?? `${snapshot.itemName} × ${snapshot.quantity}`;
-    const text = `${payment}: ${snapshot.eventTitle}\n${date}\n${snapshot.address ?? snapshot.venueName ?? ""}\nБилеты: ${labels}\nОткрыть покупку и QR-коды: ${accessUrl}\nСсылка действует 30 дней. Не пересылайте её другим.`;
-    const html = `<p>${escapeHtml(payment)}: <strong>${escapeHtml(snapshot.eventTitle)}</strong></p><p>${escapeHtml(date)}<br>${escapeHtml(snapshot.address ?? snapshot.venueName ?? "")}</p><p>Билеты: ${escapeHtml(labels)}</p><p><a href="${escapeHtml(accessUrl)}">Открыть покупку и QR-коды</a></p><p>Ссылка действует 30 дней. Не пересылайте её другим.</p>`;
-    return { to: row.recipient, subject: `Билеты TICKET — ${snapshot.eventTitle}`, text, html, idempotencyKey: `ticket-email/${row.orderId}/${row.generation}` };
+  private async compose(row: TicketEmailDelivery): Promise<TicketEmailMessage> {
+    const receipt = await orderTicketDocuments(this.db, row.orderId);
+    return renderTicketEmail(receipt.tickets, {
+      locale: receipt.snapshot.contentLocale ?? "ru", recipient: row.recipient,
+      amount: receipt.order.amount, title: receipt.snapshot.eventTitle,
+      labels: receipt.snapshot.items?.map(item => `${item.name} × ${item.quantity}`).join(", ") ?? `${receipt.snapshot.itemName} × ${receipt.snapshot.quantity}`,
+      accessUrl: `${this.config.webOrigin.replace(/\/$/, "")}/delivery#token=${this.token(row.orderId, row.generation)}`,
+      idempotencyKey: `ticket-email/${row.orderId}/${row.generation}`,
+    });
   }
 
   async status(orderId: string): Promise<{ status: string; address: string | null; acceptedAt: string | null }> {
@@ -180,5 +181,3 @@ export class TicketEmailDeliveryService implements OnModuleInit, OnModuleDestroy
     return { status: "queued" };
   }
 }
-
-function escapeHtml(value: string): string { return value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]!); }

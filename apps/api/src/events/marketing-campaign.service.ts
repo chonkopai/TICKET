@@ -66,6 +66,15 @@ export class MarketingCampaignService {
     return this.status(organizerId, eventId, campaignId);
   }
 
+  async removeImage(organizerId: string, eventId: string, campaignId: string) {
+    const campaign = await this.ownedDraft(organizerId, eventId, campaignId);
+    const changed = await this.db.broadcast.updateMany({ where: { id: campaignId, organizerId, eventId, status: "draft", imageUrl: campaign.imageUrl }, data: { imageUrl: null } });
+    if (changed.count !== 1) throw new ConflictException({ code: "CAMPAIGN_CHANGED" });
+    const oldKey = campaign.imageUrl?.match(IMAGE_URL)?.[1];
+    if (oldKey) await this.storage.deletePoster(oldKey);
+    return this.status(organizerId, eventId, campaignId);
+  }
+
   async send(organizerId: string, eventId: string, campaignId: string) {
     const event = await this.ownedEvent(organizerId, eventId);
     const campaign = await this.db.broadcast.findFirst({ where: { id: campaignId, organizerId, eventId, type: "marketing.campaign" }, select: { status: true, message: true, imageUrl: true } });

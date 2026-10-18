@@ -10,7 +10,7 @@ import { CHECKOUT_COPY } from "../lib/checkout-copy";
 import { BOOKING_PANEL_COPY } from "../lib/booking-panel-copy";
 import { AccountIcon } from "./account-icon";
 
-export function CheckoutEmailOption({ compact = false, quickToken, choice, onChoice, onVerified, onEnabledChange }: { compact?: boolean; quickToken?: string; choice: CheckoutEmailChoice | null; onChoice: (choice: CheckoutEmailChoice | null) => void; onVerified?: () => void; onEnabledChange?: (enabled: boolean) => void }) {
+export function CheckoutEmailOption({ compact = false, quickToken, getQuickToken, choice, onChoice, onVerified, onEnabledChange }: { compact?: boolean; quickToken?: string; getQuickToken?: (() => Promise<string>) | undefined; choice: CheckoutEmailChoice | null; onChoice: (choice: CheckoutEmailChoice | null) => void; onVerified?: () => void; onEnabledChange?: (enabled: boolean) => void }) {
   const locale = useLocale(), copy = CHECKOUT_COPY[locale], design = BOOKING_PANEL_COPY[locale];
   const sequence = useRef(0);
   const [linkedEmail, setLinkedEmail] = useState<string | null>(null);
@@ -29,11 +29,11 @@ export function CheckoutEmailOption({ compact = false, quickToken, choice, onCho
   }, [choice?.address, choice?.grant]);
 
   useEffect(() => {
-    if (quickToken) return;
+    if (quickToken || getQuickToken) return;
     let active = true;
     void apiRequest<LinkedMethodsResponse>("/me/identities").then(methods => { if (active) setLinkedEmail(methods.email.address); }).catch(() => undefined);
     return () => { active = false; };
-  }, [quickToken]);
+  }, [quickToken, getQuickToken]);
 
   useEffect(() => {
     if (!retryAt) return;
@@ -49,8 +49,9 @@ export function CheckoutEmailOption({ compact = false, quickToken, choice, onCho
     const ticket = ++sequence.current;
     setBusy(true); setError(null);
     try {
-      const result = quickToken
-        ? await quickRequest<VerificationRequestResponse>("email/request-code", quickToken, { address })
+      const token = quickToken ?? await getQuickToken?.();
+      const result = token
+        ? await quickRequest<VerificationRequestResponse>("email/request-code", token, { address })
         : await apiRequest<VerificationRequestResponse>("/me/checkouts/email/request-code", { method: "POST", body: JSON.stringify({ address }) });
       if (ticket !== sequence.current) return;
       setChallengeId(result.challengeId); setCode(""); setStage("code"); setRetryAt(Date.now() + result.retryAfterSeconds * 1000);
@@ -64,8 +65,9 @@ export function CheckoutEmailOption({ compact = false, quickToken, choice, onCho
     const ticket = ++sequence.current;
     setBusy(true); setError(null);
     try {
-      if (quickToken) {
-        const result = await quickRequest<{ verified: true; email: string }>("email/verify-code", quickToken, { address, challengeId, code });
+      const token = quickToken ?? await getQuickToken?.();
+      if (token) {
+        const result = await quickRequest<{ verified: true; email: string }>("email/verify-code", token, { address, challengeId, code });
         if (ticket !== sequence.current) return;
         onChoice({ address: result.email }); onVerified?.();
       } else {
@@ -94,7 +96,7 @@ export function CheckoutEmailOption({ compact = false, quickToken, choice, onCho
         <div className="checkout-email-recipient"><span><AccountIcon name="circle-check" />{copy.verifiedEmail}</span><strong>{choice.address}</strong><button className="checkout-text-action" type="button" onClick={() => reset()}>{copy.useOther}</button></div>
         <p className="checkout-email-hint" role="status">{design.emailDelivery}</p>
       </> : <>
-        {linkedEmail && !quickToken ? <button className="checkout-text-action checkout-use-email" type="button" onClick={() => { sequence.current++; setAddress(linkedEmail); setStage("verified"); setError(null); onChoice({ address: linkedEmail }); }}><AccountIcon name="circle-check" />{copy.useVerified}: {linkedEmail}</button> : null}
+        {linkedEmail && !quickToken && !getQuickToken ? <button className="checkout-text-action checkout-use-email" type="button" onClick={() => { sequence.current++; setAddress(linkedEmail); setStage("verified"); setError(null); onChoice({ address: linkedEmail }); }}><AccountIcon name="circle-check" />{copy.useVerified}: {linkedEmail}</button> : null}
         {verificationForm}
       </>}
       {error ? <p className="checkout-message is-error" role="alert">{error}</p> : null}
@@ -104,7 +106,7 @@ export function CheckoutEmailOption({ compact = false, quickToken, choice, onCho
   return <section className="mt-4 rounded-xl border border-[#dce2f3] dark:border-ticket-border p-4 text-sm">
     <label className="flex items-start gap-3 font-semibold"><input type="checkbox" checked={enabled} onChange={event => { setEnabled(event.target.checked); onEnabledChange?.(event.target.checked); if (!event.target.checked) reset(); else if (linkedEmail) { setAddress(linkedEmail); setStage("verified"); onChoice({ address: linkedEmail }); } }} />{copy.emailTickets}</label>
     {enabled ? <div className="mt-3">
-      {linkedEmail && !quickToken ? <button type="button" className="mb-3 text-sm font-semibold text-[#5b21b6] dark:text-ticket-accent underline" onClick={() => { if (choice?.address === linkedEmail) reset(); else { sequence.current++; setAddress(linkedEmail); setStage("verified"); setError(null); onChoice({ address: linkedEmail }); } }}>{choice?.address === linkedEmail ? `${copy.verifiedEmail}: ${linkedEmail}. ${copy.useOther}` : `${copy.useVerified} ${linkedEmail}`}</button> : null}
+      {linkedEmail && !quickToken && !getQuickToken ? <button type="button" className="mb-3 text-sm font-semibold text-[#5b21b6] dark:text-ticket-accent underline" onClick={() => { if (choice?.address === linkedEmail) reset(); else { sequence.current++; setAddress(linkedEmail); setStage("verified"); setError(null); onChoice({ address: linkedEmail }); } }}>{choice?.address === linkedEmail ? `${copy.verifiedEmail}: ${linkedEmail}. ${copy.useOther}` : `${copy.useVerified} ${linkedEmail}`}</button> : null}
       {stage === "verified" && choice ? <p role="status" className="text-emerald-800 dark:text-ticket-success">{choice.address}: {copy.willSend}</p> : verificationForm}
       {error ? <p role="alert" className="mt-3 text-red-700 dark:text-ticket-danger">{error}</p> : null}
     </div> : null}

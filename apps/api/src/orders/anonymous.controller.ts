@@ -4,6 +4,9 @@ import type { AuthenticatedPrincipal } from "../auth/auth.constants.js";
 import { CurrentUser, Roles } from "../auth/auth.decorators.js";
 import { JwtAuthGuard, RolesGuard } from "../auth/auth.guards.js";
 import { TicketsService } from "../tickets/tickets.service.js";
+import { orderTicketDocuments, renderTicketPdf } from "./ticket-document.js";
+import { DATABASE_CLIENT } from "../auth/auth.constants.js";
+import type { PrismaClient } from "@event-platform/database";
 import { AnonymousService } from "./anonymous.service.js";
 import { QuickBotGuard, QuickRateGuard } from "./quick.guards.js";
 import { TicketEmailDeliveryService } from "./ticket-email-delivery.service.js";
@@ -26,7 +29,7 @@ function key(value?: string): string {
 @Controller("quick")
 @UseGuards(QuickRateGuard)
 export class AnonymousController {
-  constructor(@Inject(AnonymousService) private readonly quick: AnonymousService, @Inject(TicketsService) private readonly tickets: TicketsService, @Inject(TicketEmailDeliveryService) private readonly emailDelivery: TicketEmailDeliveryService) {}
+  constructor(@Inject(AnonymousService) private readonly quick: AnonymousService, @Inject(TicketsService) private readonly tickets: TicketsService, @Inject(TicketEmailDeliveryService) private readonly emailDelivery: TicketEmailDeliveryService, @Inject(DATABASE_CLIENT) private readonly db: PrismaClient) {}
 
   @Post("sessions") @Header("Cache-Control", "no-store")
   start(@Body() body: unknown) { return this.quick.start(parse(quickStartSchema, body).name); }
@@ -91,12 +94,19 @@ export class AnonymousController {
   @Get("tickets/:id/:format") @Header("Cache-Control", "no-store")
   async asset(@Headers("authorization") auth: string, @Param("id") id: string, @Param("format") format: string, @Res() res: { type(v: string): unknown; send(v: Buffer): unknown; setHeader(k: string, v: string): unknown }) {
     parse(quickIdSchema, id);
-    if (!["qr", "wallet"].includes(format)) throw new BadRequestException();
+    if (!["qr", "wallet", "pdf"].includes(format)) throw new BadRequestException();
     const session = await this.quick.access(bearer(auth));
-    const data = await this.tickets.assetForAnonymousOrder(session.orderId!, id, format === "wallet");
+    let data = await this.tickets.assetForAnonymousOrder(session.orderId!, id, format === "wallet");
+    if (format === "pdf") {
+      const receipt = await orderTicketDocuments(this.db, session.orderId!);
+      const document = receipt.tickets.find(ticket => ticket.document.id === id)?.document;
+      if (!document) throw new BadRequestException();
+      data = await renderTicketPdf(document, data);
+      res.setHeader("Content-Disposition", `attachment; filename="ticket-${id}.pdf"`);
+    }
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Referrer-Policy", "no-referrer");
-    res.type(format === "qr" ? "image/png" : "application/vnd.apple.pkpass");
+    res.type(format === "pdf" ? "application/pdf" : format === "qr" ? "image/png" : "application/vnd.apple.pkpass");
     return res.send(data);
   }
 }

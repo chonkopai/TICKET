@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, mock, test } from "node:test";
+import { apiRequest } from "../app/(auth)/_lib/api";
 import { saveSession } from "../app/(auth)/_lib/session";
 import { orderChatClient } from "./order-chat-client";
 
@@ -46,3 +47,15 @@ for (const [mode, prefix, token] of [
     assert.deepEqual(calls[2]?.body, { text: "Where is the entrance?", requestKey });
   });
 }
+
+for (const body of ["", "null"]) {
+  test(`an order without a refund request accepts ${body ? "JSON null" : "an empty successful response"}`, async () => {
+    mock.method(globalThis, "fetch", async () => new Response(body, { status: 200 }));
+    assert.equal(await apiRequest(`/api/organizer/events/${eventId}/orders/${orderId}/refund`), null);
+  });
+}
+
+test("a malformed nonempty response still reports a failure", async () => {
+  mock.method(globalThis, "fetch", async () => new Response("invalid", { status: 200 }));
+  await assert.rejects(apiRequest(`/api/organizer/events/${eventId}/orders/${orderId}/refund`), SyntaxError);
+});

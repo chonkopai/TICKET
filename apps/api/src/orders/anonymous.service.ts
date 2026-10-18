@@ -1,4 +1,4 @@
-import { readCheckoutSnapshot,acceptedResourceName } from "@event-platform/shared-types";
+import { readCheckoutSnapshot,acceptedResourceName,ticketNumber,receiptTicketPrice } from "@event-platform/shared-types";
 import { createHash, randomBytes } from "node:crypto";
 import { Prisma, type PrismaClient } from "@event-platform/database";
 import type { CheckoutResponse, CreateCartCheckoutRequest, CreateSeatCheckoutRequest, CreateTableCheckoutRequest, CreateTicketCheckoutRequest } from "@event-platform/shared-types";
@@ -157,13 +157,13 @@ export class AnonymousService {
     const event = typeof snapshot.eventId === "string" ? await this.db.event.findUnique({ where: { id: snapshot.eventId }, select: { date: true, time: true, timezone: true, address: true, sourceLocale: true } }) : null;
     const review = await this.db.outboxEvent.findFirst({ where: { aggregateId: order.id, eventType: "payment.review_required" } });
     const expired = await this.db.outboxEvent.findFirst({ where: { aggregateId: order.id, eventType: "checkout.expired" } });
-    return { orderId: order.id, eventId: typeof snapshot.eventId === "string" ? snapshot.eventId : null, status: review ? "review_required" : expired ? "expired" : order.paymentStatus,
+    return { createdAt: order.createdAt.toISOString(), buyerName: session.name, orderId: order.id, eventId: typeof snapshot.eventId === "string" ? snapshot.eventId : null, status: review ? "review_required" : expired ? "expired" : order.paymentStatus,
       title: snapshot.eventTitle, sourceLocale: snapshot.contentLocale??event?.sourceLocale ?? "ru", paymentMode: snapshot.paymentMode, amountDue: order.amount, currency: order.currency.trim(),
       fullAmount: snapshot.fullAmount, ...(snapshot.acceptedPolicy?{acceptedPolicy:snapshot.acceptedPolicy}:{}), cancellationTerms: snapshot.cancellationTerms, depositTerms: snapshot.depositTerms,
       expiresAt: order.expiresAt?.toISOString() ?? null, linked: Boolean(order.buyerUserId),
       deliveryStatus: session.deliveredAt ? "confirmed" : session.chatId && session.deliveryMessageId ? "pending" : "unavailable",
       event: event ? { date: snapshot.eventDate??event.date.toISOString().slice(0,10), time: snapshot.eventTime??event.time.toISOString().slice(11,16), timezone: snapshot.eventTimezone??event.timezone, address: snapshot.address??event.address } : null,
-      tickets: order.tickets.map(t => ({ id: t.id, name: acceptedResourceName(snapshot,[t.ticketTypeId,t.seatAllocation?.seatId,t.seatAllocation?.seat.tableId],t.ticketType.isInternal ? t.seatLabelSnapshot ?? "Место за столом" : t.ticketType.name), seatLabel: t.seatLabelSnapshot, status: t.status })),
+      tickets: order.tickets.map(t => ({ id: t.id, name: acceptedResourceName(snapshot,[t.ticketTypeId,t.seatAllocation?.seatId,t.seatAllocation?.seat.tableId],t.ticketType.isInternal ? t.seatLabelSnapshot ?? "Место за столом" : t.ticketType.name), seatLabel: t.seatLabelSnapshot, status: t.status, number: ticketNumber(t.id), price: receiptTicketPrice(snapshot,[t.ticketTypeId,t.seatAllocation?.seatId,t.seatAllocation?.seat.tableId],order.amount) })),
       booking: order.booking ? { id: order.booking.id, status: order.booking.status, table: order.booking.table } : null,
       deposit: order.deposit ? { amount: order.deposit.amount, status: order.deposit.status } : null };
   }

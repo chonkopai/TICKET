@@ -12,6 +12,7 @@ import { PaymentService } from "../payments/payment.service.js";
 import { AnonymousService, secretHash } from "./anonymous.service.js";
 import { QuickDeliveryService } from "./quick-delivery.service.js";
 import { TicketsService } from "../tickets/tickets.service.js";
+import { orderTicketDocuments } from "./ticket-document.js";
 import { MyEventsService } from "../my-events/my-events.service.js";
 
 const organizerId = randomUUID(), userId = randomUUID(), otherId = randomUUID(), eventId = randomUUID(), layoutId = randomUUID();
@@ -65,6 +66,39 @@ async function pay(orderId: string) {
 }
 
 describe("anonymous checkout and claims (PostgreSQL)", () => {
+  it("allows a registered Telegram recipient with prior tickets to receive another free purchase without logging in", async () => {
+    const usersBefore = await prisma.user.count();
+    const prior = await buy(); await pay(prior.result.orderId);
+    const recipient = await session();
+    const freeType = await types.create(organizerId, eventId, { name: randomUUID(), price: 0, quantityTotal: 5, status: "active" });
+    const key = randomUUID();
+    const input = { ticketTypeId: freeType.id, quantity: 2, termsAccepted: true as const };
+    const result = await quick.checkout(recipient.sessionToken, key, "ticket", input); orders.push(result.orderId);
+    expect((await quick.checkout(recipient.sessionToken, key, "ticket", input)).orderId).toBe(result.orderId);
+    expect(result.amountDue).toBe(0); expect(result.paymentLink).toBe("");
+    expect(await prisma.payment.count({ where: { orderId: result.orderId } })).toBe(0);
+    expect(await prisma.user.count()).toBe(usersBefore);
+    expect(await prisma.ticket.count({ where: { orderId: prior.result.orderId, status: "active" } })).toBe(1);
+    const status = await quick.status(recipient.accessToken);
+    expect(status).toMatchObject({ status: "paid", buyerName: "Guest", linked: false });
+    expect(status.tickets).toHaveLength(2);
+    expect(new Set(status.tickets.map(ticket => ticket.number)).size).toBe(2);
+    const receipt = await orderTicketDocuments(prisma, result.orderId);
+    expect(receipt.tickets.map(ticket => ticket.document.number).sort()).toEqual(status.tickets.map(ticket => ticket.number).sort());
+    expect(receipt.tickets.every(ticket => ticket.document.price === 0 && ticket.document.buyerName === "Guest")).toBe(true);
+  });
+  it("confirms an email-only free purchase immediately and queues ticket email only once", async () => {
+    const recipient = await session(false);
+    const email = `free-${randomUUID()}@example.test`;
+    await prisma.anonymousCheckoutSession.update({ where: { id: recipient.id }, data: { verifiedEmail: email } });
+    const freeType = await types.create(organizerId, eventId, { name: randomUUID(), price: 0, quantityTotal: 5, status: "active" });
+    const input = { ticketTypeId: freeType.id, quantity: 1, termsAccepted: true as const, emailDelivery: { address: email } };
+    const key = randomUUID(), result = await quick.checkout(recipient.sessionToken, key, "ticket", input); orders.push(result.orderId);
+    await quick.checkout(recipient.sessionToken, key, "ticket", input);
+    expect((await quick.status(recipient.accessToken)).status).toBe("paid");
+    expect(await prisma.payment.count({ where: { orderId: result.orderId } })).toBe(0);
+    expect(await prisma.outboxEvent.count({ where: { aggregateId: result.orderId, eventType: "ticket.email_requested" } })).toBe(1);
+  });
   it("settles an email-only full-price purchase once and claims it only for its verified email identity", async () => {
     const s = await session(false), t = await type();
     const email = `quick-${randomUUID()}@example.test`;

@@ -4,6 +4,7 @@ export interface TicketEmailMessage {
   text: string;
   html: string;
   idempotencyKey: string;
+  attachments?: Array<{ filename: string; content: string; content_type: string; content_id?: string }>;
 }
 
 export interface TicketEmailSender {
@@ -27,7 +28,7 @@ export class ResendTicketEmailSender implements TicketEmailSender {
       response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json", "Idempotency-Key": message.idempotencyKey },
-        body: JSON.stringify({ from: this.from, to: [message.to], subject: message.subject, text: message.text, html: message.html }),
+        body: JSON.stringify({ from: this.from, to: [message.to], subject: message.subject, text: message.text, html: message.html, ...(message.attachments ? { attachments: message.attachments } : {}) }),
         signal: AbortSignal.timeout(8_000),
       });
     } catch { throw new TicketEmailSendError("uncertain"); }

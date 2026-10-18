@@ -12,6 +12,7 @@ export interface NotificationPreferences {
 }
 
 export interface AccountNotification {
+  orderId?: string | null;
   id: string;
   eventId: string | null;
   eventTitle: string | null;

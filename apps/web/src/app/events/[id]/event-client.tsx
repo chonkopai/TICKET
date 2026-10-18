@@ -2,7 +2,7 @@
 
 import { localeFromBrowser } from "../../../lib/locale";
 
-import { hallObjectPaint, tariffColor, hallTextColor, UNAVAILABLE_HALL_COLOR, TARIFF_COLORS, type EventLocale, type PublicEvent, type PublicVenueLayout, type PublicVenueSeat } from "@event-platform/shared-types";
+import { hallObjectPaint, tariffColor, hallTextColor, UNAVAILABLE_HALL_COLOR, TARIFF_COLORS, type CreateCartCheckoutRequest, type EventLocale, type PublicEvent, type PublicVenueLayout, type PublicVenueSeat } from "@event-platform/shared-types";
 import Link from "next/link";
 import { EventHero } from "./event-hero";
 import "./event-page.css";
@@ -38,7 +38,16 @@ export default function PublicEventPage({ id, preview }: { id: string; preview?:
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [ticketQuantities, setTicketQuantities] = useState<Record<string, number>>({});
+  const [checkoutLocked, setCheckoutLocked] = useState(false);
+  const restoreCheckout = useCallback((body: CreateCartCheckoutRequest) => {
+    if (body.eventId !== id) return;
+    setTicketQuantities(Object.fromEntries(body.tickets.map(ticket => [ticket.ticketTypeId, ticket.quantity])));
+    setSelectedTableId(body.tableId ?? null); setSelectedSeatIds(body.seatIds);
+  }, [id]);
+  const changeSeats = (ids: string[]) => { if (!checkoutLocked) setSelectedSeatIds(ids); };
+  const changeTable = (id: string | null) => { if (!checkoutLocked) setSelectedTableId(id); };
   const changeTicket = (id: string, quantity: number) => setTicketQuantities((current) => {
+    if (checkoutLocked) return current;
     const next = { ...current };
     if (quantity <= 0) delete next[id]; else next[id] = quantity;
     return next;
@@ -139,8 +148,8 @@ export default function PublicEventPage({ id, preview }: { id: string; preview?:
           {preview && !event.description ? <section><h2 className="mb-3 text-xl font-semibold">{copy.about}</h2><p className="text-slate-600 dark:text-ticket-muted">{preview.descriptionPlaceholder}</p></section> : null}
           {event.creationVersion===2?<EventStory description={event.description} address="" refundConditions={event.cancellationTerms} refundsAvailable={event.refundsAvailable??false} free={event.saleMode==="free"} locale={locale} showRefund={false}/>:event.description?<ContentCard icon="spark" title={copy.about}><RichText text={event.description} /></ContentCard>:null}
         </div>
-        {hasHall && layout ? <VenueSection layout={layout} event={event} selectedSeatIds={selectedSeatIds} onChange={setSelectedSeatIds} selectedTableId={selectedTableId} onTableChange={setSelectedTableId} ticketQuantities={ticketQuantities} onTicketChange={changeTicket} /> : null}
-        <div className="event-checkout"><CheckoutPanel event={event} layout={layout} selectedSeatIds={selectedSeatIds} selectedTableId={selectedTableId} onTableChange={setSelectedTableId} ticketQuantities={ticketQuantities} onTicketChange={changeTicket} onClearSeats={() => setSelectedSeatIds([])} onRefreshAvailability={refreshAvailability} readOnly={Boolean(preview)} emptyMessage={preview?.emptyTickets} /></div>
+        {hasHall && layout ? <VenueSection layout={layout} event={event} selectedSeatIds={selectedSeatIds} onChange={changeSeats} selectedTableId={selectedTableId} onTableChange={changeTable} ticketQuantities={ticketQuantities} onTicketChange={changeTicket} /> : null}
+        <div className="event-checkout"><CheckoutPanel event={event} layout={layout} selectedSeatIds={selectedSeatIds} selectedTableId={selectedTableId} onTableChange={changeTable} ticketQuantities={ticketQuantities} onTicketChange={changeTicket} onClearSeats={() => changeSeats([])} onRefreshAvailability={refreshAvailability} readOnly={Boolean(preview)} onLockChange={setCheckoutLocked} onRestoreSelection={restoreCheckout} emptyMessage={preview?.emptyTickets} /></div>
       </div>
       <div className="mt-12 space-y-10">
         {preview && !preview.showRefund ? null : event.creationVersion===2?<EventRefund locale={locale} free={event.saleMode==="free"} available={event.refundsAvailable??false} conditions={event.cancellationTerms}/>:<TermsCard event={event}/>}

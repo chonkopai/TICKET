@@ -111,6 +111,7 @@ export interface ManagementOrdersQuery {
 }
 
 export interface ManagementOrderRow {
+  messages?: { total: number; unread: number };
   id: string;
   createdAt: string;
   type: "ticket" | "table" | "deposit";

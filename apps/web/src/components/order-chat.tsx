@@ -34,14 +34,14 @@ function OrderConversation({ eventId, orderId, mode, accessToken }: { eventId: s
       return [...byId.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
     });
     if (!cursorInitialized.current) { setCursor(page.nextCursor); cursorInitialized.current = true; }
-    await client.read();
+    if (!document.hidden) await client.read();
     setLoadError(null);
   }, [client]);
   useEffect(() => {
     let active = true;
     setLoaded(false); setItems([]); setCursor(null); setError(null); setLoadError(null); cursorInitialized.current = false;
     void refresh().catch((reason) => { if (active) setLoadError(errorText(reason, copy.failed)); }).finally(() => { if (active) setLoaded(true); });
-    const timer = setInterval(() => { if (active) void refresh().catch((reason) => { if (active) setLoadError(errorText(reason, copy.failed)); }); }, 10_000);
+    const timer = setInterval(() => { if (active && !document.hidden) void refresh().catch((reason) => { if (active) setLoadError(errorText(reason, copy.failed)); }); }, 10_000);
     return () => { active = false; clearInterval(timer); };
   }, [refresh, copy]);
   async function older(): Promise<void> {

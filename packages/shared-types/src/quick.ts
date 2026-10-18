@@ -32,13 +32,14 @@ export const quickRu = {
 export interface QuickSession { sessionToken: string; accessToken: string; telegramUrl: string; expiresAt: string; accessExpiresAt: string }
 export interface QuickOrderStatus {
   acceptedPolicy?:import("./event-creation-v2.js").PurchaseSnapshotV2["refund"];
+  createdAt?: string; buyerName?: string;
   orderId: string; eventId: string | null; status: string; title: string; sourceLocale?: "ru" | "kk" | "en"; paymentMode: "deposit" | "full_payment"; amountDue: number; fullAmount: number | null;
   currency: string; cancellationTerms: string | null; depositTerms: string | null; expiresAt: string | null; linked: boolean;
   deliveryStatus: "pending" | "confirmed" | "unavailable";
   emailDelivery: { status: string; address: string | null; acceptedAt: string | null };
   walletAvailable: boolean;
   event: { date: string; time: string; timezone: string; address: string } | null;
-  tickets: Array<{ id: string; name: string; seatLabel: string | null; status: string }>;
+  tickets: Array<{ id: string; name: string; seatLabel: string | null; status: string; number?: string; price?: number }>;
   booking: { id: string; status: string; table: { number: number; name: string | null } } | null;
   deposit: { amount: number; status: string } | null;
 }

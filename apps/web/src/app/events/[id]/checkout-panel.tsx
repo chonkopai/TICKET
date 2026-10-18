@@ -3,9 +3,9 @@ import { RefundPolicyText } from "../../../components/event-presentation";
 
 import { INTL_LOCALES, localeUrl } from "../../../lib/locale";
 
-import { type CheckoutEmailChoice, type CheckoutResponse, type PublicEvent, type PublicPaymentOption, type PublicVenueLayout, type PublicVenueSeat } from "@event-platform/shared-types";
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { type CreateCartCheckoutRequest, type CheckoutEmailChoice, type CheckoutResponse, type PublicEvent, type PublicPaymentOption, type PublicVenueLayout, type PublicVenueSeat } from "@event-platform/shared-types";
+import { GuestInlineCheckout } from "../../../components/guest-inline-checkout";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiRequest } from "../../(auth)/_lib/api";
 import { getSession, subscribeSession } from "../../(auth)/_lib/session";
 import { CheckoutEmailOption } from "../../../components/checkout-email-option";
@@ -18,6 +18,8 @@ import "./checkout-panel.css";
 
 interface CheckoutPanelProps {
   readOnly?: boolean;
+  onRestoreSelection?: ((body: CreateCartCheckoutRequest) => void) | undefined;
+  onLockChange?: ((locked: boolean) => void) | undefined;
   emptyMessage?: string | undefined;
   event: PublicEvent;
   layout: PublicVenueLayout | null;
@@ -30,13 +32,15 @@ interface CheckoutPanelProps {
   onRefreshAvailability: () => Promise<void>;
 }
 
-export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId, onTableChange, ticketQuantities, onTicketChange, onClearSeats, onRefreshAvailability, readOnly = false, emptyMessage }: CheckoutPanelProps) {
+export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId, onTableChange, ticketQuantities, onTicketChange, onClearSeats, onRefreshAvailability, readOnly = false, emptyMessage, onLockChange, onRestoreSelection }: CheckoutPanelProps) {
   const locale = useLocale();
   const copy = CHECKOUT_COPY[locale];
   const design = BOOKING_PANEL_COPY[locale];
   const formatMoney = (value: number, currency: string): string => new Intl.NumberFormat(INTL_LOCALES[locale], { style: "currency", currency }).format(value / 100);
   const { currency: displayCurrency, formatMoney: formatDisplayMoney } = useDisplayCurrency();
   const [accepted, setAccepted] = useState(false);
+  const [guestLocked, setGuestLocked] = useState(false);
+  const freezeGuest = useCallback((locked: boolean) => { setGuestLocked(locked); onLockChange?.(locked); }, [onLockChange]);
   useEffect(()=>setAccepted(false),[event.refundPolicyRevision,event.contentLocale]);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<CheckoutResponse | null>(null);
@@ -121,21 +125,16 @@ export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId,
   if (!hasAvailableInventory) return <aside className="event-booking" id="tickets">
     {header}<div className="checkout-empty"><AccountIcon name="ticket" /><p>{emptyMessage ?? copy.noOptions}</p></div>
   </aside>;
-  const quickParams = new URLSearchParams({ event: event.id });
-  if (selectedTickets.length === 1 && !selectedTableId && !selectedSeatIds.length) { quickParams.set("choice", `ticket:${selectedTickets[0]!.id}`); quickParams.set("quantity", String(ticketQuantities[selectedTickets[0]!.id])); }
-  else if (selectedTableId && !selectedTickets.length && !selectedSeatIds.length) quickParams.set("choice", `table:${selectedTableId}`);
-  else if (selectedSeatIds.length && !selectedTickets.length && !selectedTableId) quickParams.set("seats", selectedSeatIds.join(","));
-  else quickParams.set("cart", JSON.stringify({ tickets: selectedTickets.map((ticket) => ({ ticketTypeId: ticket.id, quantity: (ticketQuantities[ticket.id] ?? 0) })), tableId: selectedTableId, seatIds: selectedSeatIds }));
   const total = selection.amount === 0 ? design.free : formatMoney(selection.amount, selection.currency);
   const checkoutDisabled = !accepted || !selection.valid || busy || (emailRequested && !emailChoice);
   const resultHref = result ? result.amountDue === 0
     ? localeUrl(result.ticketIds[0] ? `/account/tickets/${result.ticketIds[0]}` : "/account", locale)
     : result.paymentLink || localeUrl(`/payment/status?order=${result.orderId}`, locale) : "";
-  const hint = !selection.items.length ? null : !accepted ? design.acceptHint : emailRequested && !emailChoice ? design.emailHint : null;
+  const hint = guestLocked || !selection.items.length ? null : !accepted ? design.acceptHint : emailRequested && !emailChoice ? design.emailHint : null;
   return <aside className="event-booking" id="tickets">
     {header}
     {hasSelectableSeats ? <a className="checkout-plan-button" href="#venue-plan"><AccountIcon name="map-pin" /><span>{copy.plan.replace(/\s*↓$/, "")}</span><AccountIcon name="arrow-up-right" /></a> : null}
-    <div className="checkout-options">
+    <fieldset className="checkout-options" disabled={guestLocked}>
       {event.ticketTypes.map(ticket => {
         const quantity = ticketQuantities[ticket.id] ?? 0;
         const available = ticket.status === "active" && ticket.remaining > 0;
@@ -153,7 +152,7 @@ export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId,
       })}
       {availableTables.map(table => <OptionButton active={selectedTableId === table.id} disabled={table.availability !== "available"} key={table.id} onClick={() => onTableChange(selectedTableId === table.id ? null : table.id)} title={table.name ?? `${copy.table} ${table.number}`} meta={`${table.seats} ${copy.places} · ${copy.wholeTable}`} price={table.payment.amountDue === 0 ? design.free : paymentSummary(table.payment, formatDisplayMoney)} unavailable={copy.unavailable} />)}
       {selectedSeatIds.length ? <div className="checkout-selected-seats"><AccountIcon name="circle-check" /><strong>{copy.selectedSeats} · {selectedSeatIds.length}</strong><button className="checkout-text-action" onClick={onClearSeats} type="button">{copy.clear}</button></div> : null}
-    </div>
+    </fieldset>
     <section className="checkout-summary" aria-label={copy.yourChoice}>
       <div className="checkout-summary-heading"><h3>{copy.yourChoice}</h3>{selection.currency ? <span>{selection.currency}</span> : null}</div>
       {selection.items.length ? <>
@@ -166,7 +165,7 @@ export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId,
     {selection.items.length > 0 ? <div className="checkout-details">
       {selectedTickets.length + Number(Boolean(selectedTableId)) + Number(selectedSeatIds.length > 0) > 1 ? <p className="checkout-note">{copy.combinedRefund}</p> : null}
       {event.creationVersion === 2 ? <details className="checkout-refund"><summary><AccountIcon name="undo" /><span>{design.refund}</span><AccountIcon name="chevron-down" /></summary><div><RefundPolicyText locale={locale} free={event.saleMode === "free"} available={event.refundsAvailable ?? false} conditions={event.cancellationTerms} /></div></details> : null}
-      <label className="checkout-terms"><input checked={accepted} disabled={busy || Boolean(result)} onChange={input => setAccepted(input.target.checked)} type="checkbox" /><span>{event.creationVersion === 2 ? ({ ru: "Принимаю условия регистрации, покупки и отмены", en: "I accept the registration, purchase and cancellation terms", kk: "Тіркелу, сатып алу және бас тарту шарттарын қабылдаймын" })[locale] : copy.acceptTerms}</span></label>
+      <label className="checkout-terms"><input checked={accepted || guestLocked} disabled={busy || Boolean(result) || guestLocked} onChange={input => setAccepted(input.target.checked)} type="checkbox" /><span>{event.creationVersion === 2 ? ({ ru: "Принимаю условия регистрации, покупки и отмены", en: "I accept the registration, purchase and cancellation terms", kk: "Тіркелу, сатып алу және бас тарту шарттарын қабылдаймын" })[locale] : copy.acceptTerms}</span></label>
       {loggedIn ? <CheckoutEmailOption compact choice={emailChoice} onChoice={setEmailChoice} onEnabledChange={setEmailRequested} /> : null}
     </div> : null}
     {error ? <div className="checkout-message is-error"><p role="alert">{error}</p><button className="checkout-text-action" onClick={() => void onRefreshAvailability().then(() => setError(null)).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : copy.failed))} type="button"><AccountIcon name="refresh-cw" />{copy.refresh}</button></div> : null}
@@ -174,7 +173,7 @@ export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId,
     <footer className="checkout-footer">
       {result ? <a className="checkout-primary" href={resultHref}><span>{result.amountDue === 0 ? design.openTicket : copy.continuePayment}</span><AccountIcon name="arrow-right" /></a>
         : loggedIn ? <button className="checkout-primary" disabled={checkoutDisabled} aria-busy={busy} onClick={() => void checkout()} type="button"><span>{busy ? copy.loading : event.saleMode === "free" ? design.registration : copy.pay}</span><AccountIcon name="arrow-right" /></button>
-        : <Link aria-disabled={!accepted || !selection.valid} tabIndex={accepted && selection.valid ? 0 : -1} className={`checkout-primary${accepted && selection.valid ? "" : " is-disabled"}`} onClick={event => { if (!accepted || !selection.valid) event.preventDefault(); }} href={localeUrl(`/quick?${quickParams.toString()}`, locale)}><span>{copy.quick}</span><AccountIcon name="arrow-right" /></Link>}
+        : readOnly ? <button className="checkout-primary" disabled type="button">{design.registration}</button> : <GuestInlineCheckout body={{ eventId: event.id, tickets: selectedTickets.map(ticket => ({ ticketTypeId: ticket.id, quantity: ticketQuantities[ticket.id] ?? 0 })), ...(selectedTableId ? { tableId: selectedTableId } : {}), seatIds: selectedSeatIds, termsAccepted: true, contentLocale: event.contentLocale, policyRevision: event.refundPolicyRevision }} accepted={accepted} valid={selection.valid} free={selection.amount === 0} onFreeze={freezeGuest} onRestore={onRestoreSelection} />}
       {hint && !result ? <p className="checkout-continue-hint">{hint}</p> : null}
       <p className="checkout-delivery-hint"><AccountIcon name="qr" />{design.delivery}</p>
       {!loggedIn && selection.items.length ? <p className="checkout-guest-hint">{copy.guestHint}</p> : null}

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Inject, Param, ParseUUIDPipe, Patch, Post, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { IsString, IsUUID, MaxLength, MinLength } from "class-validator";
 import { CurrentUser, Roles } from "../auth/auth.decorators.js";
@@ -56,6 +56,11 @@ export class MarketingCampaignController {
   @UseInterceptors(FileInterceptor("image", { limits: { fileSize: MAX_POSTER_BYTES, files: 1 } }))
   uploadImage(@CurrentUser() actor: AuthenticatedPrincipal, @Param("eventId", new ParseUUIDPipe({ version: "4" })) eventId: string, @Param("campaignId", new ParseUUIDPipe({ version: "4" })) campaignId: string, @UploadedFile() file: UploadedPoster | undefined) {
     return this.service.uploadImage(actor.userId, eventId, campaignId, file);
+  }
+
+  @Delete(":campaignId/image")
+  removeImage(@CurrentUser() actor: AuthenticatedPrincipal, @Param("eventId", new ParseUUIDPipe({ version: "4" })) eventId: string, @Param("campaignId", new ParseUUIDPipe({ version: "4" })) campaignId: string) {
+    return this.service.removeImage(actor.userId, eventId, campaignId);
   }
 
   @Post(":campaignId/send")
