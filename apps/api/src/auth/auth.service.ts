@@ -41,27 +41,27 @@ export class AuthService {
   }
 
   /** Internal only: callers must cryptographically verify Telegram's identity first. */
-  async loginWithVerifiedTelegram(identity: { id: bigint; name: string | null; photoUrl: string | null }): Promise<AuthResponse> {
+  async loginWithVerifiedTelegram(identity: { id: bigint; name: string | null; photoUrl: string | null; botAccess?: boolean }): Promise<AuthResponse> {
     let user: User;
     try {
       user = await this.database.user.upsert({
         where: { telegramId: identity.id },
         create: {
           telegramId: identity.id,
+          ...(identity.botAccess ? { telegramChatId: identity.id } : {}),
           role: "guest",
           name: identity.name,
           photoUrl: identity.photoUrl,
         },
-        update: {
-          // Keep a name or photo explicitly chosen in the account editor.
-        },
+        // Keep a name or photo explicitly chosen in the account editor.
+        update: identity.botAccess ? { telegramChatId: identity.id } : {},
       });
     } catch (error) {
       // Empty-update upserts can race when both providers see a new identity at once.
       if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
       const existing = await this.database.user.findUnique({ where: { telegramId: identity.id } });
       if (!existing) throw error;
-      user = existing;
+      user = identity.botAccess ? await this.database.user.update({ where: { id: existing.id }, data: { telegramChatId: identity.id } }) : existing;
     }
 
     return { user: presentUser(user), tokens: await this.tokens.issuePair(user) };
@@ -96,6 +96,8 @@ export class AuthService {
           ...(input.phone !== undefined ? { phone: normalized(input.phone) } : {}),
           ...(input.email !== undefined ? { email: normalized(input.email) } : {}),
           ...(input.defaultCity !== undefined ? { defaultCity: normalized(input.defaultCity) } : {}),
+          ...(input.defaultCountry !== undefined ? { defaultCountry: input.defaultCountry } : {}),
+          ...(input.preferredCurrency !== undefined ? { preferredCurrency: input.preferredCurrency } : {}),
         },
       });
       await transaction.auditLog.create({

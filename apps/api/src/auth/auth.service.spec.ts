@@ -23,6 +23,8 @@ describe("AuthService profile and organizer activation", () => {
       phone: null,
       email: null,
       defaultCity: null,
+    defaultCountry: null,
+    preferredCurrency: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -62,4 +64,14 @@ describe("AuthService profile and organizer activation", () => {
       role: "organizer",
     });
   });
+});
+
+it.each([true, false])("records Telegram messaging access only when granted: %s", async botAccess => {
+  const upsert = vi.fn().mockResolvedValue({ id: "u", telegramId: 77n, telegramChatId: botAccess ? 77n : null, role: "guest" });
+  const issuePair = vi.fn();
+  const service = new AuthService({ user: { upsert } } as never, {} as never, { issuePair } as never, {} as never);
+  await service.loginWithVerifiedTelegram({ id: 77n, name: "Fixture", photoUrl: null, botAccess });
+  const request = upsert.mock.calls[0]![0];
+  expect(request.update).toEqual(botAccess ? { telegramChatId: 77n } : {});
+  expect(request.create.telegramChatId).toBe(botAccess ? 77n : undefined);
 });

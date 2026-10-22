@@ -123,8 +123,8 @@ export function LoginClient() {
   }
 
   async function requestCode(resend = false): Promise<void> {
-    // SMS OTP is deliberately inert until the provider issue is resolved.
-    if (method !== "email" || mode === "login" || busy) return;
+    // Phone registration stays unavailable; reset requests can report unregistered contacts.
+    if ((method === "phone" && mode === "register") || mode === "login" || busy) return;
     const ticket = ++sequence.current;
     setBusy(true);
     setMessage(null);
@@ -146,7 +146,7 @@ export function LoginClient() {
 
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    if (busy || (method === "phone" && mode !== "login")) return;
+    if (busy || (method === "phone" && mode === "register")) return;
     if (mode !== "login" && step === "contact") {
       await requestCode();
       return;
@@ -188,7 +188,7 @@ export function LoginClient() {
 
   const catalogHref = navigationQuery ? "/?" + navigationQuery : "/";
   const title = mode === "register" ? copy.registerTitle : mode === "reset" ? copy.resetTitle : copy.loginTitle;
-  const smsUnavailable = method === "phone" && mode !== "login";
+  const smsUnavailable = method === "phone" && mode === "register";
   const contactLabel = method === "email" ? copy.emailAddress : copy.phoneNumber;
 
   return (
@@ -294,7 +294,7 @@ export function LoginClient() {
                     <PasswordField mode={mode} password={password} showPassword={showPassword} busy={busy} onChange={(value) => { setPassword(value); setMessage(null); }} onToggle={() => setShowPassword((value) => !value)} />
                   ) : null}
 
-                  <button className={submitClass} disabled={busy || (mode !== "login" && step === "contact" && method === "phone")} type="submit">
+                  <button className={submitClass} disabled={busy || (mode === "register" && step === "contact" && method === "phone")} type="submit">
                     <span>{busy ? copy.wait : submitLabel(mode, step, copy)}</span>{busy ? <SpinnerIcon /> : <ArrowRightIcon />}
                   </button>
                 </form>

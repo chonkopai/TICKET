@@ -1,15 +1,14 @@
 "use client";
 import {RefundPolicyText} from "../../../components/event-presentation";
 
-import { INTL_LOCALES, localeUrl } from "../../../lib/locale";
+import { INTL_LOCALES } from "../../../lib/locale";
 
 import { TICKET_RECEIPT_COPY, ticketDateTime, ticketNumber, type QuickOrderStatus } from "@event-platform/shared-types";
-import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { apiRequest } from "../../(auth)/_lib/api";
-import { getSession } from "../../(auth)/_lib/session";
+
+import { useEffect, useState } from "react";
+
 import { quickRequest } from "../api";
-import { TelegramLoginButton } from "../../(auth)/_components/telegram-login-button";
+
 import { BackLink } from "../../../components/back-link";
 import { OrderChat } from "../../../components/order-chat";
 import { AccountIcon } from "../../../components/account-icon";
@@ -26,18 +25,15 @@ export default function QuickStatusPage() {
   const paymentCopy = PAYMENT_STATUS_COPY[locale];
   const money = (amount: number, currency: string): string => new Intl.NumberFormat(INTL_LOCALES[locale], { style: "currency", currency }).format(amount / 100);
   const receipt = TICKET_RECEIPT_COPY[locale];
-  const autoClaim = useRef(false);
-  const claimInFlight = useRef(false);
   const [access, setAccess] = useState("");
   const [status, setStatus] = useState<QuickOrderStatus | null>(null);
   const [error, setError] = useState("");
-  const [loggedIn, setLoggedIn] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     const order = new URLSearchParams(window.location.search).get("order") ?? "";
     const token = sessionStorage.getItem(`quick-order:${order}`);
     if (!token) { setError(text.unavailable); return; }
-    setAccess(token); setLoggedIn(Boolean(getSession()));
+    setAccess(token);
     let stopped = false, count = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
@@ -54,17 +50,6 @@ export default function QuickStatusPage() {
     void poll();
     return () => { stopped = true; if (timer) clearTimeout(timer); document.removeEventListener("visibilitychange", onVisible); };
   }, [text]);
-  const claim = useCallback(async () => {
-    if (claimInFlight.current || !access) return;
-    claimInFlight.current = true;
-    setBusy(true); setError("");
-    try {
-      const { claimToken } = await quickRequest<{ claimToken: string }>("claim-token", access, {});
-      await apiRequest("/api/quick/claim", { method: "POST", body: JSON.stringify({ claimToken }) });
-      setStatus(await quickRequest<QuickOrderStatus>("order", access));
-    } catch { setError(text.error); } finally { claimInFlight.current = false; setBusy(false); }
-  }, [access, text.error]);
-  const onTelegramAuthenticated = useCallback(() => { setLoggedIn(true); void claim(); }, [claim]);
   async function resendEmail() {
     if (busy || !access) return;
     setBusy(true); setError("");
@@ -83,11 +68,6 @@ export default function QuickStatusPage() {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch { setError(format === "wallet" ? copy.walletFailed : text.error); }
   }
-  useEffect(() => {
-    if (!autoClaim.current && loggedIn && access && status?.status === "paid" && !status.linked && new URLSearchParams(window.location.search).get("claim") === "1") {
-      autoClaim.current = true; void claim();
-    }
-  }, [loggedIn, access, status?.status, status?.linked, claim]);
   const confirmed = status?.status === "paid";
   const orderDate = status?.createdAt ? new Intl.DateTimeFormat(INTL_LOCALES[locale], { dateStyle: "long", timeStyle: "short", timeZone: status.event?.timezone ?? "UTC" }).format(new Date(status.createdAt)) + ` (${status.event?.timezone ?? "UTC"})` : "—";
   return <main className="quick-receipt">
@@ -106,10 +86,9 @@ export default function QuickStatusPage() {
         <section className="quick-receipt-card"><h2><AccountIcon name="undo"/>{receipt.refund}</h2>{status.acceptedPolicy ? <RefundPolicyText locale={locale} free={status.acceptedPolicy.freeCancellation} available={status.acceptedPolicy.available} conditions={status.cancellationTerms}/> : <p>{status.amountDue === 0 ? receipt.freeRefund : status.cancellationTerms ?? receipt.noRefund}</p>}</section>
         {confirmed && status.emailDelivery.address ? <section className="quick-receipt-card quick-receipt-delivery"><h2><AccountIcon name="mail"/>{receipt.delivery}</h2><strong>{status.emailDelivery.address}</strong><p role="status">{paymentCopy.emailStatuses[status.emailDelivery.status] ?? status.emailDelivery.status}</p>{["accepted","failed","uncertain"].includes(status.emailDelivery.status) ? <button className="quick-receipt-button" type="button" disabled={busy} onClick={()=>void resendEmail()}><AccountIcon name="send"/>{paymentCopy.resend}</button> : null}</section> : null}
         {confirmed && status.deliveryStatus !== "unavailable" ? <p className="quick-receipt-note">{status.deliveryStatus === "confirmed" ? copy.deliveryConfirmed : copy.deliveryPending}</p> : null}
-        {confirmed ? <section className="quick-receipt-card quick-receipt-save"><h2><AccountIcon name="user-round"/>{receipt.save}</h2>{status.linked ? <p>{text.saved} · <Link href={localeUrl("/account",locale)}>{copy.myTickets}</Link></p> : loggedIn ? <button disabled={busy} className="quick-receipt-button is-primary" onClick={()=>void claim()}>{text.claim}</button> : <><h3>{text.login}</h3><TelegramLoginButton onAuthenticated={onTelegramAuthenticated}/><Link className="quick-receipt-button" href={localeUrl(`/login?returnTo=${encodeURIComponent(`/quick/status?order=${status.orderId}&claim=1&lang=${locale}`)}`,locale)}><AccountIcon name="mail"/>{copy.loginVerified}</Link></>}</section> : null}
         {status.eventId ? <section className="quick-receipt-card quick-receipt-chat"><OrderChat eventId={status.eventId} orderId={status.orderId} mode="anonymous" accessToken={access}/></section> : null}
       </>}
-      <button type="button" className="quick-receipt-refresh" onClick={()=>{setLoggedIn(Boolean(getSession()));void quickRequest<QuickOrderStatus>("order",access).then(value=>{setStatus(value);setError("");}).catch(()=>setError(text.error));}}><AccountIcon name="refresh-cw"/>{text.refresh}</button>
+      <button type="button" className="quick-receipt-refresh" onClick={()=>{void quickRequest<QuickOrderStatus>("order",access).then(value=>{setStatus(value);setError("");}).catch(()=>setError(text.error));}}><AccountIcon name="refresh-cw"/>{text.refresh}</button>
     </> : null}
   </main>;
 }

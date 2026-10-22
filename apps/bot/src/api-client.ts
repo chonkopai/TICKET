@@ -26,6 +26,10 @@ export class BotApiClient {
 
   async venueLayout(id: string): Promise<PublicVenueLayout | null> { return this.json<PublicVenueLayout | null>(`/events/${id}/venue-layout`); }
 
+  async grantWriteAccess(telegramId: number, chatId: number): Promise<void> {
+    await this.json("/bot/write-access", { method: "POST", body: { telegramId: String(telegramId), chatId: String(chatId) } });
+  }
+
   async identity(telegramId: number, chatId: number): Promise<BotIdentityResponse> {
     const response = await this.json<BotIdentityResponse>("/bot/identity", { method: "POST", body: { telegramId: String(telegramId), chatId: String(chatId) } });
     this.identityToken = response.token; this.identityExpiresAt = Date.parse(response.expiresAt);

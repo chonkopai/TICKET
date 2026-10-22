@@ -1,3 +1,4 @@
+import { linkGuestPurchases } from "../orders/automatic-purchase-link.js";
 import { hasEventEnded, readCheckoutSnapshot } from "@event-platform/shared-types";
 import type { Prisma, PrismaClient } from "@event-platform/database";
 import type {
@@ -25,6 +26,7 @@ export class AccountService {
   constructor(@Inject(DATABASE_CLIENT) private readonly database: PrismaClient) {}
 
   async dashboard(userId: string, now = new Date()): Promise<AccountDashboard> {
+    await linkGuestPurchases(this.database, userId);
     const [activeTickets, activeGroupPasses, usedTickets] = await this.database.$transaction([
       this.database.ticket.findMany({
         where: {
@@ -127,6 +129,7 @@ export class AccountService {
   }
 
   async orders(userId: string, query: AccountOrderQueryDto): Promise<AccountOrderList> {
+    await linkGuestPurchases(this.database, userId);
     const where: Prisma.OrderWhereInput = { buyerUserId: userId, ...(query.status ? { paymentStatus: query.status } : {}) };
     const skip = (query.page - 1) * query.limit;
     const [rows, total] = await this.database.$transaction([

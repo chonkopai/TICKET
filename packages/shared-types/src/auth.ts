@@ -40,6 +40,8 @@ export interface AuthUser {
   phone: string | null;
   email: string | null;
   defaultCity: string | null;
+  defaultCountry?: string | null;
+  preferredCurrency?: "KZT" | "RUB" | "USD" | null;
 }
 
 export interface AuthTokens {

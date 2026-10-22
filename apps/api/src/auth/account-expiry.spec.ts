@@ -1,3 +1,4 @@
+vi.mock("../orders/automatic-purchase-link.js", () => ({ linkGuestPurchases: vi.fn().mockResolvedValue(0) }));
 import type { PrismaClient } from "@event-platform/database";
 import { expect, it, vi } from "vitest";
 import { AccountService } from "./account.service.js";

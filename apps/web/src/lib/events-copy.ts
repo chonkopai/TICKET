@@ -20,6 +20,12 @@ export const EVENTS_COPY = {
       "workshop": "Мастер-класс",
       "sport": "Спорт",
       "family": "Для всей семьи",
+      "children": "Детям",
+      "adults": "Мероприятия 18+",
+      "cinema": "Кино",
+      "exhibitions": "Выставки и музеи",
+      "excursions": "Экскурсии и отдых",
+
       "food": "Еда и гастрономия",
       "other": "Другое"
     },
@@ -70,6 +76,12 @@ export const EVENTS_COPY = {
       "workshop": "Шеберлік сабағы",
       "sport": "Спорт",
       "family": "Отбасылық",
+      "children": "Балаларға",
+      "adults": "18+ іс-шаралар",
+      "cinema": "Кино",
+      "exhibitions": "Көрмелер мен мұражайлар",
+      "excursions": "Экскурсиялар және демалыс",
+
       "food": "Тағам және гастрономия",
       "other": "Басқа"
     },
@@ -120,6 +132,12 @@ export const EVENTS_COPY = {
       "workshop": "Workshop",
       "sport": "Sports",
       "family": "Family",
+      "children": "For children",
+      "adults": "Events 18+",
+      "cinema": "Cinema",
+      "exhibitions": "Exhibitions and museums",
+      "excursions": "Tours and recreation",
+
       "food": "Food and drink",
       "other": "Other"
     },

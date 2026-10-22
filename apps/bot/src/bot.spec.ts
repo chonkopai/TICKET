@@ -3,7 +3,7 @@ import { ru, quickRu } from "@event-platform/shared-types";
 import { describe, expect, it, vi } from "vitest";
 
 import { createStartHandler } from "./handlers/start.js";
-import { BOT_CLIENT_OPTIONS, parseSearchQuery } from "./bot.js";
+import { createBot, BOT_CLIENT_OPTIONS, parseSearchQuery } from "./bot.js";
 import { formatWelcome } from "./presentation.js";
 
 describe("/start", () => {
@@ -79,4 +79,13 @@ describe("/search", () => {
     expect(parseSearchQuery("/search")).toBe("");
     expect(parseSearchQuery("/events джаз")).toBe("");
   });
+});
+
+it("connects a legacy widget messaging grant without requiring /start", async () => {
+  const request = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ linked: true }) });
+  const bot = createBot("1:test", "test_bot", { apiBaseUrl: "http://localhost:3001", botApiSecret: "s".repeat(32), fetch: request });
+  await bot.handleUpdate({ update_id: 1, message: { message_id: 1, date: 1, chat: { id: 77, type: "private", first_name: "Fixture" }, from: { id: 77, is_bot: false, first_name: "Fixture" }, write_access_allowed: { from_request: true } } });
+  expect(request).toHaveBeenCalledOnce();
+  expect(String(request.mock.calls[0]![0])).toBe("http://localhost:3001/bot/write-access");
+  expect(JSON.parse(request.mock.calls[0]![1].body)).toEqual({ telegramId: "77", chatId: "77" });
 });

@@ -20,6 +20,8 @@ describe("auth presenter", () => {
       phone: null,
       email: null,
       defaultCity: null,
+    defaultCountry: null,
+    preferredCurrency: null,
       createdAt: now,
       updatedAt: now,
     };

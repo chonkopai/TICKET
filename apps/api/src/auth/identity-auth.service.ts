@@ -1,8 +1,6 @@
-import { randomUUID } from "node:crypto";
-
 import { Prisma, type PrismaClient } from "@event-platform/database";
 import type { AuthResponse, LinkedMethodsResponse, LoginContactMethod, VerificationGrantResponse, VerificationRequestResponse } from "@event-platform/shared-types";
-import { ConflictException, Inject, Injectable, ServiceUnavailableException, UnauthorizedException } from "@nestjs/common";
+import { ConflictException, NotFoundException, Inject, Injectable, ServiceUnavailableException, UnauthorizedException } from "@nestjs/common";
 
 import { DATABASE_CLIENT, type AuthenticatedPrincipal } from "./auth.constants.js";
 import { presentUser } from "./auth.presenter.js";
@@ -90,9 +88,9 @@ export class IdentityAuthService {
   async requestPasswordReset(input: Contact & ClientRequest): Promise<VerificationRequestResponse> {
     const target = normalizeContact(input.method, input.target);
     await this.verification.enforceCredentialLimit(input.method, target, input.clientKey);
-    if (!this.verification.providerAvailable(input.method)) throw new ServiceUnavailableException({ code: "VERIFICATION_PROVIDER_UNAVAILABLE" });
     const identity = await this.db.contactIdentity.findUnique({ where: { method_normalizedIdentifier: { method: input.method, normalizedIdentifier: target } }, select: { userId: true } });
-    if (!identity) return { challengeId: randomUUID(), expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(), retryAfterSeconds: 60 };
+    if (!identity) throw new NotFoundException({ code: input.method === "email" ? "EMAIL_NOT_REGISTERED" : "PHONE_NOT_REGISTERED" });
+    if (!this.verification.providerAvailable(input.method)) throw new ServiceUnavailableException({ code: "VERIFICATION_PROVIDER_UNAVAILABLE" });
     return this.verification.issue({ ...input, target, purpose: "password_reset" });
   }
 

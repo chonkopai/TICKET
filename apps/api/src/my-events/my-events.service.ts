@@ -1,3 +1,4 @@
+import { linkGuestPurchases } from "../orders/automatic-purchase-link.js";
 import type { Prisma, PrismaClient } from "@event-platform/database";
 import { EventStatus, TicketStatus } from "@event-platform/database";
 import type { EventLocale, GuestBooking, GuestEvent, GuestEventList, GuestParticipationStatus, GuestTicket } from "@event-platform/shared-types";
@@ -23,6 +24,7 @@ export class MyEventsService {
   constructor(@Inject(DATABASE_CLIENT) private readonly database: PrismaClient) {}
 
   async list(userId: string, status: "upcoming" | "past", page: number, limit: number, now = new Date(), locale: EventLocale = "ru"): Promise<GuestEventList> {
+    await linkGuestPurchases(this.database, userId);
     const include: Prisma.EventInclude = {
       organizer: { select: guestOrganizerSelect },
       ticketTypes: { include: { tickets: { where: { OR: [{ ownerUserId: userId }, { order: { buyerUserId: userId } }] }, include: { order: true, seatAllocation: { select: { seatId: true, seat: { select: { tableId: true } } } } } } } },

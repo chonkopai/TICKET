@@ -12,5 +12,7 @@ export function presentUser(user: User): AuthUser {
     phone: user.phone,
     email: user.email,
     defaultCity: user.defaultCity,
+    defaultCountry: user.defaultCountry ?? null,
+    preferredCurrency: user.preferredCurrency === "KZT" || user.preferredCurrency === "RUB" || user.preferredCurrency === "USD" ? user.preferredCurrency : null,
   };
 }

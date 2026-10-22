@@ -2,9 +2,11 @@ import type { PublicEvent, PublicEventList, PublicEventSummary, PublicVenueLayou
 import { localeFromBrowser } from "./locale";
 
 export interface PublicEventsQuery {
+  timeOfDay?: "morning" | "day" | "evening" | "night" | undefined;
   page?: number | undefined;
   limit?: number | undefined;
-  sort?: "recent" | "popular" | undefined;
+  sort?: "recent" | "popular" | "soonest" | undefined;
+  includeRemaining?: boolean | undefined;
   search?: string | undefined;
   from?: string | undefined;
   to?: string | undefined;
@@ -22,7 +24,9 @@ export async function fetchPublicEvents(query: PublicEventsQuery = {}): Promise<
   params.set("locale", localeFromBrowser());
   if (query.page) params.set("page", String(query.page));
   if (query.limit) params.set("limit", String(query.limit));
+  if (query.timeOfDay) params.set("timeOfDay", query.timeOfDay);
   if (query.sort) params.set("sort", query.sort);
+  if (query.includeRemaining) params.set("includeRemaining", "true");
   if (query.search?.trim()) params.set("search", query.search.trim());
   if (query.from) params.set("from", query.from);
   if (query.to) params.set("to", query.to);

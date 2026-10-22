@@ -8,7 +8,7 @@ import type {
   PublicEventSummary,
   PublicSaleStatus,
 } from "@event-platform/shared-types";
-import { cityAliases, EVENT_LOCALES, zonedInputToIso } from "@event-platform/shared-types";
+import { matchesEventTimeOfDay, cityAliases, EVENT_LOCALES, zonedInputToIso } from "@event-platform/shared-types";
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 
 import { normalizedPresentation } from "./normalized-presentation.js";
@@ -146,7 +146,9 @@ export class PublicEventsService {
     locale?: EventLocale;
     page: number;
     limit: number;
-    sort: "recent" | "popular";
+    sort: "recent" | "popular" | "soonest";
+    includeRemaining?: boolean;
+    timeOfDay?: "morning" | "day" | "evening" | "night";
     search?: string;
     from?: string;
     to?: string;
@@ -190,7 +192,7 @@ export class PublicEventsService {
 
     // The common recent listing can be paged in SQL. Do this before the costly
     // inventory presenter so later pages are not silently lost after 500 events.
-    if (!search && query.sort === "recent" && query.free !== true && query.minPrice === undefined && query.maxPrice === undefined && (!query.datePreset || query.from || query.to)) {
+    if (!query.timeOfDay && !query.includeRemaining && !search && query.sort === "recent" && query.free !== true && query.minPrice === undefined && query.maxPrice === undefined && (!query.datePreset || query.from || query.to)) {
       const [total, pageEvents] = await Promise.all([
         this.database.event.count({ where }),
         this.database.event.findMany({
@@ -210,11 +212,14 @@ export class PublicEventsService {
 
     // These modes need live inventory or event-local date evaluation before
     // sorting/filtering. Scan in bounded chunks; never silently truncate totals.
-    const candidateCount = await this.database.event.count({ where });
+    const structuralMatches = query.includeRemaining
+      ? new Set((await this.database.event.findMany({ where, select: { id: true } })).map(event => event.id)) : null;
+    const candidateWhere = query.includeRemaining ? { status: EventStatus.published } : where;
+    const candidateCount = await this.database.event.count({ where: candidateWhere });
     let summaries: Array<PublicEventSummary & { popularity: number; publishedAt: string }> = [];
     for (let skip = 0; skip < candidateCount; skip += 100) {
       const events = await this.database.event.findMany({
-        where,
+        where: candidateWhere,
         orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { id: "desc" }],
         skip,
         take: 100,
@@ -227,6 +232,8 @@ export class PublicEventsService {
         summaries.push(...await Promise.all(events.slice(index, index + 20).map(event => this.toSummary(event, now))));
       }
     }
+    const allCandidates = summaries;
+    if (structuralMatches) summaries = summaries.filter(event => structuralMatches.has(event.id));
     if (!query.from && !query.to && query.datePreset) {
       summaries = summaries.filter((summary) => matchesDatePreset(summary, query.datePreset!, now));
     }
@@ -256,9 +263,16 @@ export class PublicEventsService {
         return popularity || right.publishedAt.localeCompare(left.publishedAt) || left.id.localeCompare(right.id);
       });
     }
+    if (query.sort === "soonest") summaries.sort(chronological);
+    if (query.timeOfDay) summaries = summaries.filter(event => matchesEventTimeOfDay(event.time, query.timeOfDay!));
+    const matchingTotal = summaries.length;
+    if (query.includeRemaining) {
+      const matchingIds = new Set(summaries.map(event => event.id));
+      summaries = [...summaries, ...allCandidates.filter(event => !matchingIds.has(event.id)).sort(chronological)];
+    }
     const skip = (query.page - 1) * query.limit;
     const items = summaries.slice(skip, skip + query.limit).map(({ popularity: _popularity, publishedAt: _publishedAt, ...summary }) => summary);
-    return { items: await this.localizeSummaries(items, query.locale), page: query.page, limit: query.limit, total: summaries.length, hasNext: skip + items.length < summaries.length };
+    return { ...(query.includeRemaining ? { matchingTotal } : {}), items: await this.localizeSummaries(items, query.locale), page: query.page, limit: query.limit, total: summaries.length, hasNext: skip + items.length < summaries.length };
   }
 
   async summary(id: string, now = new Date(), locale?: string): Promise<PublicEventSummary | null> {
@@ -416,7 +430,7 @@ export class PublicEventsService {
   private async toSummary(event: {
     id: string;
     title: string;
-    category: "music" | "nightlife" | "festival" | "comedy" | "theatre" | "business" | "education" | "workshop" | "sport" | "family" | "food" | "other";
+    category: EventCategory;
     countryCode: string;
     city: string;
     posterUrl: string | null;
@@ -571,4 +585,8 @@ function validateDateRange(from: string | undefined, to: string | undefined): vo
   if (from && to && from > to) {
     throw new BadRequestException({ code: "EVENT_DATE_FILTER_RANGE_INVALID", message: "The start date must not be after the end date" });
   }
+}
+
+function chronological(left: PublicEventSummary, right: PublicEventSummary): number {
+  return Date.parse(left.startsAt) - Date.parse(right.startsAt) || left.id.localeCompare(right.id);
 }

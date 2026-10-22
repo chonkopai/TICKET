@@ -1,4 +1,4 @@
-import { COUNTRY_CODES } from "@event-platform/shared-types";
+import { catalogCityOptions, cityAliases, COUNTRY_CODES } from "@event-platform/shared-types";
 
 const STORAGE_KEY = "ticket:catalog-location";
 
@@ -43,4 +43,8 @@ export async function lookupCatalogLocation(request: typeof fetch = fetch): Prom
     const city = typeof value.city === "string" ? value.city.trim().slice(0, 80) : "";
     return value.success && countryCode && city ? { countryCode, city } : null;
   } catch { return null; }
+}
+
+export function countryForCity(city: string): string | null {
+  return COUNTRY_CODES.find(code => catalogCityOptions(code, "ru").some(option => cityAliases(option.value, code).some(alias => alias.toLocaleLowerCase() === city.trim().toLocaleLowerCase()))) ?? null;
 }

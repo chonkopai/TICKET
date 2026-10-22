@@ -56,7 +56,7 @@ describe("Telegram OIDC", () => {
   it("exchanges once on the server and maps numeric profile id, never OIDC sub", async () => {
     const result = await start(); const verifier = attempt.codeVerifier; await response();
     expect(await service.complete({ state: result.state, code: "provider-code", browserProof: proof })).toMatchObject({ session: { user: { id: "same-account", role: "organizer" } }, returnTo: "/events/example?mode=buy&lang=en#tickets" });
-    expect(auth.loginWithVerifiedTelegram).toHaveBeenCalledWith({ id: 42n, name: "Telegram Guest", photoUrl: null });
+    expect(auth.loginWithVerifiedTelegram).toHaveBeenCalledWith({ id: 42n, name: "Telegram Guest", photoUrl: null, botAccess: true });
     const request = fetchMock.mock.calls[0]![1];
     expect(request.body.get("code_verifier")).toBe(verifier);
     expect(request.headers.authorization).toBe(`Basic ${Buffer.from(`${config.telegramOidcClientId}:${config.telegramOidcClientSecret}`).toString("base64")}`);

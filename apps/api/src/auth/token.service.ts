@@ -1,3 +1,4 @@
+import { linkGuestPurchases } from "../orders/automatic-purchase-link.js";
 import { createHash, randomUUID } from "node:crypto";
 
 import type { Prisma, PrismaClient, User } from "@event-platform/database";
@@ -37,6 +38,7 @@ export class TokenService {
   }
 
   async issuePair(user: User): Promise<AuthTokens> {
+    await linkGuestPurchases(this.database, user.id);
     return this.createPair(user, this.database, randomUUID(), Math.floor(Date.now() / 1_000));
   }
 

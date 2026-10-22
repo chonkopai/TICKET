@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getSession, subscribeSession } from "../app/(auth)/_lib/session";
 import { CATALOG_CITY_SELECTED, CATALOG_QUERY_UPDATED } from "../lib/catalog-query-events";
 import { COUNTRY_CODES, cityName, countryName } from "../lib/countries";
-import { clearCatalogLocation, detectCatalogLocation, rememberCatalogLocation, savedCatalogLocation, validCountryCode } from "../lib/catalog-location";
+import { countryForCity, clearCatalogLocation, detectCatalogLocation, rememberCatalogLocation, savedCatalogLocation, validCountryCode } from "../lib/catalog-location";
 import { useLocale } from "./locale-provider";
 import { NAV_COPY } from "./navbar-copy";
 
@@ -17,8 +17,9 @@ const FEATURED_COUNTRIES = ["KZ", "RU", "UZ", "KG", "TR", "AE", "GB", "US"] as c
 function readSelection(): { countryCode: string; city: string } {
   const onCatalog = window.location.pathname === "/";
   const params = new URLSearchParams(onCatalog ? window.location.search : "");
-  const defaultCity = getSession()?.user.defaultCity;
-  const saved = params.has("countryCode") || params.has("city") ? null : savedCatalogLocation() ?? (defaultCity ? { countryCode: "KZ", city: defaultCity } : null);
+  const user = getSession()?.user;
+  const preferred = user?.defaultCountry ? { countryCode: user.defaultCountry, city: user.defaultCity ?? "" } : user?.defaultCity ? { countryCode: countryForCity(user.defaultCity) ?? "", city: user.defaultCity } : null;
+  const saved = params.has("countryCode") || params.has("city") ? null : savedCatalogLocation() ?? preferred;
   return {
     countryCode: validCountryCode(params.get("countryCode")) ?? saved?.countryCode ?? "",
     city: params.has("city") ? params.get("city") ?? "" : saved?.city ?? "",
@@ -36,6 +37,13 @@ export function CatalogLocationPicker({ onDark = false, appearance = "navbar" }:
   const [step, setStep] = useState<"country" | "city">("country");
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [suggestion, setSuggestion] = useState<{ countryCode: string; city: string } | null>(null);
+  const suggestionCopy = { ru: { question: "Ваш город {city}?", mismatch: "Вы находитесь в городе {city}?", yes: "Да", choose: "Нет, выбрать другой", keep: "Нет, продолжить поиск в городе {city}", close: "Закрыть" }, kk: { question: "Сіздің қалаңыз {city} ме?", mismatch: "Сіз {city} қаласындасыз ба?", yes: "Иә", choose: "Жоқ, басқа қала", keep: "Жоқ, {city} қаласында іздеуді жалғастыру", close: "Жабу" }, en: { question: "Is your city {city}?", mismatch: "Are you in {city}?", yes: "Yes", choose: "No, choose another", keep: "No, keep searching in {city}", close: "Close" } }[locale];
+
+  function dismissSuggestion() {
+    if (suggestion) { try { window.sessionStorage.setItem(`ticket:city-prompt:${getSession()?.user.id ?? "guest"}:${suggestion.countryCode}:${cityName(suggestion.city, "ru")}`, "dismissed"); } catch { /* Storage can be unavailable. */ } }
+    setSuggestion(null);
+  }
   const [locations, setLocations] = useState<LocationGroup[]>([]);
   const [locationsStatus, setLocationsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [retry, setRetry] = useState(0);
@@ -50,22 +58,20 @@ export function CatalogLocationPicker({ onDark = false, appearance = "navbar" }:
         const saved = savedCatalogLocation();
         if (next.countryCode && (saved?.countryCode !== next.countryCode || saved.city !== next.city)) rememberCatalogLocation(next);
         else if (!next.countryCode) clearCatalogLocation();
+      } else if (window.location.pathname === "/" && next.countryCode) {
+        commit(next.countryCode, next.city, true);
       }
+      if (appearance !== "navbar") return;
+      void detectCatalogLocation().then(detected => {
+        if (!active || !detected) return;
+        const current = readSelection();
+        if (current.countryCode === detected.countryCode && cityName(current.city, "ru") === cityName(detected.city, "ru")) { setSuggestion(null); return; }
+        try { if (window.sessionStorage.getItem(`ticket:city-prompt:${getSession()?.user.id ?? "guest"}:${detected.countryCode}:${cityName(detected.city, "ru")}`)) return; } catch { /* Storage can be unavailable. */ }
+        setSuggestion(detected);
+      });
     };
     setOpen(false);
     sync();
-    const params = new URLSearchParams(window.location.pathname === "/" ? window.location.search : "");
-    if (!params.has("countryCode") && !params.has("city")) {
-      const defaultCity = getSession()?.user.defaultCity;
-      const saved = savedCatalogLocation() ?? (defaultCity ? { countryCode: "KZ", city: defaultCity } : null);
-      if (saved?.countryCode) commit(saved.countryCode, saved.city, true);
-      else if (!saved) void detectCatalogLocation().then((detected) => {
-        if (!active || !detected || savedCatalogLocation()) return;
-        const current = new URLSearchParams(window.location.search);
-        if (current.has("countryCode") || current.has("city")) return;
-        commit(detected.countryCode, detected.city, true);
-      });
-    }
     const unsubscribeSession = subscribeSession(sync);
     window.addEventListener("popstate", sync);
     window.addEventListener(CATALOG_QUERY_UPDATED, sync);
@@ -77,7 +83,7 @@ export function CatalogLocationPicker({ onDark = false, appearance = "navbar" }:
       window.removeEventListener(CATALOG_QUERY_UPDATED, sync);
       window.removeEventListener(CATALOG_CITY_SELECTED, sync);
     };
-  }, [pathname]);
+  }, [pathname, appearance]);
 
   useEffect(() => {
     let active = true;
@@ -90,13 +96,13 @@ export function CatalogLocationPicker({ onDark = false, appearance = "navbar" }:
   }, [retry]);
 
   useEffect(() => {
-    if (!open) return;
-    searchRef.current?.focus();
+    if (!open && !suggestion) return;
+    if (open) searchRef.current?.focus();
     const closeOnOutsideClick = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
+      if (!root.current?.contains(event.target as Node)) { setOpen(false); dismissSuggestion(); }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") { setOpen(false); dismissSuggestion(); root.current?.querySelector("button")?.focus(); }
     };
     document.addEventListener("pointerdown", closeOnOutsideClick);
     document.addEventListener("keydown", closeOnEscape);
@@ -104,7 +110,7 @@ export function CatalogLocationPicker({ onDark = false, appearance = "navbar" }:
       document.removeEventListener("pointerdown", closeOnOutsideClick);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [open, step]);
+  }, [open, step, suggestion]);
 
   const countries = useMemo(() => [selection.countryCode, ...FEATURED_COUNTRIES, ...[...COUNTRY_CODES].sort((left, right) => countryName(left, locale).localeCompare(countryName(right, locale), locale))].filter((code, index, all) => Boolean(code) && all.indexOf(code) === index), [locale, selection.countryCode]);
   const matchingCountries = countries.filter((code) => `${countryName(code, locale)} ${code}`.toLocaleLowerCase(locale).includes(search.trim().toLocaleLowerCase(locale)));
@@ -127,12 +133,14 @@ export function CatalogLocationPicker({ onDark = false, appearance = "navbar" }:
     }
     if (countryCode && (!automatic || !savedCatalogLocation())) rememberCatalogLocation({ countryCode, city }, automatic);
     else if (!countryCode) clearCatalogLocation();
+    dismissSuggestion();
     setSelection({ countryCode, city });
     setOpen(false);
     window.dispatchEvent(new Event(CATALOG_CITY_SELECTED));
   }
 
   function openPicker() {
+    dismissSuggestion();
     setDraftCountry(selection.countryCode);
     setStep("country");
     setSearch("");
@@ -145,6 +153,11 @@ export function CatalogLocationPicker({ onDark = false, appearance = "navbar" }:
       {appearance === "navbar" ? <svg aria-hidden="true" className={`h-4 w-4 shrink-0 ${onDark ? "text-white" : "text-violet-600 dark:text-ticket-accent"}`} fill="none" viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" stroke="currentColor" strokeWidth="2" /><circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="2" /></svg> : null}
       <span className="ticket-location-label truncate">{selectionLabel}</span><svg aria-hidden="true" className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m7 10 5 5 5-5" /></svg>
     </button>
+    {suggestion && !open && appearance === "navbar" ? <div role="dialog" aria-label={copy.location} className="fixed left-3 top-16 z-50 mt-2 w-[min(300px,calc(100vw-24px))] sm:absolute sm:left-0 sm:top-full sm:w-[300px] rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-xl dark:border-ticket-border dark:bg-ticket-surface dark:text-ticket-text">
+      <button type="button" aria-label={suggestionCopy.close} className="absolute right-2 top-1 rounded-lg p-2 text-slate-500 focus-visible:ring-2 focus-visible:ring-violet-500" onClick={dismissSuggestion}>×</button>
+      <p className="pr-5 text-sm font-semibold">{(selection.city ? suggestionCopy.mismatch : suggestionCopy.question).replace("{city}", cityName(suggestion.city, locale))}</p>
+      <div className="mt-3 flex flex-wrap gap-2"><button type="button" className="min-h-10 rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white focus-visible:ring-2 focus-visible:ring-violet-500" onClick={() => commit(suggestion.countryCode, suggestion.city)}>{suggestionCopy.yes}</button><button type="button" className="min-h-10 rounded-xl border border-slate-200 px-3 text-left text-sm dark:border-ticket-border focus-visible:ring-2 focus-visible:ring-violet-500" onClick={() => { if (selection.city) dismissSuggestion(); else openPicker(); }}>{selection.city ? suggestionCopy.keep.replace("{city}", cityName(selection.city, locale)) : suggestionCopy.choose}</button></div>
+    </div> : null}
     {open ? <div aria-label={copy.location} className="fixed left-3 right-3 top-16 z-50 rounded-2xl border border-slate-200 dark:border-ticket-border bg-white dark:bg-ticket-surface p-3 shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-full sm:mt-2 sm:w-[360px]" role="dialog">
       <div className="mb-3 flex items-center gap-2">
         {step === "city" ? <button aria-label={copy.backToCountries} className="rounded-lg p-2 text-slate-600 dark:text-ticket-muted hover:bg-slate-100 dark:hover:bg-ticket-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:focus-visible:ring-ticket-accent" onClick={() => { setStep("country"); setSearch(""); }} type="button">←</button> : null}

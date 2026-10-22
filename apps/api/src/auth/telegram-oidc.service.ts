@@ -84,7 +84,7 @@ export class TelegramOidcService {
       throw unavailable();
     }
 
-    let identity: { id: bigint; name: string | null; photoUrl: string | null };
+    let identity: { id: bigint; name: string | null; photoUrl: string | null; botAccess: boolean };
     try {
       const { payload } = await jwtVerify(idToken, keys, {
         issuer: ISSUER, audience: clientId, algorithms: ["RS256"],
@@ -95,7 +95,7 @@ export class TelegramOidcService {
       const name = typeof payload.name === "string" && payload.name.trim() ? payload.name.trim().slice(0, 200) : null;
       let photoUrl: string | null = null;
       if (typeof payload.picture === "string" && payload.picture.length <= 2048 && new URL(payload.picture).protocol === "https:") photoUrl = payload.picture;
-      identity = { id, name, photoUrl };
+      identity = { id, name, photoUrl, botAccess: true };
     } catch { throw invalid(); }
     if (attempt.expiresAt <= new Date()) throw invalid();
     return { session: await this.auth.loginWithVerifiedTelegram(identity), returnTo: validatedReturnPath(attempt.returnTo, webOrigin, `/?lang=${attempt.locale}`) };

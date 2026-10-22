@@ -6,6 +6,10 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export class PublicEventsQueryDto {
   @IsOptional()
+  @IsIn(["morning", "day", "evening", "night"])
+  timeOfDay?: "morning" | "day" | "evening" | "night";
+
+  @IsOptional()
   @IsIn(EVENT_LOCALES)
   locale?: EventLocale;
 
@@ -23,8 +27,13 @@ export class PublicEventsQueryDto {
   limit = 12;
 
   @IsOptional()
-  @IsIn(["recent", "popular"])
-  sort: "recent" | "popular" = "recent";
+  @IsIn(["recent", "popular", "soonest"])
+  sort: "recent" | "popular" | "soonest" = "recent";
+
+  @IsOptional()
+  @Transform(({ value }) => value === "true" ? true : value === "false" ? false : value)
+  @IsBoolean()
+  includeRemaining?: boolean;
 
   @IsOptional()
   @IsString()

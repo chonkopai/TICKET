@@ -30,3 +30,14 @@ describe("BotService", () => {
     expect(eventFind).toHaveBeenCalledWith({ where: { id: "event-1", organizerId: "organizer-1" }, select: { id: true } });
   });
 });
+
+it("links messaging permission received before the website login callback", async () => {
+  const upsert = vi.fn();
+  await expect(service({ user: { upsert } }).grantWriteAccess({ telegramId: "77", chatId: "77" })).resolves.toEqual({ linked: true });
+  expect(upsert).toHaveBeenCalledWith({ where: { telegramId: 77n }, create: { telegramId: 77n, telegramChatId: 77n, role: "guest" }, update: { telegramChatId: 77n } });
+});
+it("rejects messaging permission for a different or group chat", async () => {
+  const upsert = vi.fn();
+  for (const chatId of ["78", "-77"]) await expect(service({ user: { upsert } }).grantWriteAccess({ telegramId: "77", chatId })).rejects.toBeTruthy();
+  expect(upsert).not.toHaveBeenCalled();
+});

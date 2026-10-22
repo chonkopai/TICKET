@@ -22,6 +22,13 @@ function number(value: unknown, fallback: number, max: number): number {
 export class BotController {
   constructor(@Inject(BotService) private readonly service: BotService, @Inject(AnonymousService) private readonly anonymous: AnonymousService) {}
 
+  @Post("write-access")
+  grantWriteAccess(@Body() body: unknown) {
+    const input = objectBody(body);
+    if (typeof input.telegramId !== "string" || typeof input.chatId !== "string") throw new BadRequestException({ code: "BOT_IDENTITY_INVALID" });
+    return this.service.grantWriteAccess({ telegramId: input.telegramId, chatId: input.chatId });
+  }
+
   @Post("identity")
   identity(@Body() body: unknown): Promise<BotIdentityResponse> {
     const input = objectBody(body);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { clearCatalogLocation, lookupCatalogLocation, rememberCatalogLocation, savedCatalogLocation } from "./catalog-location";
+import { countryForCity, clearCatalogLocation, lookupCatalogLocation, rememberCatalogLocation, savedCatalogLocation } from "./catalog-location";
 
 test("city detection accepts complete city data and falls back on errors or incomplete results", async () => {
   const request = (value: unknown, status = 200) => (async () => Response.json(value, { status })) as typeof fetch;
@@ -28,4 +28,8 @@ test("manual location and All countries persist; automatic locations expire", ()
     if (previous) Object.defineProperty(globalThis, "window", { configurable: true, value: previous });
     else Reflect.deleteProperty(globalThis, "window");
   }
+});
+
+test("saved city country resolves aliases without assuming Kazakhstan", () => {
+  assert.equal(countryForCity("Москва"), "RU"); assert.equal(countryForCity("Moscow"), "RU"); assert.equal(countryForCity("Astana"), "KZ"); assert.equal(countryForCity("Dubai"), "AE"); assert.equal(countryForCity("Unknown city"), null);
 });

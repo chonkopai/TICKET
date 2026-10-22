@@ -30,6 +30,15 @@ export class BotService {
     @Inject(AnonymousService) private readonly anonymous: AnonymousService,
   ) {}
 
+  async grantWriteAccess(input: { telegramId: string; chatId: string }): Promise<{ linked: boolean }> {
+    if (!/^[1-9][0-9]{0,18}$/.test(input.telegramId) || input.telegramId !== input.chatId || BigInt(input.telegramId) > 9223372036854775807n) throw new BadRequestException({ code: "BOT_IDENTITY_INVALID" });
+    const telegramId = BigInt(input.telegramId);
+    // This endpoint is restricted to the webhook service, which verifies Telegram updates.
+    // Upsert also handles a permission update arriving before the widget login callback.
+    await this.db.user.upsert({ where: { telegramId }, create: { telegramId, telegramChatId: telegramId, role: "guest" }, update: { telegramChatId: telegramId } });
+    return { linked: true };
+  }
+
   async identity(input: BotIdentityRequest): Promise<BotIdentityResponse> {
     if (!/^-?\d+$/.test(input.telegramId) || !/^-?\d+$/.test(input.chatId)) throw new BadRequestException({ code: "BOT_IDENTITY_INVALID" });
     const user = await this.db.user.findFirst({ where: { telegramId: BigInt(input.telegramId), telegramChatId: BigInt(input.chatId) } });

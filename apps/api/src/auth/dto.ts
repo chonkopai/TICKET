@@ -1,7 +1,9 @@
+import { COUNTRY_CODES } from "@event-platform/shared-types";
 import type { TelegramLinkConsumeRequest, TelegramLoginPayload } from "@event-platform/shared-types";
 import { Type } from "class-transformer";
 import {
   IsEmail,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -67,6 +69,14 @@ export class UpdateMeDto {
   @IsString()
   @Length(1, 120)
   defaultCity?: string | null;
+
+  @IsOptional()
+  @IsIn(COUNTRY_CODES)
+  defaultCountry?: string | null;
+
+  @IsOptional()
+  @IsIn(["KZT", "RUB", "USD"])
+  preferredCurrency?: "KZT" | "RUB" | "USD" | null;
 }
 
 export class ConsumeTelegramLinkDto implements TelegramLinkConsumeRequest {

@@ -29,9 +29,8 @@ function useHomeCopy() { return HOME_COPY[useLocale()]; }
 
 const CITY_HEADING_NAMES: Record<string, string> = { Алматы: "Алматы", Астана: "Астане", Шымкент: "Шымкенте", Москва: "Москве" };
 const PAGE_SIZE = 18;
-const FEATURED_COUNT = 6;
 
-const DEFAULT_QUERY: PublicEventsQuery = { sort: "popular" };
+const DEFAULT_QUERY: PublicEventsQuery = { sort: "soonest" };
 
 function readPage(): number {
   const raw = new URLSearchParams(window.location.search).get("page");
@@ -48,7 +47,8 @@ function readHomeQuery(): PublicEventsQuery {
   return {
     countryCode: validCountryCode(params.get("countryCode")) ?? undefined,
     city: params.get("city")?.trim() || undefined,
-    sort: params.get("sort") === "recent" ? "recent" : "popular",
+    sort: params.get("sort") === "recent" ? "recent" : params.get("sort") === "popular" ? "popular" : "soonest",
+    timeOfDay: (["morning", "day", "evening", "night"] as const).find(value => value === params.get("timeOfDay")),
     search: params.get("search")?.trim() || undefined,
     category: EVENT_CATEGORIES.includes(category as EventCategory) ? category! : undefined,
     datePreset: datePreset === "today" || datePreset === "weekend" ? datePreset : undefined,
@@ -61,17 +61,17 @@ function readHomeQuery(): PublicEventsQuery {
 }
 
 function hasActiveFilters(query: PublicEventsQuery): boolean {
-  return Boolean(query.search || query.category || query.datePreset || query.from || query.to || query.free || query.minPrice !== undefined || query.maxPrice !== undefined || query.countryCode || query.city || query.sort === "recent");
+  return Boolean(query.timeOfDay || query.search || query.category || query.datePreset || query.from || query.to || query.free || query.minPrice !== undefined || query.maxPrice !== undefined || query.countryCode || query.city);
 }
 
 function queryUrl(query: PublicEventsQuery): string {
   const params = new URLSearchParams(window.location.search);
-  for (const key of ["countryCode", "city", "sort", "search", "category", "datePreset", "from", "to", "free", "minPrice", "maxPrice", "page"]) params.delete(key);
+  for (const key of ["countryCode", "city", "timeOfDay", "sort", "search", "category", "datePreset", "from", "to", "free", "minPrice", "maxPrice", "page"]) params.delete(key);
   params.set("lang", localeFromBrowser());
   if (query.countryCode) params.set("countryCode", query.countryCode);
   if (query.city) params.set("city", query.city);
-  if (query.sort === "recent") params.set("sort", "recent");
-  for (const key of ["search", "category", "datePreset", "from", "to"] as const) {
+  if (query.sort && query.sort !== "soonest") params.set("sort", query.sort);
+  for (const key of ["timeOfDay", "search", "category", "datePreset", "from", "to"] as const) {
     const value = query[key];
     if (value) params.set(key, value);
   }
@@ -94,6 +94,7 @@ export default function HomePage() {
   const [ready, setReady] = useState(false);
   const [events, setEvents] = useState<PublicEventSummary[] | null>(null);
   const [total, setTotal] = useState(0);
+  const [matchingTotal, setMatchingTotal] = useState(0);
   const [allTotal, setAllTotal] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const pageNavigationPending = useRef(false);
@@ -136,7 +137,7 @@ export default function HomePage() {
     setLoading(true);
     setError(false);
     setEvents(null);
-    void fetchPublicEvents({ ...query, page, limit: PAGE_SIZE })
+    void fetchPublicEvents({ ...query, includeRemaining: true, page, limit: PAGE_SIZE })
       .then((result) => {
         if (!active) return;
         const lastPage = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
@@ -147,6 +148,7 @@ export default function HomePage() {
         }
         setEvents(result.items);
         setTotal(result.total);
+        setMatchingTotal(result.matchingTotal ?? result.total);
         if (pageNavigationPending.current) {
           pageNavigationPending.current = false;
           requestAnimationFrame(() => document.getElementById("catalog-results")?.scrollIntoView({ block: "start" }));
@@ -176,23 +178,26 @@ export default function HomePage() {
 
   function reset() {
     clearCatalogLocation();
-    update({ ...DEFAULT_QUERY, countryCode: undefined, city: undefined, search: undefined, category: undefined, datePreset: undefined, from: undefined, to: undefined, free: undefined, minPrice: undefined, maxPrice: undefined });
+    update({ ...DEFAULT_QUERY, countryCode: undefined, city: undefined, timeOfDay: undefined, search: undefined, category: undefined, datePreset: undefined, from: undefined, to: undefined, free: undefined, minPrice: undefined, maxPrice: undefined });
   }
 
   const filtered = hasActiveFilters(query);
-  const featured = !filtered && page === 1 ? events?.slice(0, FEATURED_COUNT) ?? [] : [];
-  const catalog = events?.slice(featured.length) ?? [];
+  const matchingOnPage = Math.max(0, Math.min(events?.length ?? 0, matchingTotal - (page - 1) * PAGE_SIZE));
+  const catalog = events?.slice(0, matchingOnPage) ?? [];
+  const remaining = events?.slice(matchingOnPage) ?? [];
   const city = query.city;
   const countryCode = query.countryCode;
   const pageCount = Math.ceil(total / PAGE_SIZE);
 
   return <main className="ticket-catalog min-h-screen bg-[#fafbff] dark:bg-ticket-bg text-[#111827] dark:text-ticket-text">
-    <section className="relative px-4 py-7 sm:px-6 lg:px-8">
+    <section className="relative px-4 pb-7 pt-1 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="pb-2 text-center">
+        <CategoryStrip category={query.category as EventCategory | undefined} total={matchingTotal} allTotal={allTotal ?? undefined} onSelect={(category) => update({ category })} />
+        <div className="pb-2 pt-5 text-center">
           <div><h1 className="ticket-catalog-heading mx-auto max-w-4xl text-[2rem] font-extrabold leading-[1.15] tracking-[-0.03em] sm:text-5xl">{city ? `${copy.headingCity} ${locale === "ru" ? CITY_HEADING_NAMES[city] ?? city : cityName(city, locale)}` : countryCode ? `${copy.heading} — ${countryName(countryCode, locale)}` : copy.heading}</h1></div>
         </div>
-        <CategoryStrip category={query.category as EventCategory | undefined} total={total} allTotal={allTotal ?? undefined} onSelect={(category) => update({ category })} />
+        <div className="mt-4 flex min-w-0 items-center gap-1.5"><AfishaCalendar iconOnly from={query.from} onChange={(from, to) => update({ from, to, datePreset: undefined })} to={query.to} /><DateStrip from={query.from} onSelect={date => update({ from: date, to: date, datePreset: undefined })} to={query.to} todaySelected={query.datePreset === "today"} /></div>
+        <TimeOfDayFilters value={query.timeOfDay} onChange={timeOfDay => update({ timeOfDay })} />
         <PromotionCarousel />
         <CatalogFilters query={query} onUpdate={update} onReset={reset} />
       </div>
@@ -201,9 +206,10 @@ export default function HomePage() {
       {error ? <div className="mt-5"><ErrorState message={copy.loadFailed} onRetry={() => setRetry((value) => value + 1)} /></div> : null}
       {!events && !error ? <HomeSkeleton /> : null}
       {events && !error ? <>
-        {featured.length ? <FeaturedCarousel events={featured} /> : null}
-        <section className="mt-6 scroll-mt-6" aria-live="polite" id="catalog-results"><div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><h2 className="text-xl font-bold tracking-tight">{filtered ? copy.results : copy.current}</h2><span className="rounded-full bg-slate-200 dark:bg-ticket-raised px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-ticket-muted">{total}</span></div></div>
-          {catalog.length ? <div className="ticket-event-grid mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{catalog.map((event, index) => <CatalogEventCard event={event} index={(page - 1) * PAGE_SIZE + featured.length + index + 1} key={event.id} />)}</div> : featured.length ? null : <OtherCitiesEvents key={locale} />}
+        <section className="mt-6 scroll-mt-6" aria-live="polite" id="catalog-results">
+          {catalog.length || page === 1 ? <><div className="flex items-center gap-2"><h2 className="text-xl font-bold tracking-tight">{filtered ? copy.results : copy.current}</h2><span className="rounded-full bg-slate-200 dark:bg-ticket-raised px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-ticket-muted">{matchingTotal}</span></div>
+            {catalog.length ? <div className="ticket-event-grid mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{catalog.map((event, index) => <CatalogEventCard event={event} index={(page - 1) * PAGE_SIZE + index + 1} key={event.id} />)}</div> : <p className="mt-5 text-sm text-slate-600 dark:text-ticket-muted">{copy.emptyResults}</p>}</> : null}
+          {remaining.length ? <><h2 className="mt-8 text-xl font-bold tracking-tight">{copy.otherEvents}</h2><div className="ticket-event-grid mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{remaining.map((event, index) => <CatalogEventCard event={event} index={(page - 1) * PAGE_SIZE + matchingOnPage + index + 1} key={event.id} />)}</div></> : null}
           {pageCount > 1 ? <CatalogPagination page={page} pageCount={pageCount} onChange={changePage} /> : null}
         </section>
       </> : null}
@@ -227,7 +233,7 @@ function CategoryStrip({ category, total, allTotal, onSelect }: { category: Even
     element.addEventListener("wheel", wheel, { passive: false });
     return () => element.removeEventListener("wheel", wheel);
   }, []);
-  return <nav ref={row} aria-label={copy.categoriesLabel} className="ticket-category-strip mt-5 flex w-full gap-2 overflow-x-auto overscroll-x-contain px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ maskImage: "linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)" }}>
+  return <nav ref={row} aria-label={copy.categoriesLabel} className="ticket-category-strip mt-2 flex w-full gap-2 overflow-x-auto overscroll-x-contain px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ maskImage: "linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)" }}>
     <CategoryButton active={!category} count={allTotal} onClick={() => onSelect(undefined)} />
     {EVENT_CATEGORIES.map(item => <CategoryButton key={item} category={item} active={category === item} count={category === item ? total : undefined} onClick={() => onSelect(item)} />)}
   </nav>;
@@ -246,9 +252,9 @@ function CatalogPagination({ page, pageCount, onChange }: { page: number; pageCo
   const visible = [...new Set([1, pageCount, page - 2, page - 1, page, page + 1, page + 2].filter((value) => value >= 1 && value <= pageCount))].sort((left, right) => left - right);
   const buttonClass = "grid min-h-10 min-w-10 place-items-center rounded-full px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:focus-visible:ring-ticket-accent disabled:opacity-40";
   return <nav aria-label={copy.pageLabel} className="mt-10 flex flex-wrap items-center justify-center gap-1.5">
-    <button aria-label={copy.previousPage} className={`${buttonClass} text-slate-600 dark:text-ticket-muted hover:bg-violet-50 dark:hover:bg-ticket-accent-soft`} disabled={page === 1} onClick={() => onChange(page - 1)} type="button">‹</button>
+    <button aria-label={copy.previousPage} className={`${buttonClass} text-slate-600 dark:text-ticket-muted hover:bg-violet-50 dark:hover:bg-ticket-accent-soft`} disabled={page === 1} onClick={() => onChange(page - 1)} type="button">‹ {copy.previousPage}</button>
     {visible.map((number, index) => <span className="contents" key={number}>{index > 0 && number - visible[index - 1]! > 1 ? <span aria-hidden="true" className="px-1 text-slate-400 dark:text-ticket-dim">…</span> : null}<button aria-current={number === page ? "page" : undefined} aria-label={`${copy.pageLabel} ${number}`} className={`${buttonClass} ${number === page ? "bg-[#6320ee] dark:bg-ticket-primary text-white" : "text-slate-700 dark:text-ticket-muted hover:bg-violet-50 dark:hover:bg-ticket-accent-soft hover:text-violet-700 dark:hover:text-ticket-accent"}`} onClick={() => onChange(number)} type="button">{number}</button></span>)}
-    <button aria-label={copy.nextPage} className={`${buttonClass} text-slate-600 dark:text-ticket-muted hover:bg-violet-50 dark:hover:bg-ticket-accent-soft`} disabled={page === pageCount} onClick={() => onChange(page + 1)} type="button">›</button>
+    <button aria-label={copy.nextPage} className={`${buttonClass} text-slate-600 dark:text-ticket-muted hover:bg-violet-50 dark:hover:bg-ticket-accent-soft`} disabled={page === pageCount} onClick={() => onChange(page + 1)} type="button">{copy.nextPage} ›</button>
   </nav>;
 }
 
@@ -263,120 +269,15 @@ const CATEGORY_PATHS: Record<EventCategory, string[]> = {
   workshop: ["m14 4 6 6", "m3 21 3-1L20 6a2 2 0 0 0-3-3L3 17v4Z"],
   sport: ["M7 3h10v7a5 5 0 0 1-10 0V3Z", "M7 5H3v3a4 4 0 0 0 4 4", "M17 5h4v3a4 4 0 0 1-4 4", "M12 15v6M8 21h8"],
   family: ["M10 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0", "M2 21v-3a5 5 0 0 1 10 0v3", "M20 9a2 2 0 1 1-4 0 2 2 0 0 1 4 0", "M15 21v-2a4 4 0 0 1 7 0v2"],
+  children: ["M9 3h6v6H9z", "M5 21v-6a7 7 0 0 1 14 0v6"],
+  adults: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18", "M8 9v6M15 9v6M12 12h6"],
+  cinema: ["M3 5h18v14H3z", "m10 9 5 3-5 3V9Z"],
+  exhibitions: ["m3 9 9-6 9 6H3ZM5 10v9M12 10v9M19 10v9M3 21h18"],
+  excursions: ["m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6ZM9 3v15M15 6v15"],
   food: ["M4 3v6a3 3 0 0 0 6 0V3", "M7 3v18", "M20 3c-3 2-4 5-4 9h4V3Zm0 9v9"],
   other: ["M5 5h4v4H5Z", "M15 5h4v4h-4Z", "M5 15h4v4H5Z", "M15 15h4v4h-4Z"],
 };
 function CategoryIcon({ category }: { category: EventCategory }) { return <svg aria-hidden="true" className="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{CATEGORY_PATHS[category].map((path, index) => <path key={index} d={path} />)}</svg>; }
-
-function FeaturedCarousel({ events }: { events: PublicEventSummary[] }) {
-  const copy = useHomeCopy();
-  const viewport = useRef<HTMLDivElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const current = useRef(0);
-  const [active, setActive] = useState(0);
-  const eventIds = events.map((event) => event.id).join(",");
-
-  useEffect(() => {
-    const element = viewport.current;
-    if (!element || events.length < 2) return;
-    const align = () => {
-      const first = element.children[0] as HTMLElement | undefined;
-      const second = element.children[1] as HTMLElement | undefined;
-      if (first && second) element.scrollLeft = (second.offsetLeft - first.offsetLeft) * (current.current + 1);
-    };
-    current.current = 0;
-    setActive(0);
-    align();
-    const observer = new ResizeObserver(align);
-    observer.observe(element);
-    return () => { observer.disconnect(); if (timer.current) clearTimeout(timer.current); };
-  }, [eventIds, events.length]);
-
-  const mobileCards = <div className="ticket-featured-mobile ticket-event-grid mt-4 hidden">{events.map((event, index) => <CatalogEventCard key={event.id} event={event} index={index + 1} />)}</div>;
-  if (events.length === 1) return <>{mobileCards}<div className="ticket-featured-desktop mt-4"><FeaturedEvent event={events[0]!} /></div></>;
-  const slides = [events.at(-1)!, ...events, events[0]!];
-  const step = () => {
-    const element = viewport.current;
-    const first = element?.children[0] as HTMLElement | undefined;
-    const second = element?.children[1] as HTMLElement | undefined;
-    return first && second ? second.offsetLeft - first.offsetLeft : 0;
-  };
-  const settle = () => {
-    const element = viewport.current;
-    const width = step();
-    if (!element || !width) return;
-    let position = Math.max(0, Math.min(events.length + 1, Math.round(element.scrollLeft / width)));
-    if (position === 0) { position = events.length; element.scrollLeft = position * width; }
-    if (position === events.length + 1) { position = 1; element.scrollLeft = width; }
-    current.current = position - 1;
-    setActive(current.current);
-  };
-  const move = (direction: -1 | 1) => {
-    const element = viewport.current;
-    const width = step();
-    if (!element || !width) return;
-    const position = Math.max(0, Math.min(events.length + 1, Math.round(element.scrollLeft / width) + direction));
-    element.scrollTo({ left: position * width, behavior: "smooth" });
-  };
-  return <>{mobileCards}<section aria-label={copy.editorsChoice} className="ticket-featured-desktop group/carousel relative mt-4 [--carousel-peek:2rem] sm:[--carousel-peek:3.5rem] lg:[--carousel-peek:5rem]">
-    <div ref={viewport} aria-label={`${copy.featuredList}. ${copy.featuredHint}`} className="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-[var(--carousel-peek)] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden" onScroll={() => { if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(settle, 120); }}>
-      {slides.map((event, index) => <div aria-hidden={index === 0 || index === slides.length - 1 ? true : undefined} className="w-full shrink-0 snap-center" inert={index === 0 || index === slides.length - 1} key={`${event.id}-${index}`}><FeaturedEvent event={event} /></div>)}
-    </div>
-    <button aria-label={copy.previousEvent} className="pointer-events-none absolute left-1 top-1/2 z-20 grid size-14 -translate-y-1/2 place-items-center bg-transparent text-white opacity-0 transition duration-200 hover:scale-110 focus-visible:pointer-events-auto focus-visible:scale-110 focus-visible:opacity-100 focus-visible:outline-none group-hover/carousel:pointer-events-auto group-hover/carousel:opacity-100 sm:left-3" onClick={() => move(-1)} type="button"><CarouselChevron direction="left" /></button>
-    <button aria-label={copy.nextEvent} className="pointer-events-none absolute right-1 top-1/2 z-20 grid size-14 -translate-y-1/2 place-items-center bg-transparent text-white opacity-0 transition duration-200 hover:scale-110 focus-visible:pointer-events-auto focus-visible:scale-110 focus-visible:opacity-100 focus-visible:outline-none group-hover/carousel:pointer-events-auto group-hover/carousel:opacity-100 sm:right-3" onClick={() => move(1)} type="button"><CarouselChevron direction="right" /></button>
-    <span aria-live="polite" className="sr-only">{copy.event} {active + 1} {copy.of} {events.length}</span>
-  </section></>;
-}
-
-function FeaturedEvent({ event }: { event: PublicEventSummary }) {
-  const copy = useHomeCopy();
-  const locale = useLocale();
-  const { formatMoney } = useDisplayCurrency();
-  return <article className="relative isolate h-full overflow-hidden rounded-2xl bg-[#0b0d12] text-white shadow-[0_10px_25px_-5px_rgba(15,23,42,0.16)]"><Link className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400 dark:focus-visible:ring-ticket-accent" href={`/events/${event.id}`} target="_blank" rel="noopener noreferrer">
-    <div className="absolute inset-y-0 right-0 aspect-video" aria-hidden="true">{event.media?.find(asset=>asset.isCard)?<PublicFramedAsset asset={event.media.find(asset=>asset.isCard)!} role="featured" className="h-full w-full"/>:<PosterImage alt="" fallbackIndex={0} position="center 25%" src={event.posterUrl}/> }<div className="absolute inset-0 bg-black/10" /></div>
-    <div className="absolute inset-0 bg-[linear-gradient(90deg,#0b0d12_0%,rgba(11,13,18,0.95)_58%,rgba(11,13,18,0.35)_100%)] sm:bg-[linear-gradient(90deg,#0b0d12_0%,#0b0d12_38%,rgba(11,13,18,0.96)_43%,rgba(11,13,18,0.52)_51%,rgba(11,13,18,0.08)_62%,rgba(11,13,18,0.03)_100%)]" aria-hidden="true" />
-    <div className="relative z-[1] flex min-h-[350px] max-w-[720px] flex-col justify-between p-6 sm:p-9 lg:p-10"><div><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-[#6320ee] dark:bg-ticket-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wide">{copy.editorsChoice}</span><AvailabilityBadge status={event.saleStatus} /><span className="text-[11px] font-medium uppercase tracking-wide text-slate-300">{copy.categories[event.category]}</span></div><h2 className="mt-4 text-3xl font-extrabold leading-[1.08] tracking-tight sm:text-4xl">{event.title}</h2><ContentLanguageNote contentLocale={event.contentLocale} /></div><div className="mt-6 border-t border-white/10 pt-5"><p className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium"><span className="inline-flex items-center gap-1.5"><CalendarIcon />{formatEventDate(event, locale)}</span><span className="inline-flex items-center gap-1.5"><PinIcon />{event.address}</span></p><div className="mt-3 flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-wide text-slate-300">{copy.tickets}</p><p className="mt-1 text-2xl font-extrabold leading-tight">{formatPrice(event, formatMoney, locale)}</p></div><span className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#6320ee] dark:bg-ticket-primary px-7 text-sm font-semibold text-white shadow-[0_10px_25px_-5px_rgba(99,32,238,0.3)] transition hover:bg-[#4f16c8] dark:hover:bg-ticket-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 dark:focus-visible:ring-ticket-accent">{copy.buyTicket}</span></div></div></div><AgeRestrictionBadge age={event.ageRestriction} className="absolute bottom-4 right-4 z-[2]" /></Link><FavoriteButton eventId={event.id} />
-  </article>;
-}
-
-function mixCities(items: PublicEventSummary[]) {
-  const groups = new Map<string, PublicEventSummary[]>();
-  for (const event of items) {
-    const key = `${event.countryCode}:${event.city}`;
-    const group = groups.get(key) ?? [];
-    group.push(event); groups.set(key, group);
-  }
-  const mixed: PublicEventSummary[] = [];
-  while (groups.size) for (const [city, group] of groups) {
-    mixed.push(group.shift()!);
-    if (!group.length) groups.delete(city);
-  }
-  return mixed;
-}
-
-function OtherCitiesEvents() {
-  const copy = useHomeCopy();
-  const [items, setItems] = useState<PublicEventSummary[]>([]);
-  const [page, setPage] = useState(1), [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true), [error, setError] = useState(false), [retry, setRetry] = useState(0);
-  useEffect(() => {
-    let live = true; setLoading(true); setError(false);
-    void fetchPublicEvents({ page, limit: PAGE_SIZE, sort: "popular" }).then(result => {
-      if (!live) return;
-      setItems(previous => [...new Map([...previous, ...mixCities(result.items)].map(item => [item.id, item])).values()]);
-      setTotal(result.total);
-    }).catch(() => { if (live) setError(true); }).finally(() => { if (live) setLoading(false); });
-    return () => { live = false; };
-  }, [page, retry]);
-  return <div className="mt-5">
-    <p className="text-sm text-slate-600 dark:text-ticket-muted">{copy.emptyResults}</p>
-    <h3 className="mt-8 text-xl font-bold tracking-tight">{copy.otherCities}</h3>
-    {loading && !items.length ? <HomeSkeleton /> : null}
-    {items.length ? <div className="ticket-event-grid mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{items.map((event, index) => <CatalogEventCard key={event.id} event={event} index={index + 1} />)}</div> : !loading && !error ? <p className="mt-4 text-sm text-slate-500 dark:text-ticket-muted">{copy.emptyTitle}</p> : null}
-    {error ? <div className="mt-5"><ErrorState message={copy.loadFailed} onRetry={() => setRetry(value => value + 1)} /></div> : null}
-    {items.length < total && !error ? <button type="button" disabled={loading} className="mx-auto mt-6 block rounded-xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white disabled:opacity-50" onClick={() => setPage(value => value + 1)}>{loading ? copy.loading : copy.showMore}</button> : null}
-  </div>;
-}
 
 function CatalogFilters({ query, onUpdate, onReset }: { query: PublicEventsQuery; onUpdate: (next: Partial<PublicEventsQuery>) => void; onReset: () => void }) {
   const locale = useLocale(), copy = HOME_COPY[locale];
@@ -386,10 +287,6 @@ function CatalogFilters({ query, onUpdate, onReset }: { query: PublicEventsQuery
   const chipClassName = "max-w-full rounded-lg border border-violet-100 dark:border-ticket-accent bg-white dark:bg-ticket-surface px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-ticket-muted";
   return <section className="mt-5 w-full" aria-label={copy.filters}>
     <div className="w-full py-1">
-      <div className="flex min-w-0 w-full items-center gap-1.5">
-        <AfishaCalendar iconOnly from={query.from} onChange={(from, to) => onUpdate({ from, to, datePreset: undefined })} to={query.to} />
-        <DateStrip from={query.from} onSelect={(date) => onUpdate({ from: date, to: date, datePreset: undefined })} to={query.to} todaySelected={query.datePreset === "today"} />
-      </div>
       <div className="ticket-catalog-filter-row mt-2 flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-slate-200/80 dark:border-ticket-border pt-2">
         <div className="ticket-catalog-filter-primary flex min-w-0 flex-wrap items-center gap-2">
           <button aria-pressed={query.free === true} className={`min-h-10 rounded-xl px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:focus-visible:ring-ticket-accent ${query.free ? "bg-violet-600 dark:bg-ticket-primary text-white" : "bg-slate-100 dark:bg-ticket-raised text-slate-700 dark:text-ticket-muted hover:bg-violet-50 dark:hover:bg-ticket-accent-soft hover:text-violet-700 dark:hover:text-ticket-accent"}`} onClick={() => onUpdate({ free: query.free ? undefined : true, minPrice: undefined, maxPrice: undefined })} type="button">{copy.free}</button>
@@ -409,7 +306,7 @@ function CatalogFilters({ query, onUpdate, onReset }: { query: PublicEventsQuery
             <button className="min-h-9 rounded-lg px-2 font-semibold text-violet-800 dark:text-ticket-accent transition hover:bg-violet-100 dark:hover:bg-ticket-accent-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:focus-visible:ring-ticket-accent" onClick={onReset} type="button">{copy.clearAll}</button>
           </div>
         </div>
-        <div className="ticket-catalog-sort ml-auto flex items-center gap-1 text-slate-500 dark:text-ticket-muted"><SortIcon /><OptionPicker appearance="borderless" className="w-[185px]" label={copy.sort} value={query.sort ?? "popular"} options={[{ value: "popular", label: copy.popular, compactLabel: shortSort[0] }, { value: "recent", label: copy.recent, compactLabel: shortSort[1] }]} onChange={(value) => onUpdate({ sort: value as "popular" | "recent" })} /></div>
+        <div className="ticket-catalog-sort ml-auto flex items-center gap-1 text-slate-500 dark:text-ticket-muted"><SortIcon /><OptionPicker appearance="borderless" className="w-[185px]" label={copy.sort} value={query.sort ?? "soonest"} options={[{ value: "soonest", label: copy.soonest }, { value: "popular", label: copy.popular, compactLabel: shortSort[0] }, { value: "recent", label: copy.recent, compactLabel: shortSort[1] }]} onChange={(value) => onUpdate({ sort: value as "popular" | "recent" | "soonest" })} /></div>
       </div>
     </div>
   </section>;
@@ -486,7 +383,6 @@ function CatalogEventCard({ event, index }: { event: PublicEventSummary; index: 
   </article>;
 }
 
-function AvailabilityBadge({ status }: { status: PublicEventSummary["saleStatus"] }) { const copy = useHomeCopy(); const styles = status === "few_left" ? "bg-rose-600 text-white" : status === "available" ? "bg-emerald-700 text-white" : "bg-slate-100 dark:bg-ticket-raised text-slate-700 dark:text-ticket-muted"; return <span className={`rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${styles}`}>{copy.saleStatuses[status]}</span>; }
 
 function PosterImage({src,alt,position}:{src:string|null;fallbackIndex:number;alt:string;position?:string}){const [failed,setFailed]=useState(false);useEffect(()=>setFailed(false),[src]);return src&&!failed?<img alt={alt} className="absolute inset-0 h-full w-full object-cover" onError={()=>setFailed(true)} src={src} style={position?{objectPosition:position}:undefined}/>:<div className="absolute inset-0 bg-gradient-to-br from-violet-100 dark:from-ticket-accent-soft to-slate-200 dark:to-ticket-raised"/>;}
 
@@ -495,9 +391,14 @@ function HomeFooter() { const copy = useHomeCopy(); return <footer className="mt
 
 function formatEventDate(event: PublicEventSummary, locale: EventLocale): string { const date = new Date(`${event.date}T00:00:00Z`); const formatted = new Intl.DateTimeFormat(INTL_LOCALES[locale], { day: "numeric", month: "long", timeZone: "UTC" }).format(date); return `${formatted}, ${event.time.slice(0, 5)}`; }
 
-function CarouselChevron({ direction }: { direction: "left" | "right" }) { return <svg aria-hidden="true" className="size-10 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]" fill="none" viewBox="0 0 40 40"><path d={direction === "left" ? "m25 7-13 13 13 13" : "m15 7 13 13-13 13"} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.5" /></svg>; }
 function SortIcon() { return <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24"><path d="M4 6h16M4 12h11M4 18h6" stroke="currentColor" strokeLinecap="round" strokeWidth="2" /><path d="m17 15 3 3 3-3M20 10v8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" /></svg>; }
 function CurrencyIcon() { return <svg aria-hidden="true" className="h-4 w-4 shrink-0 text-violet-600 dark:text-ticket-accent" fill="none" viewBox="0 0 24 24"><circle cx="10" cy="12" r="7" stroke="currentColor" strokeWidth="1.8" /><path d="M10 8v8m-2-6h4m-4 4h4M16 5.5a7 7 0 0 1 0 13" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" /></svg>; }
 function GridIcon() { return <svg aria-hidden="true" className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><rect x="2" y="2" width="7" height="7" rx="1.5" /><rect x="11" y="2" width="7" height="7" rx="1.5" /><rect x="2" y="11" width="7" height="7" rx="1.5" /><rect x="11" y="11" width="7" height="7" rx="1.5" /></svg>; }
 function PinIcon() { return <svg aria-hidden="true" className="h-4 w-4 shrink-0 text-[#713dcc] dark:text-ticket-accent" fill="none" viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="2"/></svg>; }
 function CalendarIcon() { return <svg aria-hidden="true" className="h-4 w-4 shrink-0 text-[#713dcc] dark:text-ticket-accent" fill="none" viewBox="0 0 24 24"><rect height="16" rx="2" stroke="currentColor" strokeWidth="2" width="18" x="3" y="5"/><path d="M7 3v4M17 3v4M3 10h18" stroke="currentColor" strokeLinecap="round" strokeWidth="2"/></svg>; }
+
+function TimeOfDayFilters({ value, onChange }: { value: PublicEventsQuery["timeOfDay"]; onChange: (value: PublicEventsQuery["timeOfDay"]) => void }) {
+  const locale = useLocale();
+  const labels = { ru: ["Утро", "День", "Вечер", "Ночь"], kk: ["Таң", "Күндіз", "Кеш", "Түн"], en: ["Morning", "Day", "Evening", "Night"] }[locale];
+  return <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={{ ru: "Время начала события", kk: "Іс-шараның басталу уақыты", en: "Event start time" }[locale]}>{(["morning", "day", "evening", "night"] as const).map((period, index) => <button key={period} type="button" aria-pressed={value === period} title={["06:00–11:59", "12:00–17:59", "18:00–23:59", "00:00–05:59"][index]} className={`min-h-10 rounded-full px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${value === period ? "bg-violet-600 text-white dark:bg-ticket-primary" : "bg-white text-slate-700 border border-slate-200 dark:bg-ticket-surface dark:border-ticket-border dark:text-ticket-text"}`} onClick={() => onChange(value === period ? undefined : period)}>{labels[index]}</button>)}</div>;
+}

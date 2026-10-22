@@ -38,6 +38,11 @@ export const EVENT_CATEGORIES = [
   "workshop",
   "sport",
   "family",
+  "children",
+  "adults",
+  "cinema",
+  "exhibitions",
+  "excursions",
   "food",
   "other",
 ] as const;
@@ -201,9 +206,19 @@ export interface OrganizerEventPreview extends PublicEvent {
 }
 
 export interface PublicEventList {
+  /** Count before the nonmatching chronological catalogue tail. */
+  matchingTotal?: number;
   items: PublicEventSummary[];
   page: number;
   limit: number;
   total: number;
   hasNext: boolean;
+}
+
+export const EVENT_TIME_OF_DAY = ["morning", "day", "evening", "night"] as const;
+export type EventTimeOfDay = (typeof EVENT_TIME_OF_DAY)[number];
+export function matchesEventTimeOfDay(time: string, period: EventTimeOfDay): boolean {
+  if (!/^([01]\d|2[0-3]):[0-5]\d/.test(time)) return false;
+  const hour = Number(time.slice(0, 2));
+  return period === "morning" ? hour >= 6 && hour < 12 : period === "day" ? hour >= 12 && hour < 18 : period === "evening" ? hour >= 18 : hour < 6;
 }

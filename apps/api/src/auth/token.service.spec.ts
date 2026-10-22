@@ -1,6 +1,7 @@
+vi.mock("../orders/automatic-purchase-link.js", () => ({ linkGuestPurchases: vi.fn().mockResolvedValue(0) }));
 import type { PrismaClient, User } from "@event-platform/database";
 import { UnauthorizedException } from "@nestjs/common";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { AuthConfig } from "./auth.constants.js";
 import { TokenService } from "./token.service.js";
@@ -110,6 +111,8 @@ function fixtureUser(): User {
     phone: null,
     email: null,
     defaultCity: null,
+    defaultCountry: null,
+    preferredCurrency: null,
     createdAt: now,
     updatedAt: now,
   };

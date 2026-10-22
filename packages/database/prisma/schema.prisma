@@ -84,6 +84,11 @@ enum EventCategory {
   workshop
   sport
   family
+  children
+  adults
+  cinema
+  exhibitions
+  excursions
   food
   other
 }
@@ -229,6 +234,8 @@ model User {
   phone          String?
   email          String?
   defaultCity    String?
+  defaultCountry String?  @db.VarChar(2)
+  preferredCurrency String? @db.VarChar(3)
   createdAt      DateTime @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime @updatedAt @db.Timestamptz(3)
 

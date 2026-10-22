@@ -31,6 +31,10 @@ export function createBot(token: string, username: string, options: BotOptions):
   const pending = new Map<number, PendingPurchase>();
   const eventListState = new Map<number, EventListState>();
 
+  bot.on("message:write_access_allowed", async ctx => {
+    if (isPrivateChat(ctx) && ctx.from) await api().grantWriteAccess(ctx.from.id, ctx.chat.id);
+  });
+
   bot.command("start", createStartHandler({
     ...options,
     getWelcome: (ctx) => welcomeForContext(ctx, api()),
