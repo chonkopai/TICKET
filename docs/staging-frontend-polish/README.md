@@ -16,7 +16,7 @@ Implemented the eleven browser comments:
 ## Validation
 
 - Production Next.js webpack build and frontend TypeScript check passed in an isolated snapshot containing only the files in this release.
-- API TypeScript check passed.
+- API production TypeScript build passed after regenerating Prisma and rebuilding the database package.
 - Shared-types tests: 80 passed, including four new entity-description tests.
 - Staff security tests: 3 passed.
 - Prisma schema validation and client generation passed.
@@ -27,6 +27,10 @@ Implemented the eleven browser comments:
 ## Code review
 
 Fixed two issues before release: long conversations now open at the latest message and follow sent messages while preserving the reading position when earlier messages load; closing a chat opened from the header notification popover returns focus to the persistent notification button. Organizer replies also use the correct dialog label.
+
+### Build correction
+
+The first release spread an optional entity description into Prisma create data. A clean database-package rebuild exposed the `exactOptionalPropertyTypes` mismatch that stale local database declarations had hidden. The API now explicitly stores absent descriptions as null; supplied descriptions remain unchanged. Validation must build the database package before building the API.
 
 ## Deployment
 

@@ -683,6 +683,7 @@ export class PlatformSupportService {
       const row = await tx.organizerVerification.create({
         data: {
           ...details,
+          entityTypeDetails: input.entityTypeDetails ?? null,
           organizerId: userId,
           version: (last?.version ?? 0) + 1,
           caseId: linked.id,
