@@ -3,7 +3,7 @@
 import { INTL_LOCALES } from "../lib/locale";
 
 import type { EventChatMessage } from "@event-platform/shared-types";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { orderChatClient } from "../lib/order-chat-client";
 import { useLocale } from "./locale-provider";
 import { ORDER_CHAT_COPY } from "../lib/order-chat-copy";
@@ -23,6 +23,19 @@ function OrderConversation({ eventId, orderId, mode, accessToken }: { eventId: s
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const messageList = useRef<HTMLOListElement>(null);
+  const followLatest = useRef(true);
+  const previousViewport = useRef<{ height: number; top: number } | null>(null);
+  useLayoutEffect(() => {
+    const list = messageList.current;
+    if (!list) return;
+    if (previousViewport.current !== null) {
+      list.scrollTop = previousViewport.current.top + list.scrollHeight - previousViewport.current.height;
+      previousViewport.current = null;
+    } else if (followLatest.current) {
+      list.scrollTop = list.scrollHeight;
+    }
+  }, [items, loaded]);
   const pending = useRef(false);
   const messageKey = useRef<string | null>(null);
   const cursorInitialized = useRef(false);
@@ -39,6 +52,7 @@ function OrderConversation({ eventId, orderId, mode, accessToken }: { eventId: s
   }, [client]);
   useEffect(() => {
     let active = true;
+    followLatest.current = true; previousViewport.current = null;
     setLoaded(false); setItems([]); setCursor(null); setError(null); setLoadError(null); cursorInitialized.current = false;
     void refresh().catch((reason) => { if (active) setLoadError(errorText(reason, copy.failed)); }).finally(() => { if (active) setLoaded(true); });
     const timer = setInterval(() => { if (active && !document.hidden) void refresh().catch((reason) => { if (active) setLoadError(errorText(reason, copy.failed)); }); }, 10_000);
@@ -48,6 +62,8 @@ function OrderConversation({ eventId, orderId, mode, accessToken }: { eventId: s
     if (!cursor) return;
     try {
       const page = await client.list(cursor);
+      const list = messageList.current;
+      previousViewport.current = list ? { height: list.scrollHeight, top: list.scrollTop } : null;
       setItems((previous) => [...page.items.filter((item) => !previous.some((existing) => existing.id === item.id)), ...previous]);
       setCursor(page.nextCursor);
     } catch (reason) { setError(errorText(reason, copy.failed)); }
@@ -59,6 +75,7 @@ function OrderConversation({ eventId, orderId, mode, accessToken }: { eventId: s
     try {
       const requestKey = messageKey.current ?? crypto.randomUUID(); messageKey.current = requestKey;
       const saved = await client.send(draft.trim(), requestKey);
+      followLatest.current = true;
       setItems((previous) => previous.some((item) => item.id === saved.id) ? previous : [...previous, saved]);
       setDraft(""); messageKey.current = null;
       void refresh().catch(() => undefined);
@@ -67,7 +84,7 @@ function OrderConversation({ eventId, orderId, mode, accessToken }: { eventId: s
   }
   return <section className="mt-6 border-t border-[#e7e3ed] dark:border-ticket-border pt-5" aria-label={copy.label}><h3 className="text-base font-bold">{copy.title}</h3><p className="mt-1 text-xs text-[#6b7280] dark:text-ticket-muted">{copy.hint}</p>
     {cursor ? <button type="button" className="mt-3 text-sm font-semibold text-[#5b21b6] dark:text-ticket-accent" onClick={() => void older()}>{copy.older}</button> : null}
-    {!loaded ? <p className="mt-3 text-sm" role="status">{copy.loading}</p> : items.length === 0 ? !loadError && <p className="mt-3 text-sm text-[#6b7280] dark:text-ticket-muted">{copy.empty}</p> : <ol className="mt-3 max-h-80 space-y-2 overflow-y-auto" aria-live="polite">{items.map((item) => <li key={item.id} className={`rounded-xl px-3 py-2 text-sm ${item.sender === (mode === "organizer" ? "organizer" : "guest") ? "ml-8 bg-[#efe9ff] dark:bg-ticket-raised" : "mr-8 bg-[#f1f3f8] dark:bg-ticket-raised"}`}><p className="whitespace-pre-wrap break-words">{item.text}</p><p className="mt-1 text-[11px] text-[#6b7280] dark:text-ticket-muted">{item.sender === "organizer" ? copy.organizer : copy.guest} · {new Date(item.createdAt).toLocaleString(INTL_LOCALES[locale])}</p></li>)}</ol>}
+    {!loaded ? <p className="mt-3 text-sm" role="status">{copy.loading}</p> : items.length === 0 ? !loadError && <p className="mt-3 text-sm text-[#6b7280] dark:text-ticket-muted">{copy.empty}</p> : <ol ref={messageList} onScroll={event => { const list = event.currentTarget; followLatest.current = list.scrollHeight - list.clientHeight - list.scrollTop < 40; }} className="mt-3 max-h-80 space-y-2 overflow-y-auto" aria-live="polite">{items.map((item) => <li key={item.id} className={`rounded-xl px-3 py-2 text-sm ${item.sender === (mode === "organizer" ? "organizer" : "guest") ? "ml-8 bg-[#efe9ff] dark:bg-ticket-raised" : "mr-8 bg-[#f1f3f8] dark:bg-ticket-raised"}`}><p className="whitespace-pre-wrap break-words">{item.text}</p><p className="mt-1 text-[11px] text-[#6b7280] dark:text-ticket-muted">{item.sender === "organizer" ? copy.organizer : copy.guest} · {new Date(item.createdAt).toLocaleString(INTL_LOCALES[locale])}</p></li>)}</ol>}
     {loadError ? <p className="mt-3 rounded-lg bg-red-50 dark:bg-ticket-danger-soft p-2 text-sm text-red-800 dark:text-ticket-danger" role="alert">{loadError}<button type="button" className="ml-3 font-semibold underline" onClick={() => void refresh().catch((reason) => setLoadError(errorText(reason, copy.failed)))}>{copy.retry}</button></p> : null}
     {error ? <p className="mt-3 rounded-lg bg-red-50 dark:bg-ticket-danger-soft p-2 text-sm text-red-800 dark:text-ticket-danger" role="alert">{error}</p> : null}
     <form className="mt-4 flex flex-col gap-2" onSubmit={(event) => void send(event)}><label className="text-sm font-semibold" htmlFor={`chat-${mode}-${orderId}`}>{copy.yourMessage}</label><textarea id={`chat-${mode}-${orderId}`} className="rounded-xl border border-[#d9d8e9] dark:border-ticket-border p-3 text-sm" value={draft} onChange={(event) => { setDraft(event.target.value); messageKey.current = null; }} maxLength={2000} rows={3} disabled={busy} /><button type="submit" className="self-start rounded-xl bg-[#5b21b6] dark:bg-ticket-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={busy || !draft.trim()}>{busy ? copy.sending : copy.send}</button></form>

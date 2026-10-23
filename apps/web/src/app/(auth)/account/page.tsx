@@ -1,4 +1,5 @@
 "use client";
+import { OrderChatButton } from "../../../components/floating-order-chat";
 
 import { catalogCityOptions, eventExpiryTime, type AccountDashboard, type AccountOrderList, type AuthUser, type GuestEventList, type LinkedMethodsResponse, type NotificationPreferences, type TelegramLinkTokenResponse } from "@event-platform/shared-types";
 import Link from "next/link";
@@ -166,7 +167,7 @@ function PaymentsPanel({ orders, page, onPage }: { orders: AccountOrderList | nu
 }
 function OrderRows({ orders }: { orders: AccountOrderList }) {
   const locale = useLocale(); const copy = ACCOUNT_COPY[locale];
-  return <div className="account-order-list">{orders.items.map(order => <article className="account-order" key={order.id}><div><div className="account-order-title"><h3>{order.eventTitle}</h3><span>{copy.paymentStatuses[order.status] ?? order.status}</span></div><p>{order.itemSummary} · {new Intl.DateTimeFormat(INTL_LOCALES[locale], { dateStyle: "medium" }).format(new Date(order.createdAt))}</p><p className="account-receipt">{copy.receiptUnavailable}</p>{order.eventId ? <Link className="account-text-link" href={localeUrl(`/account/events/${order.eventId}/orders/${order.id}/chat`, locale)}>{copy.writeOrganizer}</Link> : null}</div><strong>{new Intl.NumberFormat(INTL_LOCALES[locale], { style: "currency", currency: order.currency }).format(order.amount / 100)}</strong></article>)}</div>;
+  return <div className="account-order-list">{orders.items.map(order => <article className="account-order" key={order.id}><div><div className="account-order-title"><h3>{order.eventTitle}</h3><span>{copy.paymentStatuses[order.status] ?? order.status}</span></div><p>{order.itemSummary} · {new Intl.DateTimeFormat(INTL_LOCALES[locale], { dateStyle: "medium" }).format(new Date(order.createdAt))}</p><p className="account-receipt">{copy.receiptUnavailable}</p>{order.eventId ? <OrderChatButton className="account-text-link" eventId={order.eventId!} orderId={order.id} title={order.eventTitle}>{copy.writeOrganizer}</OrderChatButton> : null}</div><strong>{new Intl.NumberFormat(INTL_LOCALES[locale], { style: "currency", currency: order.currency }).format(order.amount / 100)}</strong></article>)}</div>;
 }
 
 function Pager({ page, hasNext, onPage }: { page: number; hasNext: boolean; onPage: (page: number) => void }) { const copy = ACCOUNT_COPY[useLocale()]; return <nav className="account-pager" aria-label={copy.pages}><button className="account-button" disabled={page === 1} type="button" onClick={() => onPage(Math.max(1, page - 1))}>{copy.back}</button><span>{copy.page} {page}</span><button className="account-button" disabled={!hasNext} type="button" onClick={() => onPage(page + 1)}>{copy.next}</button></nav>; }

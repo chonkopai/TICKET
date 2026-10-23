@@ -36,6 +36,7 @@ function VerificationForm() {
     [busy, setBusy] = useState(false),
     [legalName, setName] = useState(""),
     [entityType, setEntity] = useState("ip"),
+    [entityTypeDetails, setEntityDetails] = useState(""),
     [countryCode, setCountry] = useState("KZ"),
     [registrationId, setIdentifier] = useState(""),
     [email, setEmail] = useState(""),
@@ -61,6 +62,7 @@ function VerificationForm() {
     if (row) {
       setName(row.legalName);
       setEntity(row.entityType);
+      setEntityDetails(row.entityTypeDetails ?? "");
       setCountry(row.countryCode);
       setIdentifier(row.registrationId);
       setEmail(row.email);
@@ -106,6 +108,7 @@ function VerificationForm() {
         body: JSON.stringify({
           legalName,
           entityType,
+          ...(entityType === "other" ? { entityTypeDetails: entityTypeDetails.trim() } : {}),
           countryCode,
           registrationId,
           email,
@@ -143,7 +146,7 @@ function VerificationForm() {
           )}
         </p>
       </div>
-      <section className="account-card">
+      <section className="account-card verification-card">
         <div className="account-card-toolbar">
           <h2>
             {t("Статус заявки", "Өтініш күйі", "Application status")}
@@ -173,7 +176,7 @@ function VerificationForm() {
             )}
           </button>
         ) : null}
-        {rows && status !== "pending" && !editing ? (
+        {rows && rows.length > 0 && status !== "pending" && !editing ? (
           <button
             type="button"
             className="account-button account-button-primary"
@@ -238,6 +241,10 @@ function VerificationForm() {
                   ))}
                 </select>
               </label>
+              {entityType === "other" ? <label className="account-field full">
+                {t("Укажите тип организации", "Ұйым түрін көрсетіңіз", "Specify your entity type")}
+                <input required minLength={2} maxLength={120} value={entityTypeDetails} onChange={e => setEntityDetails(e.target.value)} placeholder={t("Например, некоммерческая организация", "Мысалы, коммерциялық емес ұйым", "For example, nonprofit organization")} />
+              </label> : null}
               <label className="account-field full">
                 {t(
                   "Регистрационный / налоговый номер",

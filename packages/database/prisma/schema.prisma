@@ -1426,6 +1426,7 @@ model OrganizerVerification {
   status         String          @default("pending") @db.VarChar(30)
   legalName      String          @db.VarChar(200)
   entityType     String          @db.VarChar(20)
+  entityTypeDetails String?       @db.VarChar(120)
   countryCode    String          @db.VarChar(2)
   registrationId String          @db.VarChar(120)
   email          String          @db.VarChar(320)

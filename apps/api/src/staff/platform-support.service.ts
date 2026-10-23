@@ -701,7 +701,7 @@ export class PlatformSupportService {
           caseId: linked.id,
           clientKey: randomUUID(),
           authorKind: "organizer",
-          text: "Заявка на проверку отправлена. Документы доступны модератору в защищённом разделе.",
+          text: "Заявка на проверку отправлена. Документы доступны модератору в защищённом разделе." + (input.entityTypeDetails ? ` Тип организации: ${input.entityTypeDetails}.` : ""),
         },
       });
       return row;

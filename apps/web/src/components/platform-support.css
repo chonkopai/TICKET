@@ -139,3 +139,22 @@
     flex-wrap: wrap;
   }
 }
+
+.platform-support { padding: 24px; border: 1px solid var(--ticket-border); border-radius: 20px; background: var(--ticket-surface); box-shadow: 0 4px 20px rgb(35 20 70 / .035); }
+.platform-support > .account-card-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--ticket-border); }
+.platform-support h2 { font-size: 20px; font-weight: 700; }
+.platform-support > .account-card { padding: 24px; box-shadow: none; }
+.support-empty { display: flex; min-height: 200px; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: var(--ticket-muted); text-align: center; font-size: 14px; line-height: 1.6; }
+.support-empty svg { width: 28px; height: 28px; color: var(--ticket-accent); }
+.organizer-content > .verification-card { display: grid; gap: 24px; padding: 28px; border-radius: 20px; }
+.verification-card > .account-card-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--ticket-border); }
+.verification-card > .account-button { justify-self: start; }
+.support-verification { gap: 24px; }
+.support-verification fieldset { gap: 22px 20px; min-width: 0; }
+.support-verification .account-field { display: flex; flex-direction: column; gap: 8px; font-size: 14px; font-weight: 600; }
+.support-verification small, .support-verification > p { font-size: 12px; font-weight: 400; line-height: 1.6; color: var(--ticket-muted); }
+.support-verification input, .support-verification select, .support-form input, .support-form textarea { border-color: var(--ticket-border); background: var(--ticket-bg); padding: 12px 14px; border-radius: 12px; }
+.support-verification input::file-selector-button { border: 0; background: var(--ticket-accent-soft); color: var(--ticket-accent); padding: 8px 12px; margin-right: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.support-verification :is(input, select):focus-visible { outline: 2px solid var(--ticket-accent); outline-offset: 2px; }
+.support-verification > button { justify-self: start; }
+@media (max-width: 640px) { .platform-support, .organizer-content > .verification-card { padding: 18px; } .platform-support > .account-card { padding: 16px; } }

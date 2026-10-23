@@ -299,7 +299,8 @@ export function PlatformSupport({
                 </button>
               ))
             ) : (
-              <p>
+              <p className="support-empty">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2V11.5A8.5 8.5 0 0 1 10.5 3h2a8.5 8.5 0 0 1 8.5 8.5Z"/><path d="M7 9h10M7 13h6"/></svg>
                 {t(
                   "Обращений пока нет. Напишите нам — мы поможем.",
                   "Әзірге өтініш жоқ. Бізге жазыңыз — көмектесеміз.",

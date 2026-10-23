@@ -138,3 +138,9 @@
   .organizer-quick-start { padding: 20px; }
   .organizer-photo-upload { align-items: flex-start; }
 }
+
+.organizer-content .account-heading { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 8px; min-width: 0; }
+.organizer-content .account-heading > p:first-child:not(:last-child) { font-size: 12px; font-weight: 600; color: var(--ticket-dim); }
+.organizer-content .account-heading h1 { letter-spacing: -.025em; text-align: left; }
+.organizer-content .account-heading > p:last-child { max-width: 680px; line-height: 1.6; }
+.organizer-page-heading .account-heading { flex: 1; }

@@ -47,6 +47,7 @@ export interface VerificationView {
   status: string;
   legalName: string;
   entityType: string;
+  entityTypeDetails?: string | null;
   countryCode: string;
   registrationId: string;
   email: string;
@@ -121,13 +122,22 @@ export const verificationSchema = z
   .object({
     legalName: z.string().trim().min(2).max(200),
     entityType: z.enum(["ip", "ooo", "other"]),
+    entityTypeDetails: z.string().trim().min(2).max(120).optional(),
     countryCode: z.enum(COUNTRY_CODES),
     registrationId: z.string().trim().min(1).max(120),
     email: z.email().max(320),
     phone: z.string().trim().min(3).max(40),
     fileIds: z.array(id).min(1).max(5),
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.entityType === "other" && !value.entityTypeDetails) {
+      ctx.addIssue({ code: "custom", path: ["entityTypeDetails"], message: "Specify your entity type" });
+    }
+    if (value.entityType !== "other" && value.entityTypeDetails) {
+      ctx.addIssue({ code: "custom", path: ["entityTypeDetails"], message: "Details are only available for other entity types" });
+    }
+  });
 export const decisionSchema = z
   .object({
     decision: z.enum(["verified", "changes_requested", "rejected", "revoked"]),

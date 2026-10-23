@@ -66,7 +66,7 @@ export function Navbar() {
     <div className="ticket-navbar-row mx-auto flex min-h-[60px] flex-wrap max-w-7xl items-center justify-between gap-x-4 gap-y-0 xl:flex-nowrap">
       <div className="ticket-navbar-identity flex min-h-[60px] min-w-0 items-center gap-3 lg:gap-5"><Link aria-label="TICKET" className={`ticket-navbar-brand inline-flex shrink-0 items-center gap-1.5 text-xl font-extrabold tracking-[-0.04em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:focus-visible:ring-ticket-accent ${onEventHero ? "text-white" : "text-[#6320ee] dark:text-ticket-accent"}`} href="/"><AccountIcon name="ticket" className="h-6 w-6 shrink-0" /><span>TICKET</span></Link><CatalogLocationPicker onDark={onEventHero} /></div>
       <HeaderSearch onDark={onEventHero} />
-      <div className="ticket-navbar-actions flex shrink-0 items-center gap-2">{user ? <Link className="hidden rounded-full px-2 py-2 text-xs font-semibold xl:inline-flex" href={localeUrl(organizer?"/organizer/support":"/account?tab=support",locale)}>{({ru:"Поддержка TICKET",kk:"TICKET қолдауы",en:"TICKET support"})[locale]}</Link> : null}
+      <div className="ticket-navbar-actions flex shrink-0 items-center gap-2">
 
         <div className="ticket-navbar-language hidden items-center lg:flex">
           <div>
@@ -94,5 +94,5 @@ function NavLink({ href, label, active }: { href: string; label: string; active:
 
 function LogoutIcon() { return <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0-4-4m4 4H8m5 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" /></svg>; }
 function LanguageIcon({ onDark = false }: { onDark?: boolean }) { return <svg aria-hidden="true" className={`h-4 w-4 shrink-0 ${onDark ? "text-white" : "text-violet-600 dark:text-ticket-accent"}`} fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" /><path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3Z" stroke="currentColor" strokeWidth="1.8" /></svg>; }
-function CreateEventIcon() { return <svg aria-hidden="true" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24"><rect height="16" rx="2" stroke="currentColor" strokeWidth="1.8" width="18" x="3" y="5" /><path d="M7 3v4M17 3v4M3 10h18M12 13v6m-3-3h6" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" /></svg>; }
+function CreateEventIcon() { return <svg aria-hidden="true" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 4H5a2 2 0 0 0-2 2v3a3 3 0 0 1 0 6v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M8 4v3m0 4v2m0 4v3M19 2v6m-3-3h6" /></svg>; }
 function UserIcon() { return <svg aria-hidden="true" className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.8"/><path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>; }

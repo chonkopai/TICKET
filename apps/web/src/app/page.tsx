@@ -197,7 +197,6 @@ export default function HomePage() {
           <div><h1 className="ticket-catalog-heading mx-auto max-w-4xl text-[2rem] font-extrabold leading-[1.15] tracking-[-0.03em] sm:text-5xl">{city ? `${copy.headingCity} ${locale === "ru" ? CITY_HEADING_NAMES[city] ?? city : cityName(city, locale)}` : countryCode ? `${copy.heading} — ${countryName(countryCode, locale)}` : copy.heading}</h1></div>
         </div>
         <div className="mt-4 flex min-w-0 items-center gap-1.5"><AfishaCalendar iconOnly from={query.from} onChange={(from, to) => update({ from, to, datePreset: undefined })} to={query.to} /><DateStrip from={query.from} onSelect={date => update({ from: date, to: date, datePreset: undefined })} to={query.to} todaySelected={query.datePreset === "today"} /></div>
-        <TimeOfDayFilters value={query.timeOfDay} onChange={timeOfDay => update({ timeOfDay })} />
         <PromotionCarousel />
         <CatalogFilters query={query} onUpdate={update} onReset={reset} />
       </div>
@@ -290,6 +289,7 @@ function CatalogFilters({ query, onUpdate, onReset }: { query: PublicEventsQuery
       <div className="ticket-catalog-filter-row mt-2 flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-slate-200/80 dark:border-ticket-border pt-2">
         <div className="ticket-catalog-filter-primary flex min-w-0 flex-wrap items-center gap-2">
           <button aria-pressed={query.free === true} className={`min-h-10 rounded-xl px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:focus-visible:ring-ticket-accent ${query.free ? "bg-violet-600 dark:bg-ticket-primary text-white" : "bg-slate-100 dark:bg-ticket-raised text-slate-700 dark:text-ticket-muted hover:bg-violet-50 dark:hover:bg-ticket-accent-soft hover:text-violet-700 dark:hover:text-ticket-accent"}`} onClick={() => onUpdate({ free: query.free ? undefined : true, minPrice: undefined, maxPrice: undefined })} type="button">{copy.free}</button>
+          <TimeOfDayFilters value={query.timeOfDay} onChange={timeOfDay => onUpdate({ timeOfDay })} />
           <PriceRange query={query} onUpdate={onUpdate} />
           <div title={rates ? `${copy.exchangeRates} ${rates.asOf}. ${copy.paymentCurrency}` : copy.loadingRates}>
             <OptionPicker appearance="bare" icon={<CurrencyIcon />} label={copy.currency} value={currency} options={currencyOptions} onChange={(value) => setCurrency(value as "KZT" | "RUB" | "USD")} />
@@ -400,5 +400,9 @@ function CalendarIcon() { return <svg aria-hidden="true" className="h-4 w-4 shri
 function TimeOfDayFilters({ value, onChange }: { value: PublicEventsQuery["timeOfDay"]; onChange: (value: PublicEventsQuery["timeOfDay"]) => void }) {
   const locale = useLocale();
   const labels = { ru: ["Утро", "День", "Вечер", "Ночь"], kk: ["Таң", "Күндіз", "Кеш", "Түн"], en: ["Morning", "Day", "Evening", "Night"] }[locale];
-  return <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={{ ru: "Время начала события", kk: "Іс-шараның басталу уақыты", en: "Event start time" }[locale]}>{(["morning", "day", "evening", "night"] as const).map((period, index) => <button key={period} type="button" aria-pressed={value === period} title={["06:00–11:59", "12:00–17:59", "18:00–23:59", "00:00–05:59"][index]} className={`min-h-10 rounded-full px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${value === period ? "bg-violet-600 text-white dark:bg-ticket-primary" : "bg-white text-slate-700 border border-slate-200 dark:bg-ticket-surface dark:border-ticket-border dark:text-ticket-text"}`} onClick={() => onChange(value === period ? undefined : period)}>{labels[index]}</button>)}</div>;
+  return <div className="ticket-time-of-day flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1 dark:bg-ticket-raised" role="group" aria-label={{ ru: "Время начала события", kk: "Іс-шараның басталу уақыты", en: "Event start time" }[locale]}>{(["morning", "day", "evening", "night"] as const).map((period, index) => <button key={period} type="button" aria-pressed={value === period} title={["06:00–11:59", "12:00–17:59", "18:00–23:59", "00:00–05:59"][index]} className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${value === period ? "bg-violet-600 text-white dark:bg-ticket-primary" : "bg-white text-slate-700 border border-slate-200 dark:bg-ticket-surface dark:border-ticket-border dark:text-ticket-text"}`} onClick={() => onChange(value === period ? undefined : period)}><TimeOfDayIcon period={period} />{labels[index]}</button>)}</div>;
+}
+
+function TimeOfDayIcon({ period }: { period: string }) {
+  return <svg aria-hidden="true" className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{period === "night" ? <path d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z" /> : period === "day" ? <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></> : <><path d="M3 17h18M5 21h14M6 17a6 6 0 0 1 12 0M3 11l2 1m14 0 2-1M12 3v7" /><path d={period === "morning" ? "m9 6 3-3 3 3" : "m9 7 3 3 3-3"} /></>}</svg>;
 }

@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { isLocale, localeUrl } from "../lib/locale";
 import { LocaleProvider } from "../components/locale-provider";
 
+import { FloatingOrderChatProvider } from "../components/floating-order-chat";
 import { Navbar } from "../components/navbar";
 import { CurrencyProvider } from "../components/currency-provider";
 import { ThemeProvider } from "../components/theme-provider";
@@ -41,7 +42,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang={locale} suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} /></head>
-      <body><LocaleProvider locale={locale}><ThemeProvider>{admin ? children : <CurrencyProvider><Navbar />{children}</CurrencyProvider>}</ThemeProvider></LocaleProvider></body>
+      <body><LocaleProvider locale={locale}><ThemeProvider>{admin ? children : <CurrencyProvider><FloatingOrderChatProvider><Navbar />{children}</FloatingOrderChatProvider></CurrencyProvider>}</ThemeProvider></LocaleProvider></body>
     </html>
   );
 }
