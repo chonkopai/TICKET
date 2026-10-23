@@ -17,7 +17,7 @@ describe.runIf(draftDatabaseTests)("durable capability-scoped creation drafts",(
   it("round trips incomplete locales/hall/inactive modes without a placeholder event",async()=>{
     const {draft,access}=await fixture("en"),before=await prisma.event.count();
     const saved=await service.update(draft.id,access,draft.revision,{content:{en:{title:"Saved source"},kk:{}},paidGeneral:[{id:randomUUID(),active:true,amount:null,capacity:null,content:{}}],step:"details"});
-    const read=await service.read(draft.id,access);expect(read.aggregate).toEqual(saved.aggregate);expect(read.aggregate.content.ru).toBeUndefined();expect(read.aggregate.currency).toBe("KZT");expect(await prisma.event.count()).toBe(before);
+    const read=await service.read(draft.id,access);expect(read.aggregate).toEqual(saved.aggregate);expect(read.aggregate.content.ru).toBeUndefined();expect(read.aggregate.currency).toBe("USD");expect(await prisma.event.count()).toBe(before);
   });
   it("persists after authentication cancellation and denies guessed/wrong capabilities",async()=>{
     const {draft,access}=await fixture();expect((await service.read(draft.id,access)).id).toBe(draft.id);

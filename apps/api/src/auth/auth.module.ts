@@ -45,6 +45,7 @@ import { TelegramOidcService } from "./telegram-oidc.service.js";
           telegramOidcClientSecret: env.TELEGRAM_OIDC_CLIENT_SECRET,
           botApiSecret: env.BOT_API_SECRET,
           organizerRequiresApproval: env.ORGANIZER_REQUIRES_APPROVAL,
+          eventReviewRequired: env.EVENT_PUBLICATION_REQUIRES_REVIEW,
         };
       },
     },

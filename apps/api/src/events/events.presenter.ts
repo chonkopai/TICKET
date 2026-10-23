@@ -28,6 +28,8 @@ export function presentEvent(event: Event): OrganizerEvent {
     ageRestriction: event.ageRestriction as OrganizerEvent["ageRestriction"],
     address: event.address,
     status: event.status,
+    moderationStatus: event.moderationStatus,
+    moderationReason: event.moderationReason,
     createdAt: event.createdAt.toISOString(),
     updatedAt: event.updatedAt.toISOString(),
   };

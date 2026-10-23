@@ -31,6 +31,8 @@ export interface TelegramLoginPayload {
 }
 
 export interface AuthUser {
+  organizerVerified?: boolean;
+  restricted?: boolean;
   id: string;
   telegramId: string | null;
   telegramChatId: string | null;

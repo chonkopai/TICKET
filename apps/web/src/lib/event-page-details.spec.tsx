@@ -17,13 +17,13 @@ test("hero shows only the start with date-specific GMT offsets including half-ho
   assert.match(html, /Almaty, Kazakhstan/);
 });
 
-test("checkout summary and terms appear only after selecting a seat and disappear after clearing", () => {
+test("checkout summary preserves its empty state while terms require a selected seat", () => {
   const event = { id: "event", creationVersion: 2, contentLocale: "ru", refundsAvailable: false, paymentMode: "full_payment", tables: [], ticketTypes: [] } as unknown as PublicEvent;
   const layout = { seats: [{ id: "seat", availability: "available", price: 500000, currency: "KZT", label: "Seat" }] } as unknown as PublicVenueLayout;
   const render = (selectedSeatIds: string[]) => renderToStaticMarkup(<CurrencyProvider><CheckoutPanel event={event} layout={layout} selectedSeatIds={selectedSeatIds} selectedTableId={null} ticketQuantities={{}} onTableChange={() => {}} onTicketChange={() => {}} onClearSeats={() => {}} onRefreshAvailability={async () => {}} /></CurrencyProvider>);
   for (const ids of [[], ["seat"], []]) {
     const html = render(ids);
     if (ids.length) { assert.match(html, /ВАШ ВЫБОР|Ваш выбор/); assert.match(html, /Принимаю условия регистрации/); }
-    else { assert.doesNotMatch(html, /ВАШ ВЫБОР|Ваш выбор|Принимаю условия|Продолжить без аккаунта/); assert.match(html, /Выберите места на схеме/); }
+    else { assert.doesNotMatch(html, /Принимаю условия|Продолжить без аккаунта/); assert.match(html, /Добавьте билет или выберите место на схеме/); assert.match(html, /Выберите места на схеме/); }
   }
 });

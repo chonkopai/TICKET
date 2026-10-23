@@ -12,7 +12,7 @@ import { DraftPublicationService } from "./draft-publication.service.js";
 import { newEventCreationDraft } from "@event-platform/shared-types";
 import { CreationDraftsService } from "./creation-drafts.service.js";
 
-const service=new CreationDraftsService(prisma,{webOrigin:"http://localhost:3000",hmacSecret:"http-spec-only-secret-for-drafts",secureCookies:true,anonymousSeconds:2592000,ownedSeconds:7776000,cleanupGraceSeconds:604800,creationHourlyLimit:100},[{code:"KZT",exponent:2}]);
+const service=new CreationDraftsService(prisma,{webOrigin:"http://localhost:3000",hmacSecret:"http-spec-only-secret-for-drafts",secureCookies:true,anonymousSeconds:2592000,ownedSeconds:7776000,cleanupGraceSeconds:604800,creationHourlyLimit:100},[{code:"KZT",exponent:2},{code:"USD",exponent:2}]);
 @Module({controllers:[CreationDraftsController,DraftPublicationController],providers:[{provide:DraftPublicationService,useValue:new DraftPublicationService(service,{organizerRequiresApproval:false} as never)},{provide:CreationDraftsService,useValue:service},{provide:AuthService,useValue:{authenticate:()=>{throw new Error("No authentication needed in this spec");}}}]})
 class TestModule {}
 describe.runIf(draftDatabaseTests)("same-origin anonymous draft HTTP boundary",()=>{

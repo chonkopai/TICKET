@@ -12,9 +12,8 @@ import type { BookingClock } from "./booking.constants.js";
 import { BookingService } from "./booking.service.js";
 import { DevelopmentPaymentProvider } from "./payment-provider.js";
 
-// Reuse the seeded organizer so this file does not perturb other database-backed
-// suites that assert the global user count while Vitest runs files in parallel.
-const organizerId = "00000000-0000-4000-8000-000000000001";
+// Each suite owns its fixtures; no development seed is required.
+const organizerId=randomUUID();
 const guestId = organizerId;
 const eventId = randomUUID();
 const layoutId = randomUUID();
@@ -34,7 +33,7 @@ const wallet = { isConfigured: () => false, generate: async () => Buffer.alloc(0
 const tickets = new TicketsService(prisma, events, wallet);
 
 beforeAll(async () => {
-  await prisma.user.findUniqueOrThrow({ where: { id: organizerId } });
+  await prisma.user.create({ data: { id:organizerId,role:"organizer" } });
   await prisma.event.create({ data: {
     id: eventId,
     organizerId,
@@ -56,6 +55,8 @@ afterAll(async () => {
   await prisma.order.deleteMany({ where: { buyerUserId: guestId } });
   await prisma.event.deleteMany({ where: { id: eventId } });
   await prisma.idempotencyRecord.deleteMany({ where: { userId: guestId } });
+  await prisma.auditLog.deleteMany({where:{actorId:organizerId}});
+  await prisma.user.delete({where:{id:organizerId}});
 });
 
 describe("numbered seating", () => {

@@ -4,7 +4,7 @@ import { config as loadDotenv } from "dotenv";
 import { defineConfig } from "vitest/config";
 
 loadDotenv({
-  path: fileURLToPath(new URL("../../.env", import.meta.url)),
+  path: process.env.ENV_FILE ?? fileURLToPath(new URL("../../.env", import.meta.url)),
   override: false,
   quiet: true,
 });

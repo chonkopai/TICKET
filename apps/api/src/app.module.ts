@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 
+import { StaffModule } from "./staff/staff.module.js";
 import { AuthModule } from "./auth/auth.module.js";
 import { EventsModule } from "./events/events.module.js";
 import { HealthController } from "./health.controller.js";
@@ -15,7 +16,7 @@ import { SeatsModule } from "./seats/seats.module.js";
 import { CreationDraftsModule } from "./creation-drafts/creation-drafts.module.js";
 
 @Module({
-  imports: [AuthModule, CreationDraftsModule, EventsModule, TicketTypesModule, TicketsModule, VenueModule, SeatsModule, MyEventsModule, PublicEventsModule, FavoritesModule, BookingModule, BotModule],
+  imports: [StaffModule, AuthModule, CreationDraftsModule, EventsModule, TicketTypesModule, TicketsModule, VenueModule, SeatsModule, MyEventsModule, PublicEventsModule, FavoritesModule, BookingModule, BotModule],
   controllers: [HealthController],
 })
 export class AppModule {}

@@ -3,6 +3,7 @@ node_modules/
 .pnpm-store/
 .next/
 .next-v2-*/
+.next-admin-*/
 dist/
 coverage/
 .turbo/

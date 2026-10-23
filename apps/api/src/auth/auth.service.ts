@@ -75,12 +75,12 @@ export class AuthService {
     return this.tokens.revokeFamily(refreshToken);
   }
 
-  async authenticate(accessToken: string): Promise<{ userId: string; role: User["role"]; sessionFamilyId?: string; authenticatedAt?: number }> {
+  async authenticate(accessToken: string): Promise<{ userId: string; role: User["role"]; restricted?: boolean; sessionFamilyId?: string; authenticatedAt?: number }> {
     const { userId, credentialVersion, sessionFamilyId, authenticatedAt } = await this.tokens.verifyAccess(accessToken);
     const user = await this.database.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException("User no longer exists");
     if (credentialVersion !== undefined && credentialVersion !== user.credentialVersion) throw new UnauthorizedException("Session was revoked");
-    return { userId: user.id, role: user.role, ...(sessionFamilyId ? { sessionFamilyId } : {}), ...(authenticatedAt ? { authenticatedAt } : {}) };
+    return { userId: user.id, role: user.role, ...(user.blockedAt ? {restricted:true} : {}), ...(sessionFamilyId ? { sessionFamilyId } : {}), ...(authenticatedAt ? { authenticatedAt } : {}) };
   }
 
   async getMe(userId: string): Promise<AuthUser> {

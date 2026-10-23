@@ -9,6 +9,14 @@ to a local ngrok callback or change its live bot webhook for development testing
 
 This stack is for testing with mock payments. It does not charge customers. Keep the existing `docker-compose.yml` for local development; use `compose.demo.yml` on the VM.
 
+The staging example enables automatic notifications for real Telegram testing.
+`TRANSACTIONAL_NOTIFICATIONS_ENABLED=false` in `.env.demo` keeps automatic
+purchase/event notification and reminder scheduling off, including in production
+mode. Set it to `true` to test those automatic flows, then recreate the API with
+`sudo docker compose --env-file .env.demo -f compose.demo.yml up -d api`.
+Telegram login/bot linking, manual resends, email delivery and previously queued
+messages are separate; this flag is not a global outbound-message switch.
+
 The VM needs Docker Engine and Compose, outbound access to GitHub/Docker Hub/npm, and inbound TCP 80/443 when HTTPS is enabled. Name.com manages DNS for `ticketron.live`. Keep the existing Resend mail records.
 
 ## Install the release
@@ -63,3 +71,13 @@ sudo docker compose --env-file .env.demo -f compose.demo.yml exec api node dist/
 Replace `ORDER_ID` with the test order's ID. This issues a test ticket without a real charge. The callback command is unavailable outside explicit demo mode.
 
 When staging works, rebuild with `SITE_DOMAIN=ticketron.live`, update the app and Caddy, then add the apex A record and `www` record at Name.com. Preserve the mail records. Do not use `docker compose down -v` on the VM: it deletes the database, Redis, poster, and Caddy certificate volumes.
+
+## Administration release
+
+The separate staff hosts, forward migrations, first-Moderator bootstrap, MFA,
+private upload volume, and consistent backup/restore procedure are documented in
+[the administration runbook](../docs/admin-panel/README.md). Set `ADMIN_DOMAIN`
+per environment and configure the independent staff secrets before enabling
+`STAFF_ENABLED`. Adding the Caddy site does not create DNS records: the corresponding
+admin A/AAAA records and HTTPS reachability need a separately authorized deployment.
+Public-site, mail, Telegram callback and bot webhook records must remain intact.

@@ -69,6 +69,6 @@ import { ResendTicketEmailSender } from "../orders/ticket-email-sender.js";
     RefundService,
     CheckoutCleanupService,
   ],
-  exports: [BookingService, AnonymousService],
+  exports: [BookingService, AnonymousService, PAYMENT_PROVIDER, TicketEmailDeliveryService],
 })
 export class BookingModule {}

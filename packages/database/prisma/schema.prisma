@@ -233,6 +233,10 @@ model User {
   photoUrl       String?
   phone          String?
   email          String?
+  blockedAt DateTime? @db.Timestamptz(3)
+  blockedReason String? @db.VarChar(500)
+  organizerVerifiedAt DateTime? @db.Timestamptz(3)
+  commissionBps Int?
   defaultCity    String?
   defaultCountry String?  @db.VarChar(2)
   preferredCurrency String? @db.VarChar(3)
@@ -434,6 +438,8 @@ model Event {
   timezone          String      @default("Asia/Almaty")
   ageRestriction    Int         @default(0)
   address           String
+  moderationStatus String @default("clear") @db.VarChar(20)
+  moderationReason String? @db.VarChar(500)
   status            EventStatus @default(draft)
   publishedAt       DateTime?   @db.Timestamptz(3)
   createdAt         DateTime    @default(now()) @db.Timestamptz(3)
@@ -986,6 +992,8 @@ model Order {
   paymentStatus     PaymentStatus @default(pending)
   paymentLink       String?
   paymentProviderId String?
+  commissionBps Int?
+  commissionAmount Int?
   checkoutSnapshot  Json?
   emailDeliveryAddress String?
   emailDeliveryRequestedAt DateTime? @db.Timestamptz(3)
@@ -1306,4 +1314,215 @@ model DraftTranslationCache {
   expiresAt    DateTime @db.Timestamptz(3)
   createdAt    DateTime @default(now()) @db.Timestamptz(3)
   @@index([expiresAt])
+}
+
+enum StaffRole {
+  support
+  moderator
+}
+
+model StaffAccount {
+  id             String         @id @default(uuid()) @db.Uuid
+  email          String         @unique @db.VarChar(320)
+  name           String         @db.VarChar(120)
+  role           StaffRole
+  passwordHash   String?
+  mfaSecret      String?
+  mfaConfirmedAt DateTime?      @db.Timestamptz(3)
+  mfaLastStep    Int            @default(-1)
+  recoveryHashes String[]       @default([])
+  disabledAt     DateTime?      @db.Timestamptz(3)
+  version        Int            @default(0)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+  sessions       StaffSession[]
+  tokens         StaffToken[]
+  audit          StaffAudit[]
+}
+
+model StaffSession {
+  id            String       @id @default(uuid()) @db.Uuid
+  staffId       String       @db.Uuid
+  tokenHash     String       @unique
+  csrfHash      String
+  version       Int
+  authenticated Boolean      @default(false)
+  expiresAt     DateTime     @db.Timestamptz(3)
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+  staff         StaffAccount @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, expiresAt])
+}
+
+model StaffToken {
+  id        String       @id @default(uuid()) @db.Uuid
+  staffId   String       @db.Uuid
+  tokenHash String       @unique
+  purpose   String       @db.VarChar(20)
+  expiresAt DateTime     @db.Timestamptz(3)
+  usedAt    DateTime?    @db.Timestamptz(3)
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+  staff     StaffAccount @relation(fields: [staffId], references: [id], onDelete: Cascade)
+}
+
+model StaffAudit {
+  id         String        @id @default(uuid()) @db.Uuid
+  staffId    String?       @db.Uuid
+  role       String        @db.VarChar(20)
+  action     String        @db.VarChar(100)
+  targetType String        @db.VarChar(40)
+  targetId   String        @db.VarChar(200)
+  caseId     String?       @db.Uuid
+  reason     String?       @db.VarChar(500)
+  before     Json?
+  after      Json?
+  createdAt  DateTime      @default(now()) @db.Timestamptz(3)
+  staff      StaffAccount? @relation(fields: [staffId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt, id])
+  @@index([targetType, targetId, createdAt])
+}
+
+model PlatformCase {
+  id                 String            @id @default(uuid()) @db.Uuid
+  ownerId            String?           @db.Uuid
+  anonymousSessionId String?           @db.Uuid
+  subject            String            @db.VarChar(160)
+  status             String            @default("new") @db.VarChar(20)
+  assignedStaffId    String?           @db.Uuid
+  eventId            String?           @db.Uuid
+  orderId            String?           @db.Uuid
+  ticketId           String?           @db.Uuid
+  ownerReadAt        DateTime?         @db.Timestamptz(3)
+  staffReadAt        DateTime?         @db.Timestamptz(3)
+  createdAt          DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime          @updatedAt @db.Timestamptz(3)
+  messages           PlatformMessage[]
+
+  @@index([ownerId, updatedAt])
+  @@index([anonymousSessionId, updatedAt])
+  @@index([status, assignedStaffId, updatedAt])
+}
+
+model PlatformMessage {
+  id         String          @id @default(uuid()) @db.Uuid
+  caseId     String          @db.Uuid
+  clientKey  String          @db.Uuid
+  authorKind String          @db.VarChar(20)
+  staffId    String?         @db.Uuid
+  internal   Boolean         @default(false)
+  text       String          @db.VarChar(4000)
+  createdAt  DateTime        @default(now()) @db.Timestamptz(3)
+  case       PlatformCase    @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  files      PrivateUpload[]
+
+  @@unique([caseId, clientKey])
+  @@index([caseId, createdAt, id])
+}
+
+model OrganizerVerification {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizerId    String          @db.Uuid
+  version        Int
+  status         String          @default("pending") @db.VarChar(30)
+  legalName      String          @db.VarChar(200)
+  entityType     String          @db.VarChar(20)
+  countryCode    String          @db.VarChar(2)
+  registrationId String          @db.VarChar(120)
+  email          String          @db.VarChar(320)
+  phone          String          @db.VarChar(40)
+  caseId         String          @unique @db.Uuid
+  reviewedBy     String?         @db.Uuid
+  reviewReason   String?         @db.VarChar(500)
+  reviewedAt     DateTime?       @db.Timestamptz(3)
+  createdAt      DateTime        @default(now()) @db.Timestamptz(3)
+  documents      PrivateUpload[]
+
+  @@unique([organizerId, version])
+  @@index([status, createdAt])
+}
+
+model PrivateUpload {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  ownerId            String?                @db.Uuid
+  anonymousSessionId String?                @db.Uuid
+  staffId            String?                @db.Uuid
+  name               String                 @db.VarChar(150)
+  mime               String                 @db.VarChar(80)
+  size               Int
+  storageKey         String                 @unique
+  caseId             String?                @db.Uuid
+  messageId          String?                @db.Uuid
+  verificationId     String?                @db.Uuid
+  createdAt          DateTime               @default(now()) @db.Timestamptz(3)
+  message            PlatformMessage?       @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  verification       OrganizerVerification? @relation(fields: [verificationId], references: [id], onDelete: Restrict)
+
+  @@index([ownerId, createdAt])
+}
+
+model StaffOperation {
+  id          String   @id @default(uuid()) @db.Uuid
+  staffId     String   @db.Uuid
+  key         String   @db.Uuid
+  kind        String   @db.VarChar(30)
+  resourceId  String   @db.Uuid
+  requestHash String
+  status      String   @default("pending") @db.VarChar(20)
+  response    Json?
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([kind, key])
+  @@index([resourceId, kind, createdAt])
+}
+
+model StaffRefund {
+  id               String    @id @default(uuid()) @db.Uuid
+  staffId          String    @db.Uuid
+  orderId          String    @db.Uuid
+  paymentId        String    @db.Uuid
+  requestKey       String    @unique @db.Uuid
+  ticketIds        String[]
+  amount           Int
+  currency         String    @db.Char(3)
+  reason           String    @db.VarChar(500)
+  exceptional      Boolean   @default(false)
+  provider         String
+  providerRefundId String?
+  status           String    @default("requested") @db.VarChar(20)
+  lastError        String?   @db.VarChar(200)
+  completedAt      DateTime? @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([orderId, status])
+  @@index([status, createdAt])
+}
+
+model OrganizerPayout {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizerId    String    @db.Uuid
+  staffId        String    @db.Uuid
+  amount         Int
+  currency       String    @db.Char(3)
+  reference      String    @db.VarChar(120)
+  paidAt         DateTime  @db.Timestamptz(3)
+  testOnly       Boolean   @default(false)
+  reversedAt     DateTime? @db.Timestamptz(3)
+  reversalReason String?   @db.VarChar(500)
+  requestKey     String    @unique @db.Uuid
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@unique([organizerId, currency, reference])
+  @@index([organizerId, currency, paidAt])
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     Int
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model StaffRateBucket {
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime @db.Timestamptz(3)
 }

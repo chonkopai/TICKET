@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import {PersistenceExceptionFilter} from "./staff/persistence.filter.js";
 
 import { loadApiEnv } from "@event-platform/config";
 import { ValidationPipe } from "@nestjs/common";
@@ -16,6 +17,7 @@ async function bootstrap(): Promise<void> {
   app.useGlobalPipes(
     new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }),
   );
+  app.useGlobalFilters(new PersistenceExceptionFilter());
   app.enableShutdownHooks();
   await app.listen(env.API_PORT, "0.0.0.0");
 }

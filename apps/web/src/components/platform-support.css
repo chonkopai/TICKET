@@ -1,0 +1,141 @@
+.platform-support {
+  display: grid;
+  gap: 1rem;
+}
+.support-form {
+  display: grid;
+  gap: 1rem;
+}
+.support-form input,
+.support-form textarea,
+.support-verification input,
+.support-verification select {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--account-border, #d6dce7);
+  border-radius: 0.65rem;
+  padding: 0.65rem;
+  background: var(--account-surface, #fff);
+  color: inherit;
+}
+.support-error {
+  color: #b52c4f;
+}
+.support-status {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  border-radius: 1rem;
+  padding: 0.25rem 0.6rem;
+  background: #eee6ff;
+  color: #6222d7;
+  white-space: nowrap;
+}
+.support-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.support-case-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0;
+  text-align: left;
+  width: 100%;
+  border-bottom: 1px solid #dce0ea;
+}
+.support-case-row span:first-child {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.support-case-row strong {
+  overflow-wrap: anywhere;
+}
+.support-case-row small {
+  opacity: 0.65;
+}
+.support-message-list {
+  display: grid;
+  gap: 1rem;
+  max-height: 60vh;
+  overflow: auto;
+  margin: 1rem 0;
+}
+.support-message {
+  max-width: 90%;
+  background: #f3f0fb;
+  color: #211638;
+  padding: 1rem;
+  border-radius: 0.8rem;
+}
+.support-message.from-staff {
+  margin-left: auto;
+  background: #ede5ff;
+}
+.support-message > div {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.support-message time {
+  font-size: 0.75rem;
+  opacity: 0.65;
+}
+.support-message p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0.6rem 0;
+}
+.support-thread {
+  min-width: 0;
+}
+.support-verification {
+  display: grid;
+  gap: 1rem;
+}
+.support-verification fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.support-verification .full {
+  grid-column: 1/-1;
+}
+.support-verification-history {
+  padding: 1rem 0;
+  border-top: 1px solid #ddd;
+}
+.verified-organizer-badge {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 0.3rem;
+  color: #6927e8;
+}
+.dark .support-form input,
+.dark .support-form textarea,
+.dark .support-verification input,
+.dark .support-verification select {
+  background: #211a35;
+  border-color: #56446d;
+}
+.dark .support-message {
+  background: #352847;
+  color: #f6f2ff;
+}
+.dark .support-message.from-staff {
+  background: #43305c;
+}
+@media (max-width: 640px) {
+  .support-verification fieldset {
+    grid-template-columns: 1fr;
+  }
+  .support-message {
+    max-width: 100%;
+  }
+  .support-case-row {
+    flex-wrap: wrap;
+  }
+}

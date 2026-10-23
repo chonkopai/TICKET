@@ -38,6 +38,8 @@ export class JwtAuthGuard implements CanActivate {
     if (!match?.[1]) throw new UnauthorizedException("A bearer access token is required");
 
     carrier.user = await this.auth.authenticate(match[1]);
+    const request = context.switchToHttp().getRequest<{method?:string;path?:string}>();
+    if (carrier.user.restricted && request.method !== "GET") throw new ForbiddenException({code:"ACCOUNT_RESTRICTED"});
     return true;
   }
 }
@@ -55,6 +57,7 @@ export class RolesGuard implements CanActivate {
 
     const user = getCarrier(context).user;
     if (!user) throw new UnauthorizedException();
+    if (user.restricted) throw new ForbiddenException({code:"ACCOUNT_RESTRICTED"});
     if (!allowed.includes(user.role)) throw new ForbiddenException("This role cannot access the resource");
     return true;
   }

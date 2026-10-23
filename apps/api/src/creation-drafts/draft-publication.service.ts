@@ -55,7 +55,7 @@ export class DraftPublicationService {
    await tx.event.create({data:{id:eventId,organizerId:user.id,...eventData(draft),creationVersion:2,saleMode:draft.selectedMode,currency:draft.currency,refundPolicyRevision:1}});
    await persistSelectedSale(tx,eventId,user.id,draft,this.drafts.currencies);
    await this.persistPresentation(tx,eventId,draft);
-   await tx.event.update({where:{id:eventId},data:{status:"published",publishedAt:new Date(),v2State:"reconciled",revision:1}});
+   await tx.event.update({where:{id:eventId},data:{status:"published",moderationStatus:this.authConfig.eventReviewRequired?"pending":"clear",publishedAt:new Date(),v2State:"reconciled",revision:1}});
    const completed=await tx.eventCreationDraft.update({where:{id},data:{state:"published",resultEventId:eventId,revision:{increment:1},expiresAt:new Date(Date.now()+this.drafts.config.ownedSeconds*1000)}});
    await tx.eventPublishIntent.update({where:{id:intentId},data:{consumedAt:new Date(),resultEventId:eventId}});
    await this.record(tx,eventId,user.id,"event.published",{draftId:id,intentId});

@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { quickRequest } from "../api";
 
 import { BackLink } from "../../../components/back-link";
+import { PlatformSupport } from "../../../components/platform-support";
 import { OrderChat } from "../../../components/order-chat";
 import { AccountIcon } from "../../../components/account-icon";
 import "./receipt.css";
@@ -86,6 +87,7 @@ export default function QuickStatusPage() {
         <section className="quick-receipt-card"><h2><AccountIcon name="undo"/>{receipt.refund}</h2>{status.acceptedPolicy ? <RefundPolicyText locale={locale} free={status.acceptedPolicy.freeCancellation} available={status.acceptedPolicy.available} conditions={status.cancellationTerms}/> : <p>{status.amountDue === 0 ? receipt.freeRefund : status.cancellationTerms ?? receipt.noRefund}</p>}</section>
         {confirmed && status.emailDelivery.address ? <section className="quick-receipt-card quick-receipt-delivery"><h2><AccountIcon name="mail"/>{receipt.delivery}</h2><strong>{status.emailDelivery.address}</strong><p role="status">{paymentCopy.emailStatuses[status.emailDelivery.status] ?? status.emailDelivery.status}</p>{["accepted","failed","uncertain"].includes(status.emailDelivery.status) ? <button className="quick-receipt-button" type="button" disabled={busy} onClick={()=>void resendEmail()}><AccountIcon name="send"/>{paymentCopy.resend}</button> : null}</section> : null}
         {confirmed && status.deliveryStatus !== "unavailable" ? <p className="quick-receipt-note">{status.deliveryStatus === "confirmed" ? copy.deliveryConfirmed : copy.deliveryPending}</p> : null}
+        <section className="quick-receipt-card"><PlatformSupport access={access} orderId={status.orderId}/></section>
         {status.eventId ? <section className="quick-receipt-card quick-receipt-chat"><OrderChat eventId={status.eventId} orderId={status.orderId} mode="anonymous" accessToken={access}/></section> : null}
       </>}
       <button type="button" className="quick-receipt-refresh" onClick={()=>{void quickRequest<QuickOrderStatus>("order",access).then(value=>{setStatus(value);setError("");}).catch(()=>setError(text.error));}}><AccountIcon name="refresh-cw"/>{text.refresh}</button>

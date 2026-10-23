@@ -110,6 +110,7 @@ function fixtureUser(): User {
     photoUrl: null,
     phone: null,
     email: null,
+    blockedAt: null, blockedReason: null, organizerVerifiedAt: null, commissionBps: null,
     defaultCity: null,
     defaultCountry: null,
     preferredCurrency: null,

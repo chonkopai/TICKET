@@ -22,6 +22,7 @@ import { PublicEventsModule } from "../public-events/public-events.module.js";
 
 @Module({
   imports: [AuthModule, PublicEventsModule],
+  exports: [EventNotificationsService],
   controllers: [EventsController, MediaController, EventNotificationsController, EventTicketResendController, MarketingCampaignController, OrganizerEventChatController, GuestEventChatController, AnonymousEventChatController],
   providers: [
     { provide: DATABASE_CLIENT, useValue: prisma },

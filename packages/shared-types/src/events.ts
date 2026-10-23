@@ -75,6 +75,8 @@ export interface OrganizerEvent {
   timezone: string;
   ageRestriction: EventAgeRestriction;
   address: string;
+  moderationStatus?: string;
+  moderationReason?: string | null;
   status: EventStatus;
   createdAt: string;
   updatedAt: string;
@@ -166,7 +168,7 @@ export interface PublicEvent {
   address: string;
   ticketTypes: PublicTicketType[];
   tables: PublicTable[];
-  organizer: { name: string | null; personName: string | null; photoUrl: string | null; contact: string | null };
+  organizer: { verified?: boolean; name: string | null; personName: string | null; photoUrl: string | null; contact: string | null };
 }
 
 export interface PublicEventSummary {
@@ -198,7 +200,7 @@ export interface PublicEventSummary {
   remainingTables: number;
   remainingSeats: number;
   saleStatus: PublicSaleStatus;
-  organizer: { name: string | null; photoUrl: string | null };
+  organizer: { verified?: boolean; name: string | null; photoUrl: string | null };
 }
 
 export interface OrganizerEventPreview extends PublicEvent {

@@ -175,7 +175,7 @@ export class EventNotificationsService implements OnModuleInit, OnModuleDestroy 
     return Promise.all(rows.map((row) => this.status(organizerId, eventId, row.id)));
   }
 
-  async resendTicket(organizerId: string, eventId: string, orderId: string, ticketId: string, requestKey: string) {
+  async resendTicket(organizerId: string, eventId: string, orderId: string, ticketId: string, requestKey: string, staffActor?: {id:string}) {
     await this.ownedEvent(organizerId, eventId);
     const order = await this.db.order.findFirst({ where: { id: orderId, tickets: { some: { id: ticketId, ticketType: { eventId } } } }, select: {
       id: true, paymentStatus: true, buyerUserId: true,
@@ -208,7 +208,7 @@ export class EventNotificationsService implements OnModuleInit, OnModuleDestroy 
       const row = await this.db.$transaction(async (tx) => {
         const broadcast = await tx.broadcast.create({ data: { organizerId, eventId, requestKey, type: "ticket.resend", message: "Повторная отправка билета", audience: { kind: "ticket_resend", orderId, ticketId }, audienceCount: 1, recipientCount: 1, status: "queued" } });
         await tx.notification.create({ data: { broadcastId: broadcast.id, recipientKey: `chat:${chatId}`, userId: order.buyerUserId, telegramId: chatId, channel: "telegram", type: "ticket.resend", payload: { ticketId, orderId }, nextAttemptAt: new Date() } });
-        await tx.auditLog.create({ data: { actorId: organizerId, action: "ticket.resend_queued", entityType: "ticket", entityId: ticketId, meta: { eventId, orderId, broadcastId: broadcast.id } } });
+        await tx.auditLog.create({ data: { actorId: staffActor?null:organizerId, action: "ticket.resend_queued", entityType: "ticket", entityId: ticketId, meta: { eventId, orderId, broadcastId: broadcast.id,...(staffActor?{staffId:staffActor.id}:{}) } } });
         return broadcast;
       });
       return this.status(organizerId, eventId, row.id);

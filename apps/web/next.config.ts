@@ -8,7 +8,7 @@ const botBaseUrl = process.env.BOT_INTERNAL_URL ?? "http://localhost:3002";
 
 const nextConfig: NextConfig = {
   distDir: process.env.TICKET_NEXT_DIST_DIR ?? ".next",
-  allowedDevOrigins: ["sulphate-shown-subtract.ngrok-free.dev"],
+  allowedDevOrigins: ["sulphate-shown-subtract.ngrok-free.dev", "admin.localhost"],
   reactStrictMode: true,
   env: { NEXT_PUBLIC_YANDEX_GEOCODER_ENABLED: process.env.YANDEX_GEOCODER_API_KEY?.trim() || process.env.NEXT_PUBLIC_YANDEX_GEOCODER_ENABLED === "true" ? "true" : "false" },
   transpilePackages: ["@event-platform/config", "@event-platform/shared-types"],
@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      { source: "/platform-support/:path*", destination: `${apiBaseUrl}/platform-support/:path*` },
       { source: "/api/creation-drafts/:path*", destination: `${apiBaseUrl}/creation-drafts/:path*` },
       { source: "/api/quick/:path*", destination: `${apiBaseUrl}/quick/:path*` },
       { source: "/orders/:path*", destination: `${apiBaseUrl}/orders/:path*` },

@@ -20,6 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
   const value = requestHeaders.get("x-ticket-locale");
   const locale = isLocale(value) ? value : "ru";
+  if (requestHeaders.get("x-ticket-admin") === "true") return { title: "TICKET — Администрирование", robots: { index: false, follow: false } };
   const path = requestHeaders.get("x-ticket-path") ?? "/";
   return {
     ...META[locale],
@@ -36,10 +37,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const requestHeaders = await headers();
   const value = requestHeaders.get("x-ticket-locale");
   const locale = isLocale(value) ? value : "ru";
+  const admin = requestHeaders.get("x-ticket-admin") === "true";
   return (
     <html lang={locale} suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} /></head>
-      <body><LocaleProvider locale={locale}><ThemeProvider><CurrencyProvider><Navbar />{children}</CurrencyProvider></ThemeProvider></LocaleProvider></body>
+      <body><LocaleProvider locale={locale}><ThemeProvider>{admin ? children : <CurrencyProvider><Navbar />{children}</CurrencyProvider>}</ThemeProvider></LocaleProvider></body>
     </html>
   );
 }

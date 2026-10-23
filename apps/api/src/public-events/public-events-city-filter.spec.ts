@@ -12,7 +12,7 @@ describe("catalog city filtering", () => {
     const service = new PublicEventsService(database, {} as TicketTypesService, {} as TablesService);
     await service.list({ page: 1, limit: 12, sort: "recent", countryCode: "KZ", city });
     const expected = {
-      status: "published", countryCode: "KZ",
+      status: "published", moderationStatus: { in: ["clear","approved","sales_paused"] }, organizer: {blockedAt:null}, countryCode: "KZ",
       AND: [{ OR: [
         { city: { contains: "Алматы", mode: "insensitive" } },
         { city: { contains: "Almaty", mode: "insensitive" } },

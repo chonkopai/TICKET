@@ -12,6 +12,7 @@ export interface NotificationPreferences {
 }
 
 export interface AccountNotification {
+  caseId?:string|null;
   orderId?: string | null;
   id: string;
   eventId: string | null;
@@ -32,6 +33,7 @@ export interface AccountNotificationList {
 }
 
 export interface OrganizerProfile {
+  verified?: boolean;
   organizationName: string;
   name: string | null;
   email: string | null;

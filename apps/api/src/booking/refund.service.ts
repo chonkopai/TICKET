@@ -46,6 +46,7 @@ export class RefundService {
     if (normalizedReason.length < 10 || normalizedReason.length > 500) throw new ConflictException({ code: "REFUND_REASON_INVALID", message: "Explain the refund reason in 10–500 characters" });
     const row = await this.database.$transaction(async (transaction) => {
       await lockOrder(transaction, orderId);
+      if(await transaction.staffRefund.findFirst({where:{orderId,status:{not:"failed"}}})) throw new ConflictException({code:"STAFF_REFUND_EXISTS"});
       const order = await ownedOrder(transaction, organizerId, eventId, orderId);
       if (order.refundRequest) {
         if (order.refundRequest.status === RefundStatus.failed) {

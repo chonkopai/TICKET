@@ -16,11 +16,13 @@ export interface AuthConfig {
   telegramBotUsername: string;
   botApiSecret: string;
   organizerRequiresApproval: boolean;
+  eventReviewRequired?: boolean;
 }
 
 export interface AuthenticatedPrincipal {
   userId: string;
   role: UserRole;
+  restricted?: boolean;
   sessionFamilyId?: string;
   authenticatedAt?: number;
 }

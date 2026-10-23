@@ -10,16 +10,18 @@ export function guestEventTiming(event: { startsAt?: Date | null; endsAt?: Date 
 }
 
 export const guestOrganizerSelect = {
-  name: true, phone: true, email: true,
+  name: true, phone: true, email: true, organizerVerifiedAt:true, blockedAt:true,
   organizerProfile: { select: { organizationName: true, address: true, showContactInfo: true } },
 } as const;
 
 export function guestOrganizerContact(organizer: {
+  organizerVerifiedAt?:Date|null; blockedAt?:Date|null;
   name: string | null; phone: string | null; email: string | null;
   organizerProfile: { organizationName: string | null; address: string | null; showContactInfo: boolean } | null;
 }): GuestOrganizerContact {
   const profile = organizer.organizerProfile;
   return {
+    verified:!!organizer.organizerVerifiedAt&&!organizer.blockedAt,
     name: profile?.organizationName ?? organizer.name,
     phone: profile?.showContactInfo ? organizer.phone : null,
     email: profile?.showContactInfo ? organizer.email : null,

@@ -114,6 +114,7 @@ export interface UseGroupPassResponse {
 }
 
 export interface GuestOrganizerContact {
+  verified?: boolean;
   name: string | null;
   phone: string | null;
   email: string | null;

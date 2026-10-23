@@ -67,11 +67,15 @@ services:
       # OIDC credentials come from the API's runtime env_file, never Docker build args.
       TELEGRAM_OIDC_ENABLED: ${TELEGRAM_OIDC_ENABLED:-false}
       DRAFT_MEDIA_STORAGE_DIR: /data/draft-media
+      PRIVATE_SUPPORT_STORAGE_DIR: /data/private-support
+      STAFF_ENABLED: ${STAFF_ENABLED:-false}
+      ADMIN_ORIGIN: https://${ADMIN_DOMAIN:-staging-admin.ticketron.live}
       PAYMENT_PROVIDER_NAME: mock
-      TRANSACTIONAL_NOTIFICATIONS_ENABLED: "false"
+      TRANSACTIONAL_NOTIFICATIONS_ENABLED: ${TRANSACTIONAL_NOTIFICATIONS_ENABLED:-false}
     volumes:
       - poster_data:/data/posters
       - draft_media_data:/data/draft-media
+      - private_support_data:/data/private-support
     depends_on:
       postgres:
         condition: service_healthy
@@ -128,6 +132,9 @@ services:
       NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:?Set TELEGRAM_BOT_USERNAME in .env.demo}
       API_INTERNAL_URL: http://api:3001
       BOT_INTERNAL_URL: http://bot:3002
+      STAFF_ENABLED: ${STAFF_ENABLED:-false}
+      ADMIN_ORIGIN: https://${ADMIN_DOMAIN:-staging-admin.ticketron.live}
+      STAFF_GATEWAY_SECRET: ${STAFF_GATEWAY_SECRET:-}
       WEB_ORIGIN: https://${SITE_DOMAIN:?Set SITE_DOMAIN in .env.demo}
       YANDEX_GEOCODER_API_KEY: ${YANDEX_GEOCODER_API_KEY:-}
     depends_on:
@@ -146,6 +153,7 @@ services:
       - "443:443/udp"
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN:?Set SITE_DOMAIN in .env.demo}
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN:-staging-admin.ticketron.live}
     volumes:
       - ./deploy/Caddyfile.demo:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -160,5 +168,6 @@ volumes:
   redis_data:
   poster_data:
   draft_media_data:
+  private_support_data:
   caddy_data:
   caddy_config:

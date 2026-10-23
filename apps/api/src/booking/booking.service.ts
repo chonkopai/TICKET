@@ -642,17 +642,23 @@ export class BookingService {
         if (existing.status !== "processing") return { accepted: true as const, duplicate: true, reviewRequired: existing.status === "ignored" };
       }
       const claim = existing ?? await transaction.webhookEvent.create({ data: { provider: webhook.provider, providerEventId: webhook.eventId, eventType: webhook.eventType, payloadHash: webhook.payloadHash, ...(webhook.metadata ? { metadata: webhook.metadata as Prisma.InputJsonObject } : {}) } });
-      const payment = await transaction.payment.findFirst({ where: { provider: webhook.provider, providerPaymentId: webhook.providerPaymentId }, include: { order: { include: { booking: { include: { tableHold: true } } } } } });
+      let payment = await transaction.payment.findFirst({ where: { provider: webhook.provider, providerPaymentId: webhook.providerPaymentId } });
       if (!payment) throw new NotFoundException({ code: "PAYMENT_NOT_FOUND", message: "Payment attempt was not found" });
       if (webhook.orderId && webhook.orderId !== payment.orderId) throw new ConflictException({ code: "PAYMENT_ORDER_MISMATCH", message: "Payment does not belong to this order" });
       if (payment.amount !== webhook.amount || payment.currency.trim().toUpperCase() !== webhook.currency.trim().toUpperCase()) throw new ConflictException({ code: "PAYMENT_AMOUNT_MISMATCH", message: "Payment amount or currency does not match" });
       await transaction.webhookEvent.update({ where: { id: claim.id }, data: { paymentId: payment.id, orderId: payment.orderId } });
       await lockOrder(transaction, payment.orderId);
+      payment=await transaction.payment.findUniqueOrThrow({where:{id:payment.id}});
       const order = await transaction.order.findUnique({ where: { id: payment.orderId }, include: { booking: { include: { tableHold: true } } } });
       if (!order) throw orderNotFound();
       if (webhook.eventType === "payment.succeeded") {
+        // A delayed duplicate of the original payment must not resurrect a refunded payment.
+        if(order.paymentStatus===PaymentStatus.refunded&&payment.status===PaymentStatus.refunded){
+          await transaction.webhookEvent.update({where:{id:claim.id},data:{status:"processed",processedAt:this.clock.now()}});
+          return {accepted:true as const,duplicate:true,reviewRequired:false};
+        }
         if (order.paymentStatus === PaymentStatus.paid) {
-          await transaction.payment.update({ where: { id: payment.id }, data: { status: PaymentStatus.paid, payloadHash: webhook.payloadHash, ...(webhook.metadata ? { rawWebhook: webhook.metadata as Prisma.InputJsonObject } : {}), webhookReceivedAt: this.clock.now() } });
+          await transaction.payment.update({ where: { id: payment.id }, data: { status: PaymentStatus.paid, payloadHash: webhook.payloadHash, ...(webhook.metadata ? { rawWebhook: webhook.metadata as Prisma.InputJsonObject } : {}), ...(payment.webhookReceivedAt?{}:{webhookReceivedAt:this.clock.now()}) } });
           await transaction.webhookEvent.update({ where: { id: claim.id }, data: { status: "processed", processedAt: this.clock.now() } });
           return { accepted: true as const, duplicate: false, reviewRequired: false };
         }
@@ -660,7 +666,7 @@ export class BookingService {
         const eligible = order.paymentStatus === PaymentStatus.pending && (!order.expiresAt || order.expiresAt > this.clock.now()) && (!order.booking || (order.booking.status === BookingStatus.pending && order.booking.tableHold?.status === TableHoldStatus.active));
         if (eligible) {
           await this.settleSucceededInTransaction(transaction, order.id);
-          await transaction.payment.update({ where: { id: payment.id }, data: { status: PaymentStatus.paid, payloadHash: webhook.payloadHash, ...(webhook.metadata ? { rawWebhook: webhook.metadata as Prisma.InputJsonObject } : {}), webhookReceivedAt: this.clock.now() } });
+          await transaction.payment.update({ where: { id: payment.id }, data: { status: PaymentStatus.paid, payloadHash: webhook.payloadHash, ...(webhook.metadata ? { rawWebhook: webhook.metadata as Prisma.InputJsonObject } : {}), ...(payment.webhookReceivedAt?{}:{webhookReceivedAt:this.clock.now()}) } });
           await this.domainEvents.append(transaction, { eventType: "payment.succeeded", aggregateType: "payment", aggregateId: payment.id, payload: { orderId: order.id, provider: webhook.provider, eventId: webhook.eventId } });
           await transaction.auditLog.create({ data: { actorId: order.buyerUserId, action: "payment.succeeded", entityType: "payment", entityId: payment.id, meta: { orderId: order.id, eventId: webhook.eventId } } });
         } else {
@@ -668,7 +674,7 @@ export class BookingService {
           if (order.paymentStatus === PaymentStatus.pending && order.expiresAt && order.expiresAt <= this.clock.now()) {
             await this.failOrderInTransaction(transaction, order.id, "expired");
           }
-          await transaction.payment.update({ where: { id: payment.id }, data: { status: PaymentStatus.paid, payloadHash: webhook.payloadHash, ...(webhook.metadata ? { rawWebhook: webhook.metadata as Prisma.InputJsonObject } : {}), webhookReceivedAt: this.clock.now() } });
+          await transaction.payment.update({ where: { id: payment.id }, data: { status: PaymentStatus.paid, payloadHash: webhook.payloadHash, ...(webhook.metadata ? { rawWebhook: webhook.metadata as Prisma.InputJsonObject } : {}), ...(payment.webhookReceivedAt?{}:{webhookReceivedAt:this.clock.now()}) } });
           const review = await transaction.outboxEvent.findFirst({ where: { eventType: "payment.review_required", aggregateId: order.id } });
           if (!review) {
             await this.domainEvents.append(transaction, { eventType: "payment.review_required", aggregateType: "order", aggregateId: order.id, payload: { provider: webhook.provider, providerPaymentId: webhook.providerPaymentId, reason: "late_or_released_order" } });
@@ -739,6 +745,7 @@ export class BookingService {
         if (snapshot(current.order.checkoutSnapshot).itemKind === "cart") throw new ConflictException({ code: "CART_CANCELLATION_REQUIRES_ORDER_REFUND", message: "For a combined purchase, contact the organizer to refund the whole order" });
         if (current.seatAllocation) throw new ConflictException({ code: "TABLE_CHILD_TICKET_CANCEL", message: "Cancel the whole table booking instead of an individual table seat" });
         await lockOrder(transaction, current.orderId);
+        if(await transaction.staffRefund.findFirst({where:{orderId:current.orderId,status:{in:["requested","processing"]}}}))throw new ConflictException({code:"REFUND_IN_PROGRESS"});
         if (current.status === TicketStatus.used || current.status === TicketStatus.refunded) {
           throw cancellationNotAllowed("TICKET_CANCELLATION_NOT_ALLOWED");
         }
@@ -783,6 +790,7 @@ export class BookingService {
         if (!booking) throw resourceNotFound("BOOKING_NOT_FOUND");
         if (snapshot(booking.order.checkoutSnapshot).itemKind === "cart") throw new ConflictException({ code: "CART_CANCELLATION_REQUIRES_ORDER_REFUND", message: "For a combined purchase, contact the organizer to refund the whole order" });
         await lockOrder(transaction, booking.orderId);
+        if(await transaction.staffRefund.findFirst({where:{orderId:booking.orderId,status:{in:["requested","processing"]}}}))throw new ConflictException({code:"REFUND_IN_PROGRESS"});
         await lockTable(transaction, booking.tableId);
         if (booking.status === BookingStatus.expired) throw cancellationNotAllowed("BOOKING_CANCELLATION_NOT_ALLOWED");
         assertAcceptedCancellation(booking.order);

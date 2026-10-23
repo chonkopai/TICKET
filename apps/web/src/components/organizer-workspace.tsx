@@ -3,6 +3,9 @@
 import type { AuthUser, OrganizerDashboard, OrganizerProfile } from "@event-platform/shared-types";
 import Link from "next/link";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { VerifiedOrganizerBadge } from "./verified-organizer-badge";
+import { useSupportText } from "./platform-support";
+import type { Paged,SupportCase } from "@event-platform/shared-types";
 import { ProtectedRoute } from "../app/(auth)/_components/protected-route";
 import { logoutSession } from "../app/(auth)/_lib/api";
 import { getSession, subscribeSession } from "../app/(auth)/_lib/session";
@@ -26,13 +29,14 @@ export function useOrganizerWorkspace() {
   return value;
 }
 
-export function OrganizerWorkspaceShell({ active, children }: { active: "events" | "profile"; children: ReactNode }) {
+export function OrganizerWorkspaceShell({ active, children }: { active: "events" | "profile" | "support" | "verification"; children: ReactNode }) {
   return <main className="account-workspace organizer-workspace"><ProtectedRoute><Workspace active={active}>{children}</Workspace></ProtectedRoute></main>;
 }
 
-function Workspace({ active, children }: { active: "events" | "profile"; children: ReactNode }) {
-  const locale = useLocale(); const copy = ORGANIZER_WORKSPACE_COPY[locale];
-  const profile = useAccountResource<OrganizerProfile>("/me/organizer-profile", false);
+function Workspace({ active, children }: { active: "events" | "profile" | "support" | "verification"; children: ReactNode }) {
+  const locale = useLocale(); const copy = ORGANIZER_WORKSPACE_COPY[locale]; const t=useSupportText();
+  const inbox=useAccountResource<Paged<SupportCase>>("/platform-support/cases?limit=100");
+  const profile = useAccountResource<OrganizerProfile>("/me/organizer-profile");
   const dashboard = useAccountResource<OrganizerDashboard>("/api/organizer/events/dashboard/summary");
   const [user, setUser] = useState<AuthUser | null>(() => getSession()?.user ?? null);
   const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
@@ -52,14 +56,16 @@ function Workspace({ active, children }: { active: "events" | "profile"; childre
   const complete = Boolean(profile.data?.email && profile.data?.phone);
   return <WorkspaceContext value={{ profile, dashboard, user }}><div className="account-layout organizer-layout">
     <aside className="account-sidebar organizer-sidebar">
-      <div className="account-identity"><OrganizerAvatar name={name} photoUrl={profile.data?.photoUrl ?? user?.photoUrl ?? null} /><div className="account-identity-details"><p className="account-name">{name}</p><p className="account-role">{ORGANIZER_EVENTS_COPY[locale].organizer}</p></div></div>
+      <div className="account-identity"><OrganizerAvatar name={name} photoUrl={profile.data?.photoUrl ?? user?.photoUrl ?? null} /><div className="account-identity-details"><p className="account-name">{name}<VerifiedOrganizerBadge verified={!!profile.data?.verified}/></p><p className="account-role">{ORGANIZER_EVENTS_COPY[locale].organizer}</p></div></div>
       <nav className="account-navigation organizer-navigation" aria-label={copy.sections}><p className="organizer-eyebrow">{copy.sections}</p>
         <Link className={active === "events" ? "is-active" : ""} aria-current={active === "events" ? "page" : undefined} href={localeUrl("/organizer/events", locale)}><OrganizerIcon name="calendar-days" /><span>{copy.events}</span><span className="organizer-nav-count">{dashboard.data?.totalEvents ?? "…"}</span></Link>
         <Link className={active === "profile" ? "is-active" : ""} aria-current={active === "profile" ? "page" : undefined} href={localeUrl("/organizer/profile", locale)}><AccountIcon name="user-round" /><span>{copy.profile}</span></Link>
-      </nav>
+      <Link className={active === "support" ? "is-active" : ""} href={localeUrl("/organizer/support",locale)}><AccountIcon name="messages"/><span>{t("Поддержка TICKET","TICKET қолдауы","TICKET support")}</span>{inbox.data?.items.some(v=>v.unread)?<span aria-label={t("Новые ответы","Жаңа жауаптар","Unread replies")}>●</span>:null}</Link>
+        <Link className={active === "verification" ? "is-active" : ""} href={localeUrl("/organizer/verification",locale)}><AccountIcon name="user-round"/><span>{t("Проверка организатора","Ұйымдастырушыны тексеру","Organizer verification")}</span></Link></nav>
+      <div className="account-organizer"><h2>{t("Проверка организатора","Ұйымдастырушыны тексеру","Organizer verification")}</h2><p>{profile.data?.verified?t("Ваши данные проверены.","Деректеріңіз тексерілген.","Your submitted details have been reviewed."):t("Подайте документы, чтобы получить отметку рядом с именем.","Атыңыздың жанында белгі алу үшін құжат жіберіңіз.","Submit your documents to receive a badge beside your name.")}</p><Link className="account-text-link" href={localeUrl("/organizer/verification",locale)}>{t("Открыть заявку","Өтінішті ашу","Open application")}</Link></div>
       {profile.data ? <div className="account-organizer organizer-contact-status"><h2>{complete ? copy.complete : copy.incomplete}</h2><p>{complete ? copy.completeHint : copy.contactHint}</p><Link className="account-text-link" href={localeUrl("/organizer/profile", locale)}>{complete ? copy.profile : copy.fillProfile}<AccountIcon name="arrow-right" /></Link></div> : profile.error ? <OrganizerResourceError message={profile.error} onRetry={profile.retry} /> : <p className="account-muted" role="status">{ORGANIZER_EVENTS_COPY[locale].loading}</p>}
       <Link className="account-text-link organizer-guest-link" href={localeUrl("/account?tab=profile", locale)}>{copy.guest}<AccountIcon name="arrow-up-right" /></Link>
-      <div className="account-utilities"><button type="button" onClick={() => help.current?.showModal()}><AccountIcon name="circle-help" />{copy.help}</button><button type="button" disabled={busy} onClick={() => void logout()}><AccountIcon name="log-out" />{copy.logout}</button><p>© {new Date().getFullYear()} TICKET</p></div>
+      <div className="account-utilities"><Link href={localeUrl("/organizer/support",locale)}><AccountIcon name="circle-help" />{copy.help}</Link><button type="button" disabled={busy} onClick={() => void logout()}><AccountIcon name="log-out" />{copy.logout}</button><p>© {new Date().getFullYear()} TICKET</p></div>
     </aside>
     <div className="account-content organizer-content">{error ? <OrganizerResourceError message={error} /> : null}{children}</div>
     <dialog className="account-support account-card" aria-labelledby="organizer-help-title" ref={help}><div className="account-card-toolbar"><h2 id="organizer-help-title">{copy.help}</h2><button className="account-button" type="button" onClick={() => help.current?.close()}>{copy.close}</button></div><p>{copy.helpHint}</p><div className="account-support-actions"><Link className="account-button account-button-primary" href={localeUrl("/organizer/events", locale)} onClick={() => help.current?.close()}>{copy.events}</Link><Link className="account-text-link" href={localeUrl("/organizer/profile", locale)} onClick={() => help.current?.close()}>{copy.profile}</Link></div></dialog>

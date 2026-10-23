@@ -454,6 +454,8 @@ async function lockOrder(transaction: Prisma.TransactionClient, id: string): Pro
 }
 
 async function ensureNotRefunding(transaction: Prisma.TransactionClient, orderId: string): Promise<void> {
+  const staffRefund = await transaction.staffRefund.findFirst({where:{orderId,status:{in:["requested","processing"]}},select:{id:true}});
+  if(staffRefund) throw new ConflictException({code:"REFUND_IN_PROGRESS"});
   const refund = await transaction.refundRequest.findUnique({ where: { orderId }, select: { status: true } });
   if (refund && refund.status !== "failed") throw new ConflictException({ code: "REFUND_IN_PROGRESS", message: "This order is being refunded" });
 }

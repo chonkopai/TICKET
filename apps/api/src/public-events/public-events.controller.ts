@@ -1,5 +1,5 @@
 import type { PublicEvent, PublicEventList, PublicEventSummary } from "@event-platform/shared-types";
-import { Controller, Get, Inject, Param, ParseUUIDPipe, Query } from "@nestjs/common";
+import { Controller, Get, Header, Inject, Param, ParseUUIDPipe, Query } from "@nestjs/common";
 
 import { ExplicitDtoPipe } from "../events/explicit-dto.pipe.js";
 import { PublicEventsQueryDto } from "./public-events.dto.js";
@@ -10,6 +10,7 @@ export class PublicEventsController {
   constructor(@Inject(PublicEventsService) private readonly events: PublicEventsService) {}
 
   @Get()
+  @Header("Cache-Control","no-store")
   list(@Query(new ExplicitDtoPipe(PublicEventsQueryDto)) query: PublicEventsQueryDto): Promise<PublicEventList> {
     return this.events.list(query);
   }
@@ -20,11 +21,13 @@ export class PublicEventsController {
   }
 
   @Get(":id")
+  @Header("Cache-Control","no-store")
   get(@Param("id", new ParseUUIDPipe({ version: "4" })) id: string, @Query("locale") locale?: string): Promise<PublicEvent> {
     return this.events.get(id, new Date(), locale);
   }
 
   @Get(":id/summary")
+  @Header("Cache-Control","no-store")
   summary(@Param("id", new ParseUUIDPipe({ version: "4" })) id: string, @Query("locale") locale?: string): Promise<PublicEventSummary | null> {
     return this.events.summary(id, new Date(), locale);
   }

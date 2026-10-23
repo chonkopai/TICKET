@@ -27,7 +27,7 @@ export class TransactionalNotificationsService implements OnModuleInit, OnModule
 
   onModuleInit(): void {
     const env = loadApiEnv();
-    if (env.NODE_ENV !== "production" && !env.TRANSACTIONAL_NOTIFICATIONS_ENABLED) return;
+    if (!env.TRANSACTIONAL_NOTIFICATIONS_ENABLED) return;
     void this.tick().catch((error: unknown) => this.logger.error("Transactional notification scan failed", error));
     this.timer = setInterval(() => void this.tick().catch((error: unknown) => this.logger.error("Transactional notification scan failed", error)), 60_000);
     this.timer.unref();

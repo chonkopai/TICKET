@@ -4,9 +4,9 @@ import { guestOrganizerContact, guestOrderChatPath } from "./guest-ticket-detail
 describe("guest ticket action data", () => {
   const organizer = { name: "Organizer", phone: "+77000000000", email: "organizer@example.test", organizerProfile: { organizationName: "Events", address: "Office", showContactInfo: false } };
   it("never exposes private organizer contacts without their publication preference", () => {
-    expect(guestOrganizerContact(organizer)).toEqual({ name: "Events", phone: null, email: null, address: null });
-    expect(guestOrganizerContact({ ...organizer, organizerProfile: null })).toEqual({ name: "Organizer", phone: null, email: null, address: null });
-    expect(guestOrganizerContact({ ...organizer, organizerProfile: { ...organizer.organizerProfile, showContactInfo: true } })).toEqual({ name: "Events", phone: organizer.phone, email: organizer.email, address: "Office" });
+    expect(guestOrganizerContact(organizer)).toEqual({ verified:false, name: "Events", phone: null, email: null, address: null });
+    expect(guestOrganizerContact({ ...organizer, organizerProfile: null })).toEqual({ verified:false, name: "Organizer", phone: null, email: null, address: null });
+    expect(guestOrganizerContact({ ...organizer, organizerProfile: { ...organizer.organizerProfile, showContactInfo: true } })).toEqual({ verified:false, name: "Events", phone: organizer.phone, email: organizer.email, address: "Office" });
   });
   it("provides order chat only for the buyer of a settled order, including after a refund", () => {
     for (const paymentStatus of ["paid", "refunded", "cancelled"]) {

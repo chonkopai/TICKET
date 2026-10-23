@@ -129,7 +129,7 @@ export class PublicEventsService {
 
   async locations(): Promise<Array<{ countryCode: string; cities: string[] }>> {
     const rows = await this.database.event.findMany({
-      where: { status: EventStatus.published },
+      where: { status: EventStatus.published, moderationStatus:{in:["clear","approved","sales_paused"]}, organizer:{blockedAt:null} },
       select: { countryCode: true, city: true },
       distinct: ["countryCode", "city"],
     });
@@ -164,7 +164,7 @@ export class PublicEventsService {
       throw new BadRequestException({ code: "EVENT_PRICE_RANGE_INVALID", message: "Minimum price must not exceed maximum price" });
     }
     validateDateRange(query.from, query.to);
-    const where: Prisma.EventWhereInput = { status: EventStatus.published };
+    const where: Prisma.EventWhereInput = { status: EventStatus.published, moderationStatus:{in:["clear","approved","sales_paused"]}, organizer:{blockedAt:null} };
     const search = query.search?.trim();
     if (search) {
       where.OR = [
@@ -201,7 +201,7 @@ export class PublicEventsService {
           skip: (query.page - 1) * query.limit,
           take: query.limit,
           include: {
-            organizer: { select: { name: true, photoUrl: true } },
+            organizer: { select: { organizerVerifiedAt:true, blockedAt:true, name: true, photoUrl: true } },
             ticketTypes: { where: { isInternal: false }, select: { tickets: { where: { status: { in: [TicketStatus.paid, TicketStatus.active, TicketStatus.used] } }, select: { id: true } } } },
           },
         }),
@@ -214,7 +214,7 @@ export class PublicEventsService {
     // sorting/filtering. Scan in bounded chunks; never silently truncate totals.
     const structuralMatches = query.includeRemaining
       ? new Set((await this.database.event.findMany({ where, select: { id: true } })).map(event => event.id)) : null;
-    const candidateWhere = query.includeRemaining ? { status: EventStatus.published } : where;
+    const candidateWhere = query.includeRemaining ? { status: EventStatus.published, moderationStatus:{in:["clear","approved","sales_paused"]}, organizer:{blockedAt:null} } : where;
     const candidateCount = await this.database.event.count({ where: candidateWhere });
     let summaries: Array<PublicEventSummary & { popularity: number; publishedAt: string }> = [];
     for (let skip = 0; skip < candidateCount; skip += 100) {
@@ -224,7 +224,7 @@ export class PublicEventsService {
         skip,
         take: 100,
         include: {
-          organizer: { select: { name: true, photoUrl: true } },
+          organizer: { select: { organizerVerifiedAt:true, blockedAt:true, name: true, photoUrl: true } },
           ticketTypes: { where: { isInternal: false }, select: { tickets: { where: { status: { in: [TicketStatus.paid, TicketStatus.active, TicketStatus.used] } }, select: { id: true } } } },
         },
       });
@@ -277,9 +277,9 @@ export class PublicEventsService {
 
   async summary(id: string, now = new Date(), locale?: string): Promise<PublicEventSummary | null> {
     const event = await this.database.event.findFirst({
-      where: { id, status: EventStatus.published },
+      where: { id, status: EventStatus.published, moderationStatus:{in:["clear","approved","sales_paused"]}, organizer:{blockedAt:null} },
       include: {
-        organizer: { select: { name: true, photoUrl: true } },
+        organizer: { select: { organizerVerifiedAt:true, blockedAt:true, name: true, photoUrl: true } },
         ticketTypes: {
           where: { isInternal: false },
           select: {
@@ -298,8 +298,8 @@ export class PublicEventsService {
 
   async get(id: string, now = new Date(), locale?: string): Promise<PublicEvent> {
     const event = await this.database.event.findFirst({
-      where: { id, status: EventStatus.published },
-      include: { organizer: { select: { name: true, photoUrl: true, email: true, phone: true, organizerProfile: { select: { organizationName: true, address: true, showContactInfo: true } } } } },
+      where: { id, status: EventStatus.published, moderationStatus:{in:["clear","approved","sales_paused"]}, organizer:{blockedAt:null} },
+      include: { organizer: { select: { organizerVerifiedAt:true, blockedAt:true, name: true, photoUrl: true, email: true, phone: true, organizerProfile: { select: { organizationName: true, address: true, showContactInfo: true } } } } },
     });
     if (!event) throw new NotFoundException({ code: "EVENT_NOT_FOUND", message: "Event was not found" });
     const serialized = await this.serialize(event, now, false);
@@ -356,7 +356,7 @@ export class PublicEventsService {
   ): Promise<OrganizerEventPreview> {
     const event = await this.database.event.findFirst({
       where: isAdmin ? { id } : { id, organizerId },
-      include: { organizer: { select: { name: true, photoUrl: true, email: true, phone: true, organizerProfile: { select: { organizationName: true, address: true, showContactInfo: true } } } } },
+      include: { organizer: { select: { organizerVerifiedAt:true, blockedAt:true, name: true, photoUrl: true, email: true, phone: true, organizerProfile: { select: { organizationName: true, address: true, showContactInfo: true } } } } },
     });
     if (!event) throw new NotFoundException({ code: "EVENT_NOT_FOUND", message: "Event was not found" });
     const serialized = await this.serialize(event, now, true);
@@ -380,7 +380,7 @@ export class PublicEventsService {
   }
 
   private async serialize(
-    event: Prisma.EventGetPayload<{ include: { organizer: { select: { name: true; photoUrl: true; email: true; phone: true; organizerProfile: { select: { organizationName: true; address: true; showContactInfo: true } } } } } }>,
+    event: Prisma.EventGetPayload<{ include: { organizer: { select: { organizerVerifiedAt:true; blockedAt:true; name: true; photoUrl: true; email: true; phone: true; organizerProfile: { select: { organizationName: true; address: true; showContactInfo: true } } } } } }>,
     now: Date,
     includeUnpublished: boolean,
   ): Promise<PublicEvent> {
@@ -417,6 +417,7 @@ export class PublicEventsService {
       ticketTypes,
       tables,
       organizer: {
+        verified:!!event.organizer.organizerVerifiedAt&&!event.organizer.blockedAt,
         name: event.organizer.organizerProfile?.organizationName ?? event.organizer.name,
         personName: event.organizer.organizerProfile?.showContactInfo ? event.organizer.name : null,
         photoUrl: event.organizer.organizerProfile?.showContactInfo ? event.organizer.photoUrl : null,
@@ -443,7 +444,7 @@ export class PublicEventsService {
     showFullAmountForDeposit: boolean;
     publishedAt: Date | null;
     updatedAt: Date;
-    organizer: { name: string | null; photoUrl: string | null };
+    organizer: { organizerVerifiedAt?: Date | null; blockedAt?: Date | null; name: string | null; photoUrl: string | null };
     ticketTypes: Array<{ tickets: Array<{ id: string }> }>;
   }, now = new Date()): Promise<PublicEventSummary & { popularity: number; publishedAt: string }> {
     const date = formatDate(event.date);
@@ -504,7 +505,7 @@ export class PublicEventsService {
       remainingTables: tables.filter((table) => table.availability === "available" && table.saleMode === "whole_table").length,
       remainingSeats: seats.length,
       saleStatus: event.paymentMode === "deposit" ? "temporarily_unavailable" : saleStatus(ticketTypes, tables, seats.length, seatCandidates.length > seats.length && seatCandidates.some((seat) => seat.ticketType?.salesStartAt && seat.ticketType.salesStartAt > now), seatCandidates.length > seats.length && seatCandidates.every((seat) => seat.ticketType?.salesEndAt && seat.ticketType.salesEndAt <= now), activeTicketHolds + activeSeatHolds + activeTableHolds > 0, now),
-      organizer: { name: event.organizer.name, photoUrl: event.organizer.photoUrl },
+      organizer: { verified:!!event.organizer.organizerVerifiedAt&&!event.organizer.blockedAt, name: event.organizer.name, photoUrl: event.organizer.photoUrl },
       popularity: event.ticketTypes.reduce((sum, type) => sum + type.tickets.length, 0),
       publishedAt: (event.publishedAt ?? event.updatedAt).toISOString(),
     };

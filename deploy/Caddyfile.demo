@@ -11,3 +11,21 @@
     reverse_proxy web:3000
   }
 }
+
+# Use staging-admin.ticketron.live for staging and admin.ticketron.live for production.
+{$ADMIN_DOMAIN} {
+  encode zstd gzip
+  header {
+    X-Robots-Tag "noindex, nofollow"
+    Referrer-Policy "no-referrer"
+    X-Content-Type-Options "nosniff"
+  }
+  # Only staff pages, their BFF and static bundles are exposed on this host.
+  @staff path / /admin /admin/* /staff-api/* /_next/* /favicon.ico
+  handle @staff {
+    reverse_proxy web:3000
+  }
+  handle {
+    respond "Not found" 404
+  }
+}

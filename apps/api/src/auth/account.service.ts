@@ -77,8 +77,8 @@ export class AccountService {
     ]);
     return {
       items: rows.map((row) => {
-        const payload = row.payload && typeof row.payload === "object" && !Array.isArray(row.payload) ? row.payload as { text?: unknown; orderId?: unknown } : {};
-        return { orderId: typeof payload.orderId === "string" && /^[0-9a-f-]{36}$/.test(payload.orderId) ? payload.orderId : null, id: row.id, eventId: row.eventId, eventTitle: row.event?.title ?? null, type: row.type, text: typeof payload.text === "string" ? payload.text : "Уведомление о событии", createdAt: row.createdAt.toISOString(), readAt: row.readAt?.toISOString() ?? null };
+        const payload = row.payload && typeof row.payload === "object" && !Array.isArray(row.payload) ? row.payload as { text?: unknown; orderId?: unknown;caseId?:unknown } : {};
+        return {caseId:typeof payload.caseId==="string"&&/^[a-f0-9-]{36}$/i.test(payload.caseId)?payload.caseId:null, orderId: typeof payload.orderId === "string" && /^[0-9a-f-]{36}$/.test(payload.orderId) ? payload.orderId : null, id: row.id, eventId: row.eventId, eventTitle: row.event?.title ?? null, type: row.type, text: typeof payload.text === "string" ? payload.text : "Уведомление о событии", createdAt: row.createdAt.toISOString(), readAt: row.readAt?.toISOString() ?? null };
       }),
       page, limit, total, unreadCount, hasNext: page * limit < total,
     };
@@ -97,9 +97,9 @@ export class AccountService {
   async organizerProfile(userId: string, fallbackName: string | null): Promise<OrganizerProfile> {
     const [row, user] = await Promise.all([
       this.database.organizerProfile.findUnique({ where: { userId } }),
-      this.database.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true, email: true, phone: true, photoUrl: true } }),
+      this.database.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true, email: true, phone: true, photoUrl: true, organizerVerifiedAt:true, blockedAt:true } }),
     ]);
-    return { organizationName: row?.organizationName ?? fallbackName ?? "Организатор", name: user.name, email: user.email, phone: user.phone, photoUrl: user.photoUrl, address: row?.address ?? null, showContactInfo: row?.showContactInfo ?? false };
+    return { verified:!!user.organizerVerifiedAt&&!user.blockedAt, organizationName: row?.organizationName ?? fallbackName ?? "Организатор", name: user.name, email: user.email, phone: user.phone, photoUrl: user.photoUrl, address: row?.address ?? null, showContactInfo: row?.showContactInfo ?? false };
   }
 
   async updateOrganizerProfile(userId: string, input: UpdateOrganizerProfileDto): Promise<OrganizerProfile> {
@@ -121,7 +121,7 @@ export class AccountService {
           ...(input.email !== undefined ? { email: input.email?.trim() || null } : {}),
           ...(input.phone !== undefined ? { phone: input.phone?.trim() || null } : {}),
         },
-        select: { name: true, email: true, phone: true, photoUrl: true },
+        select: { name: true, email: true, phone: true, photoUrl: true, organizerVerifiedAt:true, blockedAt:true },
       });
       await recordAccountMutation(transaction, userId, "organizer_profile.updated", Object.keys(input));
       return { organizationName: row.organizationName, name: user.name, email: user.email, phone: user.phone, photoUrl: user.photoUrl, address: row.address, showContactInfo: row.showContactInfo };

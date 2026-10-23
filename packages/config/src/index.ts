@@ -63,7 +63,13 @@ export const apiEnvSchema = z.object({
   BOT_API_SECRET: z.string().min(32),
   GOOGLE_CLIENT_ID: z.string().endsWith(".apps.googleusercontent.com").optional(),
   WEB_ORIGIN: z.url().default("http://localhost:3000"),
+  STAFF_ENABLED: booleanSchema,
+  ADMIN_ORIGIN: z.url().default("http://admin.localhost:3000"),
+  STAFF_GATEWAY_SECRET: z.string().min(32).optional(),
+  STAFF_MFA_ENCRYPTION_KEY: z.string().regex(/^[a-fA-F0-9]{64}$/).optional(),
+  PRIVATE_SUPPORT_STORAGE_DIR: z.string().min(1).default("var/private-support"),
   ORGANIZER_REQUIRES_APPROVAL: booleanSchema,
+  EVENT_PUBLICATION_REQUIRES_REVIEW: booleanSchema,
   EVENT_CONTENT_V2_ENABLED: booleanSchema,
   TRANSACTIONAL_NOTIFICATIONS_ENABLED: booleanSchema,
   POSTER_STORAGE_DIR: z.string().min(1).default("var/posters"),
@@ -85,6 +91,9 @@ export const apiEnvSchema = z.object({
   ...providerSchema.shape,
   ...translationEnvSchema.shape,
 }).superRefine((env, context) => {
+  if (env.STAFF_ENABLED && (!env.STAFF_GATEWAY_SECRET || !env.STAFF_MFA_ENCRYPTION_KEY)) context.addIssue({ code:"custom",path:["STAFF_ENABLED"],message:"Staff access requires independent gateway and MFA encryption secrets" });
+  if (env.STAFF_ENABLED && (new URL(env.ADMIN_ORIGIN).origin !== env.ADMIN_ORIGIN || (env.NODE_ENV === "production" && (!env.ADMIN_ORIGIN.startsWith("https://") || !isAbsolute(env.PRIVATE_SUPPORT_STORAGE_DIR))))) context.addIssue({code:"custom",path:["ADMIN_ORIGIN"],message:"Admin origin must be canonical HTTPS and private uploads must use an absolute persistent path in production"});
+  if (env.STAFF_ENABLED && new Set([env.JWT_SECRET,env.JWT_REFRESH_SECRET,env.BOT_API_SECRET,env.STAFF_GATEWAY_SECRET,env.STAFF_MFA_ENCRYPTION_KEY]).size!==5) context.addIssue({code:"custom",path:["STAFF_GATEWAY_SECRET"],message:"Staff secrets must be independent of public authentication secrets"});
   if (env.TELEGRAM_OIDC_ENABLED && (!env.TELEGRAM_OIDC_CLIENT_ID || !env.TELEGRAM_OIDC_CLIENT_SECRET)) context.addIssue({ code: "custom", path: ["TELEGRAM_OIDC_ENABLED"], message: "Telegram OIDC requires its Client ID and Client Secret" });
   if (env.TELEGRAM_OIDC_ENABLED && new URL(env.WEB_ORIGIN).origin !== env.WEB_ORIGIN) context.addIssue({ code: "custom", path: ["WEB_ORIGIN"], message: "Telegram OIDC web origin must be a canonical origin without a path or trailing slash" });
   if (env.TELEGRAM_OIDC_ENABLED && !env.WEB_ORIGIN.startsWith("https://") && !["http://localhost:3000", "http://127.0.0.1:3000"].includes(env.WEB_ORIGIN)) context.addIssue({ code: "custom", path: ["WEB_ORIGIN"], message: "Telegram OIDC requires HTTPS (except local development)" });

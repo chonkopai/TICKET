@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { defineConfig } from "vitest/config";
 
-const rootEnvPath = fileURLToPath(new URL("../../.env", import.meta.url));
+const rootEnvPath = process.env.ENV_FILE ?? fileURLToPath(new URL("../../.env", import.meta.url));
 if (existsSync(rootEnvPath)) loadEnvFile(rootEnvPath);
 
 export default defineConfig({

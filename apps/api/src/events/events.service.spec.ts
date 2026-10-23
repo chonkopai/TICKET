@@ -126,6 +126,7 @@ describe("EventsService", () => {
     const service = new EventsService(prisma, new MemoryStorage(), new DomainEventsService());
     const event = await createLegacyFixture(organizerA, completeInput());
     eventIds.push(event.id);
+    await prisma.event.update({where:{id:event.id},data:{status:"published"}});
     const ticketType = await prisma.ticketType.create({ data: { eventId: event.id, name: "Workspace", price: 250_000, currency: "KZT", quantityTotal: 10, quantitySold: 2, status: "active" } });
     const order = await prisma.order.create({ data: { type: "ticket", buyerUserId: organizerA, amount: 500_000, currency: "KZT", paymentStatus: "paid", checkoutSnapshot: { eventId: event.id, eventTitle: event.title, itemName: ticketType.name, quantity: 2 } } });
     await prisma.ticket.create({ data: { ticketTypeId: ticketType.id, orderId: order.id, ownerUserId: organizerA, qrToken: randomUUID(), status: "active" } });

@@ -2,6 +2,7 @@
 .env*
 **/node_modules
 **/.next
+**/.next-*
 **/dist
 **/.turbo
 **/*.tsbuildinfo

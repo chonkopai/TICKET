@@ -1,5 +1,5 @@
 import { createCreationDraftSchema,creationDraftRevisionSchema,updateCreationDraftSchema } from "@event-platform/shared-types";
-import { BadRequestException,Body,Controller,Delete,Get,Inject,Param,Patch,Post,Req,Res,UseInterceptors,type NestInterceptor,type ExecutionContext,type CallHandler } from "@nestjs/common";
+import { BadRequestException,ForbiddenException,Body,Controller,Delete,Get,Inject,Param,Patch,Post,Req,Res,UseInterceptors,type NestInterceptor,type ExecutionContext,type CallHandler } from "@nestjs/common";
 import { AuthService } from "../auth/auth.service.js";
 import { createHmac,randomBytes } from "node:crypto";
 import { CreationDraftsService } from "./creation-drafts.service.js";
@@ -13,6 +13,7 @@ export function draftParse<T>(schema:{safeParse(input:unknown):{success:true;dat
 export async function draftContext(drafts:CreationDraftsService,auth:AuthService,id:string,request:DraftRequest,mutation=false):Promise<DraftAccess>{
   if(mutation)assertOrigin(request,drafts.config);
   const authorization=header(request,"authorization"),principal=authorization?await auth.authenticate(authorization.replace(/^Bearer /i,"")):undefined;
+  if(principal?.restricted)throw new ForbiddenException({code:"ACCOUNT_RESTRICTED"});
   const parts=cookie(request,"ticket_creation_browser")?.split("."),signature=parts?.[0]?createHmac("sha256",drafts.config.hmacSecret).update(`draft-browser:${parts[0]}`).digest("base64url"):"";
   const quotaScope=parts?.length===2&&/^[A-Za-z0-9_-]{43}$/.test(parts[0]!)&&equalSecret(parts[1]!,signature)?`browser:${parts[0]}`:`network:${request.socket?.remoteAddress??request.ip??"unknown"}`;
   return {capability:cookie(request,capabilityCookie(id)),principal,csrf:header(request,"x-draft-csrf"),quotaScope};

@@ -96,9 +96,9 @@ describe("PublicEventsService", () => {
   it("shows organizer contacts and photo only when public visibility is enabled", async () => {
     await prisma.user.update({ where: { id: organizerId }, data: { photoUrl: "/media/posters/profile.jpg" } });
     await prisma.organizerProfile.upsert({ where: { userId: organizerId }, create: { userId: organizerId, organizationName: "TICKET Studio", address: "Алматы", showContactInfo: false }, update: { organizationName: "TICKET Studio", address: "Алматы", showContactInfo: false } });
-    expect((await service.get(publishedId)).organizer).toEqual({ name: "TICKET Studio", personName: null, photoUrl: null, contact: null });
+    expect((await service.get(publishedId)).organizer).toEqual({ verified:false, name: "TICKET Studio", personName: null, photoUrl: null, contact: null });
     await prisma.organizerProfile.update({ where: { userId: organizerId }, data: { showContactInfo: true } });
-    expect((await service.get(publishedId)).organizer).toEqual({ name: "TICKET Studio", personName: "Организатор", photoUrl: "/media/posters/profile.jpg", contact: "+77010000000 · private@example.com · Алматы" });
+    expect((await service.get(publishedId)).organizer).toEqual({ verified:false, name: "TICKET Studio", personName: "Организатор", photoUrl: "/media/posters/profile.jpg", contact: "+77010000000 · private@example.com · Алматы" });
     await prisma.organizerProfile.delete({ where: { userId: organizerId } });
     await prisma.user.update({ where: { id: organizerId }, data: { photoUrl: null } });
   });

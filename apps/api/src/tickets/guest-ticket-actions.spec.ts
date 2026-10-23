@@ -20,7 +20,7 @@ describe("ticket actions preserve ownership and validity", () => {
     const { service, findFirst } = fixture();
     const result = await service.getForUser("buyer", "ticket");
     expect(findFirst.mock.calls[0]?.[0].where).toEqual({ id: "ticket", OR: [{ ownerUserId: "buyer" }, { order: { buyerUserId: "buyer" } }] });
-    expect(result.eventDetails).toEqual({ startsAt: "2030-01-01T15:00:00.000Z", endsAt: null, timezone: "Asia/Almaty", address: "Venue", coordinates: null, organizer: { name: "Events", phone: "+77000000000", email: "events@example.test", address: "Office" } });
+    expect(result.eventDetails).toEqual({ startsAt: "2030-01-01T15:00:00.000Z", endsAt: null, timezone: "Asia/Almaty", address: "Venue", coordinates: null, organizer: { verified:false, name: "Events", phone: "+77000000000", email: "events@example.test", address: "Office" } });
     expect(result.chatPath).toBe("/account/events/event/orders/order/chat");
     expect(result.walletPath).toBeNull();
     expect(result).not.toHaveProperty("qrToken"); expect(result).not.toHaveProperty("order");
@@ -57,7 +57,7 @@ describe("ticket actions preserve ownership and validity", () => {
     const { ticket } = fixture();
     Object.assign(ticket.ticketType.event, { endsAt: new Date("2020-01-01T21:00:00Z"), startsAt: new Date("2020-01-01T18:00:00Z") });
     const updateMany = vi.fn();
-    const transaction = { $queryRaw: vi.fn().mockResolvedValue([]), refundRequest: { findUnique: vi.fn().mockResolvedValue(null) }, ticket: { findFirst: vi.fn().mockResolvedValue(ticket), updateMany } };
+    const transaction = { $queryRaw: vi.fn().mockResolvedValue([]), staffRefund: { findFirst: vi.fn().mockResolvedValue(null) }, refundRequest: { findUnique: vi.fn().mockResolvedValue(null) }, ticket: { findFirst: vi.fn().mockResolvedValue(ticket), updateMany } };
     const database = { $transaction: (work: (value: typeof transaction) => unknown) => work(transaction) } as unknown as PrismaClient;
     const service = new TicketsService(database, {} as DomainEventsService, {} as WalletPassGenerator);
     await expect(service.useByQrToken("organizer", "test-token")).rejects.toMatchObject({ response: { code: "EVENT_ENDED" } });
