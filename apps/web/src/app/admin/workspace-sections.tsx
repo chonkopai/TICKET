@@ -1,4 +1,5 @@
 "use client";
+import { StaffSelect } from "./staff-select";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type {
   StaffUser,
@@ -149,7 +150,7 @@ export function StaffPeople({
           }}
         />
       </div>
-      <p>
+      <p className="staff-result-count">
         {t("Всего", "Барлығы", "Total")}: {resource.data?.total ?? "…"}
       </p>
       <ResourceState
@@ -687,7 +688,7 @@ export function StaffEvents() {
                 }}
               />
             </label>
-            <select
+            <StaffSelect
               aria-label={t("Модерация", "Модерация", "Moderation")}
               value={status}
               onChange={(e) => {
@@ -731,9 +732,9 @@ export function StaffEvents() {
                   }
                 </option>
               ))}
-            </select>
+            </StaffSelect>
           </div>
-          <p>
+          <p className="staff-result-count">
             {t("Всего", "Барлығы", "Total")}: {resource.data?.total ?? "…"}
           </p>
           <ResourceState
@@ -946,7 +947,7 @@ export function StaffOrders({
           setPage(1);
         }}
       />
-      <p>
+      <p className="staff-result-count">
         {t("Заказов", "Тапсырыстар", "Orders")}: {resource.data?.total ?? "…"}
       </p>
       <ResourceState
@@ -1260,7 +1261,7 @@ function OrderDetails({
           {action === "resend" ? (
             <label>
               {t("Канал доставки", "Жеткізу арнасы", "Delivery channel")}
-              <select
+              <StaffSelect
                 value={channel}
                 onChange={(e) => setChannel(e.target.value)}
               >
@@ -1273,7 +1274,7 @@ function OrderDetails({
                 </option>
                 <option value="email">Email</option>
                 <option value="telegram">Telegram</option>
-              </select>
+              </StaffSelect>
             </label>
           ) : null}
           {action === "refund" ? (
@@ -2142,14 +2143,14 @@ export function StaffSettings({ staff }: { staff: StaffUser }) {
           </label>
           <label>
             {t("Роль", "Рөлі", "Role")}
-            <select value={role} onChange={(e) => setRole(e.target.value)}>
+            <StaffSelect value={role} onChange={(e) => setRole(e.target.value)}>
               <option value="support">
                 {t("Поддержка", "Қолдау", "Support")}
               </option>
               <option value="moderator">
                 {t("Модератор", "Модератор", "Moderator")}
               </option>
-            </select>
+            </StaffSelect>
           </label>
         </ActionDialog>
       ) : null}
@@ -2173,14 +2174,14 @@ export function StaffSettings({ staff }: { staff: StaffUser }) {
           <p>{text(change.email)}</p>
           <label>
             {t("Роль", "Рөлі", "Role")}
-            <select value={role} onChange={(e) => setRole(e.target.value)}>
+            <StaffSelect value={role} onChange={(e) => setRole(e.target.value)}>
               <option value="support">
                 {t("Поддержка", "Қолдау", "Support")}
               </option>
               <option value="moderator">
                 {t("Модератор", "Модератор", "Moderator")}
               </option>
-            </select>
+            </StaffSelect>
           </label>
           <label className="staff-inline">
             <input

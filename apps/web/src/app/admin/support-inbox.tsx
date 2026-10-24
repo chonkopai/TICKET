@@ -1,4 +1,5 @@
 "use client";
+import { StaffSelect } from "./staff-select";
 import { useEffect, useRef, useState } from "react";
 import type {
   Paged,
@@ -82,7 +83,7 @@ export function StaffSupportInbox({
             setPage(1);
           }}
         />
-        <select
+        <StaffSelect
           aria-label={t("Статус", "Күйі", "Status")}
           value={status}
           onChange={(e) => {
@@ -98,7 +99,7 @@ export function StaffSupportInbox({
             {t("В работе", "Жұмыста", "In progress")}
           </option>
           <option value="closed">{t("Закрытые", "Жабық", "Closed")}</option>
-        </select>
+        </StaffSelect>
         <label className="staff-inline">
           <input
             type="checkbox"
@@ -111,7 +112,7 @@ export function StaffSupportInbox({
           {t("Назначены мне", "Маған тағайындалған", "Assigned to me")}
         </label>
       </div>
-      <p className="staff-muted">
+      <p className="staff-result-count">
         {t("Обращений", "Өтініштер", "Conversations")}:{" "}
         {resource.data?.total ?? "…"}
       </p>
@@ -462,13 +463,13 @@ function StaffConversation({
         >
           <label>
             {t("Статус", "Күйі", "Status")}
-            <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <StaffSelect value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="new">{t("Новое", "Жаңа", "New")}</option>
               <option value="in_progress">
                 {t("В работе", "Жұмыста", "In progress")}
               </option>
               <option value="closed">{t("Закрыто", "Жабық", "Closed")}</option>
-            </select>
+            </StaffSelect>
           </label>
           <label>
             {t("Привязать заказ по ID", "Тапсырыс ID қосу", "Link order ID")}

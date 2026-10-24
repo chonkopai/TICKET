@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { StaffSessionView } from "@event-platform/shared-types";
 import { useLocale } from "../../../components/locale-provider";
-import { staffRequest, setStaffCsrf, errorText } from "../staff-client";
+import { staffRequest, setStaffCsrf, errorText, StaffApiError } from "../staff-client";
 export default function StaffLogin() {
   const locale = useLocale(),
     ru = locale === "ru",
@@ -87,6 +87,30 @@ export default function StaffLogin() {
           setStep("codes");
         } else location.replace("/admin");
       }
+    } catch (reason) {
+      setError(errorText(reason, locale));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function backToLogin() {
+    setBusy(true);
+    setError("");
+    try {
+      if (step === "otp" || step === "enroll") {
+        try {
+          await staffRequest("auth/logout", {});
+        } catch (reason) {
+          // An expired pending session is already signed out.
+          if (!(reason instanceof StaffApiError && reason.status === 401)) throw reason;
+        }
+        setStaffCsrf("");
+      }
+      setCode("");
+      setPassword("");
+      setEnrollment(null);
+      setMessage("");
+      setStep("password");
     } catch (reason) {
       setError(errorText(reason, locale));
     } finally {
@@ -237,10 +261,10 @@ export default function StaffLogin() {
             {step === "otp" || step === "enroll" ? (
               <label>
                 {ru
-                  ? "Код приложения или восстановления"
+                  ? "Код из приложения-аутентификатора"
                   : kk
-                    ? "Қолданба не қалпына келтіру коды"
-                    : "Authenticator or recovery code"}
+                    ? "Аутентификатор қолданбасындағы код"
+                    : "Code from your authenticator app"}
                 <input
                   required
                   autoComplete="one-time-code"
@@ -272,11 +296,12 @@ export default function StaffLogin() {
                     : "Forgot password?"}
               </button>
             ) : null}
-            {step === "recover" ? (
+            {["recover", "otp", "enroll"].includes(step) ? (
               <button
                 type="button"
                 className="staff-link"
-                onClick={() => setStep("password")}
+                disabled={busy}
+                onClick={() => void backToLogin()}
               >
                 {ru
                   ? "Вернуться ко входу"
@@ -287,13 +312,6 @@ export default function StaffLogin() {
             ) : null}
           </form>
         )}
-        <p className="staff-muted">
-          {ru
-            ? "Регистрация сотрудников по приглашению модератора."
-            : kk
-              ? "Тіркелу модератордың шақыруымен қолжетімді."
-              : "Staff registration requires a moderator invitation."}
-        </p>
       </section>
     </main>
   );

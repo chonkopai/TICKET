@@ -5,6 +5,7 @@ import { useLocale } from "../../components/locale-provider";
 import { ThemeToggle } from "../../components/theme-toggle";
 import { staffRequest, setStaffCsrf, errorText } from "./staff-client";
 import { useText } from "./staff-ui";
+import { StaffIcon, type StaffIconName } from "./staff-icon";
 import { StaffSupportInbox } from "./support-inbox";
 import {
   StaffPeople,
@@ -51,19 +52,19 @@ export default function AdminConsole() {
   const nav: {
     id: Section;
     label: string;
-    icon: string;
+    icon: StaffIconName;
     moderator?: boolean;
   }[] = [
-    { id: "support", label: t("Поддержка", "Қолдау", "Support"), icon: "✉" },
+    { id: "support", label: t("Поддержка", "Қолдау", "Support"), icon: "support" },
     {
       id: "users",
       label: t("Пользователи", "Пайдаланушылар", "People"),
-      icon: "◎",
+      icon: "users",
     },
     {
       id: "events",
       label: t("Мероприятия", "Іс-шаралар", "Events"),
-      icon: "▦",
+      icon: "events",
       moderator: true,
     },
     {
@@ -73,18 +74,18 @@ export default function AdminConsole() {
         "Тапсырыстар мен билеттер",
         "Orders & tickets",
       ),
-      icon: "▤",
+      icon: "orders",
     },
     {
       id: "finance",
       label: t("Финансы", "Қаржы", "Finance"),
-      icon: "₸",
+      icon: "finance",
       moderator: true,
     },
     {
       id: "audit",
       label: t("Журнал действий", "Әрекеттер журналы", "Activity log"),
-      icon: "◷",
+      icon: "audit",
       moderator: true,
     },
   ];
@@ -98,13 +99,19 @@ export default function AdminConsole() {
         <p className="staff-brand">
           TICKET <span>Admin</span>
         </p>
-        <p className="staff-muted">
-          {staff.name}
-          <br />
-          {staff.role === "moderator"
-            ? t("Модератор", "Модератор", "Moderator")
-            : t("Поддержка", "Қолдау", "Support")}
-        </p>
+        <div className="staff-profile">
+          <span className="staff-avatar">
+            <StaffIcon name={staff.role === "moderator" ? "moderator" : "support"} />
+          </span>
+          <div>
+            <p className="staff-profile-name">{staff.name}</p>
+            <p className="staff-muted">
+              {staff.role === "moderator"
+                ? t("Модератор", "Модератор", "Moderator")
+                : t("Поддержка", "Қолдау", "Support")}
+            </p>
+          </div>
+        </div>
         <nav
           aria-label={t(
             "Разделы администрирования",
@@ -121,29 +128,40 @@ export default function AdminConsole() {
                 className={section === item.id ? "is-active" : ""}
                 onClick={() => setSection(item.id)}
               >
-                <span aria-hidden>{item.icon}</span>
+                <StaffIcon name={item.icon} />
                 {item.label}
               </button>
             ))}
         </nav>
         <div className="staff-sidebar-bottom">
-          <button onClick={() => setSection("settings")}>
-            {t(
-              "Настройки и безопасность",
-              "Баптаулар және қауіпсіздік",
-              "Settings & security",
-            )}
-          </button>
-          <ThemeToggle />
           <button
-            onClick={() => {
-              void staffRequest("auth/logout", {})
-                .then(() => location.replace("/admin/login"))
-                .catch((reason) => setError(errorText(reason, locale)));
-            }}
+            className={`staff-sidebar-action ${section === "settings" ? "is-active" : ""}`}
+            aria-current={section === "settings" ? "page" : undefined}
+            onClick={() => setSection("settings")}
           >
-            {t("Выйти", "Шығу", "Sign out")}
+            <StaffIcon name="settings" />
+            <span>
+              {t(
+                "Настройки и безопасность",
+                "Баптаулар және қауіпсіздік",
+                "Settings & security",
+              )}
+            </span>
           </button>
+          <div className="staff-sidebar-utilities">
+            <ThemeToggle />
+            <button
+              className="staff-signout"
+              onClick={() => {
+                void staffRequest("auth/logout", {})
+                  .then(() => location.replace("/admin/login"))
+                  .catch((reason) => setError(errorText(reason, locale)));
+              }}
+            >
+              <StaffIcon name="logout" />
+              {t("Выйти", "Шығу", "Sign out")}
+            </button>
+          </div>
         </div>
       </aside>
       <main className="staff-content">
