@@ -1,4 +1,11 @@
 "use client";
+import { ConnectedHallStudio, type StudioProps } from "../../../../components/hall-builder/connected-studio";
+export function Studio(props:StudioProps){
+  const [classic,setClassic]=useState<boolean|null>(null);
+  useEffect(()=>setClassic(new URLSearchParams(window.location.search).get("editor")==="classic"),[]);
+  if(classic===null)return <div role="status" className="p-6">Загружаем редактор…</div>;
+  return classic?<LegacyStudio {...props}/>:<ConnectedHallStudio {...props}/>;
+}
 import { ThemeToggle } from "../../../../components/theme-toggle";
 
 import { SelectPicker } from "../../../../components/option-picker";
@@ -12,7 +19,7 @@ import { CountedField } from "../../../../components/event-creation/counted-fiel
 import { MoneyField } from "../../../../components/event-creation/money-field";
 import { apiRequest } from "../../../(auth)/_lib/api";
 import { ProtectedRoute } from "../../../(auth)/_components/protected-route";
-import { attachSeat, availableFitArea, capacity, changeCommand, fitView, importLayout, moveRoundSeatOnOrbit, pointWithinRow, removeObjects, ROUND_SEAT_ARC_METRES, snapDimension, titles, updateObject, warnings, wallSnap, zoomView, type Command, type FitArea, type HallState, type View } from "./hall-state";
+import { attachSeat, availableFitArea, capacity, changeCommand, fitView, importLayout as importVenueLayout, moveRoundSeatOnOrbit, pointWithinRow, removeObjects, ROUND_SEAT_ARC_METRES, snapDimension, titles, updateObject, warnings, wallSnap, zoomView, type Command, type FitArea, type HallState, type View } from "./hall-state";
 
 type Tool = HallObject["type"] | "cursor" | "ruler";
 type IconName = "ticket" | "cloud" | "minus" | "plus" | "eye" | "save" | "person" | "back" | "undo" | "redo" | "check" | "cursor" | "roundTable" | "rectTable" | "chair" | "row" | "stage" | "door" | "zone" | "ruler" | "templates" | "tune" | "close" | "edit" | "copy" | "lock" | "unlock" | "trash" | "alignTop" | "alignCenter" | "distribute" | "flip";
@@ -39,7 +46,13 @@ type Gesture = { kind: "pan" | "move" | "resize" | "rotate" | "marquee" | "row" 
 export function HallStudio({ eventId }: { eventId: string }) {
   return <ProtectedRoute><Studio eventId={eventId} /></ProtectedRoute>;
 }
-export function Studio({ eventId, initial, request = apiRequest,draftStudio }: { eventId: string; initial?: { layout: VenueLayout; event: Pick<OrganizerEvent,"status"|"title"|"currency"|"sourceLocale"> }; request?: typeof apiRequest;draftStudio?:DraftStudioOptions }) {
+// The classic editor edits individual canonical objects. Its edits must not retain
+// stale block positions or inherited assignments from the grouped editor.
+function importLayout(layout:VenueLayout):HallState{
+  const state=importVenueLayout(layout);
+  return {...state,editor:{...state.editor,objects:state.editor.objects.map(({builder:_builder,...object})=>object)}};
+}
+export function LegacyStudio({ eventId, initial, request = apiRequest,draftStudio }: { eventId: string; initial?: { layout: VenueLayout; event: Pick<OrganizerEvent,"status"|"title"|"currency"|"sourceLocale"> }; request?: typeof apiRequest;draftStudio?:DraftStudioOptions }) {
   const router = useRouter();
   const [layout, setLayout] = useState<VenueLayout | null>(initial?.layout ?? null);
   const [event, setEvent] = useState<Pick<OrganizerEvent,"status"|"title"|"currency"|"sourceLocale"> | null>(initial?.event ?? null);

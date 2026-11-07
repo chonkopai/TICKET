@@ -153,9 +153,9 @@ const saleRow = z.object({ id: uuid, active: z.boolean(), amount: minorAmountSch
 // Draft hall geometry carries IDs and shared geometry only. Text lives on stable tariffs.
 export const hallGeometryObjectV3Schema = hallObjectSchema.omit({ name: true, description: true, deposit: true, price: true }).extend({annotation:limitedText(120).optional()});
 const geometryObject=hallGeometryObjectV3Schema;
-const hallTariff = saleRow.omit({ capacity: true }).extend({color:z.string().regex(/^#[0-9a-fA-F]{6}$/).optional()});
+const hallTariff = saleRow.omit({ capacity: true }).extend({color:z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),unit:z.enum(["seat","table","entry"]).optional()});
 export const draftHallV3Schema = z.object({
-  version: z.literal(3), room: z.object({ widthM: z.number().positive().max(200), heightM: z.number().positive().max(200) }).strict(),
+  version: z.literal(3), name:z.string().max(120).optional(), room: z.object({ widthM: z.number().positive().max(200), heightM: z.number().positive().max(200) }).strict(),
   objects: z.array(geometryObject).max(3000), tariffs: z.array(hallTariff).max(100),
 }).strict().superRefine((hall, ctx) => {
   const ids = hall.objects.map(item => item.id), tariffs = hall.tariffs.map(item => item.id);
@@ -163,6 +163,12 @@ export const draftHallV3Schema = z.object({
   for (const object of hall.objects) {
     if (object.tariffId && !tariffs.includes(object.tariffId)) ctx.addIssue({ code: "custom", message: "Unknown tariff identifier" });
     if (object.parentId && !hall.objects.some(parent => parent.id === object.parentId && parent.type !== "seat")) ctx.addIssue({ code: "custom", message: "Unknown hall parent" });
+  }
+  for(const object of hall.objects){
+    const parent=hall.objects.find(item=>item.id===object.parentId),whole=parent?.type.startsWith("table_")&&parent.saleMode==="whole_table";
+    const unit=whole||object.type.startsWith("table_")&&object.saleMode==="whole_table"?"table":object.type==="zone"?"entry":"seat";
+    const tariff=hall.tariffs.find(t=>t.id===(whole?parent?.tariffId:object.tariffId??parent?.tariffId));
+    if(["seat","zone","table_rect","table_round","row"].includes(object.type)&&tariff?.unit&&tariff.unit!==unit)ctx.addIssue({code:"custom",message:"Tariff sale unit does not match inventory"});
   }
   const geometry = hallEditorSchema.safeParse({ version: 1, objects: hall.objects.map(({annotation:_annotation,...object}) => ({ ...object, name: "", description: "", deposit: 0, price: null })),
     tariffs: hall.tariffs.map(tariff => ({ id: tariff.id, name: "tariff", color: "#6320ee", price: tariff.amount ?? 0 })) });

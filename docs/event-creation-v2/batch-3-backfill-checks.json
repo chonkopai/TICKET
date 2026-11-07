@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-02T12:01:47.223Z",
+  "checks": [
+    "bounded event application writes normalized content",
+    "overlength originals and labelled sections retained",
+    "source/target text and provenance archived",
+    "unknown ends and policies require review",
+    "trusted poster ordered and assigned both roles without claiming readiness",
+    "repeat converges without duplicate snapshots/revisions/resources",
+    "new editor content survives later old writer/backfill",
+    "hash mismatch protects edits even without managedBy marker",
+    "all financial/history/inventory rows unchanged",
+    "source dual write retains untouched fields and increments exactly once",
+    "source edit marks translations stale without overwriting manual text",
+    "stale revision rejected under database row lock",
+    "partial targets stay partial without synthetic legacy fallback",
+    "unreconciled read remains on mirrored legacy projection"
+  ],
+  "rolledBack": true
+}

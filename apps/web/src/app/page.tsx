@@ -4,7 +4,7 @@ import { PublicFramedAsset } from "../components/public-event-media";
 
 import { INTL_LOCALES, localeFromBrowser } from "../lib/locale";
 
-import { EVENT_CATEGORIES, type EventCategory, type EventLocale, type PublicEventSummary } from "@event-platform/shared-types";
+import { eventExpiryTime, hasEventEnded, EVENT_CATEGORIES, type EventCategory, type EventLocale, type PublicEventSummary } from "@event-platform/shared-types";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -129,7 +129,7 @@ export default function HomePage() {
       .then((result) => { if (active) setAllTotal(result.total); })
       .catch(() => { if (active) setAllTotal(null); });
     return () => { active = false; };
-  }, [query.countryCode, query.city, ready]);
+  }, [query.countryCode, query.city, ready, retry]);
 
   useEffect(() => {
     if (!ready) return;
@@ -158,6 +158,17 @@ export default function HomePage() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [query, page, ready, retry]);
+
+  useEffect(() => {
+    if (!events?.length) return;
+    const now = Date.now();
+    const nextCutoff = Math.min(...events.map(eventExpiryTime).filter(time => time > now));
+    const refresh = () => setRetry(value => value + 1);
+    const onVisible = () => { if (document.visibilityState === "visible" && events.some(event => hasEventEnded(event))) refresh(); };
+    const timer = Number.isFinite(nextCutoff) ? setTimeout(refresh, Math.min(nextCutoff - now + 50, 2_147_483_647)) : undefined;
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { if (timer) clearTimeout(timer); document.removeEventListener("visibilitychange", onVisible); };
+  }, [events]);
 
   function update(next: Partial<PublicEventsQuery>) {
     const changed = { ...query, ...next };

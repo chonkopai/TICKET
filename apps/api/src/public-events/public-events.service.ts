@@ -8,9 +8,11 @@ import type {
   PublicEventSummary,
   PublicSaleStatus,
 } from "@event-platform/shared-types";
-import { matchesEventTimeOfDay, cityAliases, EVENT_LOCALES, zonedInputToIso } from "@event-platform/shared-types";
+import { matchesEventTimeOfDay, cityAliases, EVENT_LOCALES, zonedInputToIso, hasEventEnded } from "@event-platform/shared-types";
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 
+import { guestEventTiming } from "../tickets/guest-ticket-details.js";
+import { currentEventsFilter } from "./current-events-filter.js";
 import { normalizedPresentation } from "./normalized-presentation.js";
 import { DATABASE_CLIENT } from "../auth/auth.constants.js";
 import { TablesService } from "../tables/tables.service.js";
@@ -127,9 +129,9 @@ export class PublicEventsService {
     @Inject(TablesService) private readonly tables: TablesService,
   ) {}
 
-  async locations(): Promise<Array<{ countryCode: string; cities: string[] }>> {
+  async locations(now = new Date()): Promise<Array<{ countryCode: string; cities: string[] }>> {
     const rows = await this.database.event.findMany({
-      where: { status: EventStatus.published, moderationStatus:{in:["clear","approved","sales_paused"]}, organizer:{blockedAt:null} },
+      where: { status: EventStatus.published, moderationStatus:{in:["clear","approved","sales_paused"]}, organizer:{blockedAt:null}, AND: [await currentEventsFilter(this.database, now)] },
       select: { countryCode: true, city: true },
       distinct: ["countryCode", "city"],
     });
@@ -164,7 +166,8 @@ export class PublicEventsService {
       throw new BadRequestException({ code: "EVENT_PRICE_RANGE_INVALID", message: "Minimum price must not exceed maximum price" });
     }
     validateDateRange(query.from, query.to);
-    const where: Prisma.EventWhereInput = { status: EventStatus.published, moderationStatus:{in:["clear","approved","sales_paused"]}, organizer:{blockedAt:null} };
+    const current = await currentEventsFilter(this.database, now);
+    const where: Prisma.EventWhereInput = { status: EventStatus.published, moderationStatus:{in:["clear","approved","sales_paused"]}, organizer:{blockedAt:null}, AND: [current] };
     const search = query.search?.trim();
     if (search) {
       where.OR = [
@@ -179,7 +182,7 @@ export class PublicEventsService {
       ];
     }
     if (query.city?.trim()) {
-      where.AND = [{ OR: cityAliases(query.city, query.countryCode).map(city => ({ city: { contains: city, mode: "insensitive" as const } })) }];
+      where.AND = [current, { OR: cityAliases(query.city, query.countryCode).map(city => ({ city: { contains: city, mode: "insensitive" as const } })) }];
     }
     if (query.countryCode) where.countryCode = query.countryCode;
     if (query.category) where.category = query.category;
@@ -214,7 +217,7 @@ export class PublicEventsService {
     // sorting/filtering. Scan in bounded chunks; never silently truncate totals.
     const structuralMatches = query.includeRemaining
       ? new Set((await this.database.event.findMany({ where, select: { id: true } })).map(event => event.id)) : null;
-    const candidateWhere = query.includeRemaining ? { status: EventStatus.published, moderationStatus:{in:["clear","approved","sales_paused"]}, organizer:{blockedAt:null} } : where;
+    const candidateWhere = query.includeRemaining ? { status: EventStatus.published, moderationStatus:{in:["clear","approved","sales_paused"]}, organizer:{blockedAt:null}, AND: [current] } : where;
     const candidateCount = await this.database.event.count({ where: candidateWhere });
     let summaries: Array<PublicEventSummary & { popularity: number; publishedAt: string }> = [];
     for (let skip = 0; skip < candidateCount; skip += 100) {
@@ -412,7 +415,8 @@ export class PublicEventsService {
       time,
       timezone: event.timezone,
       ageRestriction: event.ageRestriction as PublicEvent["ageRestriction"],
-      startsAt: zonedInputToIso(`${date}T${time}`, event.timezone),
+      startsAt: event.startsAt?.toISOString() ?? zonedInputToIso(`${date}T${time}`, event.timezone),
+      endsAt: event.endsAt?.toISOString() ?? null,
       address: event.address,
       ticketTypes,
       tables,
@@ -442,6 +446,8 @@ export class PublicEventsService {
     address: string;
     paymentMode: "deposit" | "full_payment";
     showFullAmountForDeposit: boolean;
+    startsAt?: Date | null;
+    endsAt?: Date | null;
     publishedAt: Date | null;
     updatedAt: Date;
     organizer: { organizerVerifiedAt?: Date | null; blockedAt?: Date | null; name: string | null; photoUrl: string | null };
@@ -492,7 +498,8 @@ export class PublicEventsService {
       time,
       timezone: event.timezone,
       ageRestriction: event.ageRestriction as PublicEventSummary["ageRestriction"],
-      startsAt: zonedInputToIso(`${date}T${time}`, event.timezone),
+      startsAt: event.startsAt?.toISOString() ?? zonedInputToIso(`${date}T${time}`, event.timezone),
+      endsAt: event.endsAt?.toISOString() ?? null,
       address: event.address,
       paymentMode: event.paymentMode,
       paymentLabel: event.paymentMode,
@@ -504,7 +511,7 @@ export class PublicEventsService {
       remainingTickets: ticketTypes.reduce((sum, ticket) => sum + ticket.remaining, 0),
       remainingTables: tables.filter((table) => table.availability === "available" && table.saleMode === "whole_table").length,
       remainingSeats: seats.length,
-      saleStatus: event.paymentMode === "deposit" ? "temporarily_unavailable" : saleStatus(ticketTypes, tables, seats.length, seatCandidates.length > seats.length && seatCandidates.some((seat) => seat.ticketType?.salesStartAt && seat.ticketType.salesStartAt > now), seatCandidates.length > seats.length && seatCandidates.every((seat) => seat.ticketType?.salesEndAt && seat.ticketType.salesEndAt <= now), activeTicketHolds + activeSeatHolds + activeTableHolds > 0, now),
+      saleStatus: hasEventEnded(guestEventTiming(event), now) ? "sales_ended" : event.paymentMode === "deposit" ? "temporarily_unavailable" : saleStatus(ticketTypes, tables, seats.length, seatCandidates.length > seats.length && seatCandidates.some((seat) => seat.ticketType?.salesStartAt && seat.ticketType.salesStartAt > now), seatCandidates.length > seats.length && seatCandidates.every((seat) => seat.ticketType?.salesEndAt && seat.ticketType.salesEndAt <= now), activeTicketHolds + activeSeatHolds + activeTableHolds > 0, now),
       organizer: { verified:!!event.organizer.organizerVerifiedAt&&!event.organizer.blockedAt, name: event.organizer.name, photoUrl: event.organizer.photoUrl },
       popularity: event.ticketTypes.reduce((sum, type) => sum + type.tickets.length, 0),
       publishedAt: (event.publishedAt ?? event.updatedAt).toISOString(),

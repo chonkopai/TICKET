@@ -51,6 +51,13 @@ sudo docker compose --env-file .env.demo -f compose.demo.yml exec -T web node -e
 
 This should print `200`. Do not run the development seed against a database containing data. The first deployment starts with an empty event catalog unless you deliberately import data.
 
+The API sets `API_TRUST_PROXY_HOPS=2` in this Compose topology so authentication rate limits
+use the browser's address through Caddy and Next.js. Keep the API and web container ports private:
+all public traffic must follow that fixed proxy chain, and Caddy must overwrite untrusted
+forwarding headers. For local access through Next.js alone, set `API_TRUST_PROXY_HOPS=1`;
+direct API development defaults to `0` and ignores forwarded addresses. Reassess this setting
+before adding another proxy or a shorter public route to the API.
+
 ## Enable HTTPS
 
 After the app checks pass, add an A record named `staging` at Name.com pointing to the VM's public IP, `20.164.17.32`, and allow inbound TCP 80/443 in the VM's Azure network security group. Then start Caddy:

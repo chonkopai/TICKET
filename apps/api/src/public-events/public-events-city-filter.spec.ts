@@ -13,7 +13,7 @@ describe("catalog city filtering", () => {
     await service.list({ page: 1, limit: 12, sort: "recent", countryCode: "KZ", city });
     const expected = {
       status: "published", moderationStatus: { in: ["clear","approved","sales_paused"] }, organizer: {blockedAt:null}, countryCode: "KZ",
-      AND: [{ OR: [
+      AND: [{ OR: [{ startsAt: { gt: expect.any(Date) } }, { endsAt: { gt: expect.any(Date) } }] }, { OR: [
         { city: { contains: "Алматы", mode: "insensitive" } },
         { city: { contains: "Almaty", mode: "insensitive" } },
       ] }],

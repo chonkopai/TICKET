@@ -60,6 +60,8 @@ services:
       NODE_ENV: production
       DEMO_MODE: "true"
       API_PORT: "3001"
+      # Browser -> Caddy -> Next.js -> API. The API has no published host port.
+      API_TRUST_PROXY_HOPS: "2"
       DATABASE_URL: postgresql://ticketron:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.demo}@postgres:5432/ticketron?schema=public
       REDIS_URL: redis://redis:6379
       WEB_ORIGIN: https://${SITE_DOMAIN:?Set SITE_DOMAIN in .env.demo}

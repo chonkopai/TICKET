@@ -1,0 +1,1555 @@
+[
+  {
+    "kind": "screenshot",
+    "path": "docs/account-redesign/screenshots/39-1909.png",
+    "bytes": 98739,
+    "sha256": "9b34f0ec03b0fb97af9732df35604c1abbe4e139b1cce2efb862534cd471d700",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgTicket",
+    "path": "docs/account-redesign/assets/39-1909/ticket.svg",
+    "slots": [
+      {
+        "nodeId": "39:2330",
+        "name": "ticket",
+        "wrapperClasses": "relative shrink-0 size-[27px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "27",
+      "height": "27",
+      "viewBox": "0 0 27 27"
+    },
+    "bytes": 1166,
+    "sha256": "365ae7d6dca6a48a74ad27e48b649d3a249d03d2efeca5f84fa074a4a9cb06b5",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgMapPin",
+    "path": "docs/account-redesign/assets/39-1909/map-pin.svg",
+    "slots": [
+      {
+        "nodeId": "39:2333",
+        "name": "map-pin",
+        "wrapperClasses": "relative shrink-0 size-[16px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "16",
+      "height": "16",
+      "viewBox": "0 0 16 16"
+    },
+    "bytes": 657,
+    "sha256": "bd6f0c9018c9944a92528b439bd2da3a68d784018e399535ccbc4ee16b5e7352",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgChevronDown",
+    "path": "docs/account-redesign/assets/39-1909/chevron-down.svg",
+    "slots": [
+      {
+        "nodeId": "39:2336",
+        "name": "chevron-down",
+        "wrapperClasses": "relative shrink-0 size-[14px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "14",
+      "height": "14",
+      "viewBox": "0 0 14 14"
+    },
+    "bytes": 310,
+    "sha256": "753d0b3b8c0e8a92a7c07a6d23d415ce9170bd8d6c5839ff0bb4ad99c1bdc3ed",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgSearch",
+    "path": "docs/account-redesign/assets/39-1909/search.svg",
+    "slots": [
+      {
+        "nodeId": "39:2339",
+        "name": "search",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 472,
+    "sha256": "9f7684f7f2295d751339c2b1285d60332cc7ab0c515601278286dea257c5be57",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgGlobe",
+    "path": "docs/account-redesign/assets/39-1909/globe.svg",
+    "slots": [
+      {
+        "nodeId": "39:2342",
+        "name": "globe",
+        "wrapperClasses": "relative shrink-0 size-[16px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "16",
+      "height": "16",
+      "viewBox": "0 0 16 16"
+    },
+    "bytes": 807,
+    "sha256": "624a0a3deedc2e6b8e5b8d9944e8750a1381188cc99ea295d05edf4106b47c91",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgChevronDown1",
+    "path": "docs/account-redesign/assets/39-1909/chevron-down1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2345",
+        "name": "chevron-down",
+        "wrapperClasses": "relative shrink-0 size-[12px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "12",
+      "height": "12",
+      "viewBox": "0 0 12 12"
+    },
+    "bytes": 302,
+    "sha256": "8031260292636dacf0dc354a0535e4e4b03210bfdacb313dcf0508eabe17c51d",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgPlus",
+    "path": "docs/account-redesign/assets/39-1909/plus.svg",
+    "slots": [
+      {
+        "nodeId": "39:2348",
+        "name": "plus",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 310,
+    "sha256": "f854a521ad0a71fe5824bae33c9b52d319c2c4a64a2fb329376d74a9437f2bef",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgHeart",
+    "path": "docs/account-redesign/assets/39-1909/heart.svg",
+    "slots": [
+      {
+        "nodeId": "39:2351",
+        "name": "heart",
+        "wrapperClasses": "relative shrink-0 size-[21px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "21",
+      "height": "21",
+      "viewBox": "0 0 21 21"
+    },
+    "bytes": 1177,
+    "sha256": "acb97796d1e9ab5c909e7d888820c3945ede0be056a0a426b7c5dcdfe7276ba4",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgBell",
+    "path": "docs/account-redesign/assets/39-1909/bell.svg",
+    "slots": [
+      {
+        "nodeId": "39:2354",
+        "name": "bell",
+        "wrapperClasses": "relative shrink-0 size-[21px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "21",
+      "height": "21",
+      "viewBox": "0 0 21 21"
+    },
+    "bytes": 1176,
+    "sha256": "35a64b459d7fd9262bc28778876aa16936e4fe2e153ee1506441aa5e7a7c9cdd",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgArrowUpRight",
+    "path": "docs/account-redesign/assets/39-1909/arrow-up-right.svg",
+    "slots": [
+      {
+        "nodeId": "39:2375",
+        "name": "arrow-up-right",
+        "wrapperClasses": "relative shrink-0 size-[14px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "14",
+      "height": "14",
+      "viewBox": "0 0 14 14"
+    },
+    "bytes": 342,
+    "sha256": "1011b022dbe791328a2a9f7727fbb92d87bd656c17276275ef8119377ba71150",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgTicket1",
+    "path": "docs/account-redesign/assets/39-1909/ticket1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2360",
+        "name": "ticket",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 1158,
+    "sha256": "cf9dab29a12fecd80832147b2036f9cf722acfb65a8cac92a0a2616ebb2cc610",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgHeart1",
+    "path": "docs/account-redesign/assets/39-1909/heart1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2363",
+        "name": "heart",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 1169,
+    "sha256": "d68420ccf311ed1d581976b609789ceb66cd45a755dced0a1989f05000b2d625",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgUserRound",
+    "path": "docs/account-redesign/assets/39-1909/user-round.svg",
+    "slots": [
+      {
+        "nodeId": "39:2366",
+        "name": "user-round",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 634,
+    "sha256": "9053b32c670770947aa2f980c410e1a77ae265c3a274a590ee6013eddf4b8f75",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgBell1",
+    "path": "docs/account-redesign/assets/39-1909/bell1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2369",
+        "name": "bell",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 1166,
+    "sha256": "783fc5a7237b95262df3a154a68f0da860cd0da03facb19a72b1cc7b9343d190",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgReceiptText",
+    "path": "docs/account-redesign/assets/39-1909/receipt-text.svg",
+    "slots": [
+      {
+        "nodeId": "39:2372",
+        "name": "receipt-text",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 2053,
+    "sha256": "61baa3d422e30e08fd5fc0c8a3445f5b3411d7780032cff2c83acdaf8e69584e",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgCircleHelp",
+    "path": "docs/account-redesign/assets/39-1909/circle-help.svg",
+    "slots": [
+      {
+        "nodeId": "39:2378",
+        "name": "circle-help",
+        "wrapperClasses": "relative shrink-0 size-[17px]"
+      },
+      {
+        "nodeId": "39:2402",
+        "name": "circle-help",
+        "wrapperClasses": "relative shrink-0 size-[17px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "17",
+      "height": "17",
+      "viewBox": "0 0 17 17"
+    },
+    "bytes": 862,
+    "sha256": "9fed6a0e74ca8026804e989f04cd20c5bef038ea21bc4e5d5b8cdfa389eb7ada",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgLogOut",
+    "path": "docs/account-redesign/assets/39-1909/log-out.svg",
+    "slots": [
+      {
+        "nodeId": "39:2381",
+        "name": "log-out",
+        "wrapperClasses": "relative shrink-0 size-[17px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "17",
+      "height": "17",
+      "viewBox": "0 0 17 17"
+    },
+    "bytes": 555,
+    "sha256": "a98570cf23b286562b35748ae19d3b25de21e6b35f8e73dc79ae7904136cda28",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgTicket2",
+    "path": "docs/account-redesign/assets/39-1909/ticket2.svg",
+    "slots": [
+      {
+        "nodeId": "39:2384",
+        "name": "ticket",
+        "wrapperClasses": "relative shrink-0 size-[21px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "21",
+      "height": "21",
+      "viewBox": "0 0 21 21"
+    },
+    "bytes": 1151,
+    "sha256": "1c9e6d9f726a59d0e6da92bcf36ef31ee9f6e985f5623b348e5b42f4ff01b698",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgCalendarCheck",
+    "path": "docs/account-redesign/assets/39-1909/calendar-check.svg",
+    "slots": [
+      {
+        "nodeId": "39:2387",
+        "name": "calendar-check",
+        "wrapperClasses": "relative shrink-0 size-[21px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "21",
+      "height": "21",
+      "viewBox": "0 0 21 21"
+    },
+    "bytes": 603,
+    "sha256": "80e51c362975798fc7cb3f43d69cd37addac05b9332fcb34d5c3e0e8d423a380",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgTicket3",
+    "path": "docs/account-redesign/assets/39-1909/ticket3.svg",
+    "slots": [
+      {
+        "nodeId": "39:2390",
+        "name": "ticket",
+        "wrapperClasses": "relative shrink-0 size-[30px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "30",
+      "height": "30",
+      "viewBox": "0 0 30 30"
+    },
+    "bytes": 1138,
+    "sha256": "3224bda18f0201286979c6499f3eadb17c804e6ec86ec44765e25841eb8b3f4c",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgArrowRight",
+    "path": "docs/account-redesign/assets/39-1909/arrow-right.svg",
+    "slots": [
+      {
+        "nodeId": "39:2393",
+        "name": "arrow-right",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 327,
+    "sha256": "7d9a1ed8f584563373c5aa28ecfe22cb6ca05b2fa95494208b5b8f1a3e1d5c65",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgArrowRight1",
+    "path": "docs/account-redesign/assets/39-1909/arrow-right1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2396",
+        "name": "arrow-right",
+        "wrapperClasses": "relative shrink-0 size-[15px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "15",
+      "height": "15",
+      "viewBox": "0 0 15 15"
+    },
+    "bytes": 337,
+    "sha256": "361ef863ad6c759b450ad85375e30cb1262ac32a9d7353a1b80f99d624231ad8",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:1909",
+    "variable": "imgShoppingBag",
+    "path": "docs/account-redesign/assets/39-1909/shopping-bag.svg",
+    "slots": [
+      {
+        "nodeId": "39:2399",
+        "name": "shopping-bag",
+        "wrapperClasses": "relative shrink-0 size-[21px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "21",
+      "height": "21",
+      "viewBox": "0 0 21 21"
+    },
+    "bytes": 1020,
+    "sha256": "7795de42ca7aea35c1c15138cfe52e2f43ee24611ad11e6a04efa9dbd94828b5",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "screenshot",
+    "path": "docs/account-redesign/screenshots/39-2031.png",
+    "bytes": 139432,
+    "sha256": "30c056ef851e723b4b03824a8dc2dd1b2ce275fdaddfb8ad61b816e355090af9",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgTicket",
+    "path": "docs/account-redesign/assets/39-2031/ticket.svg",
+    "slots": [
+      {
+        "nodeId": "39:2405",
+        "name": "ticket",
+        "wrapperClasses": "relative shrink-0 size-[27px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "27",
+      "height": "27",
+      "viewBox": "0 0 27 27"
+    },
+    "bytes": 1166,
+    "sha256": "365ae7d6dca6a48a74ad27e48b649d3a249d03d2efeca5f84fa074a4a9cb06b5",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgMapPin",
+    "path": "docs/account-redesign/assets/39-2031/map-pin.svg",
+    "slots": [
+      {
+        "nodeId": "39:2408",
+        "name": "map-pin",
+        "wrapperClasses": "relative shrink-0 size-[16px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "16",
+      "height": "16",
+      "viewBox": "0 0 16 16"
+    },
+    "bytes": 657,
+    "sha256": "bd6f0c9018c9944a92528b439bd2da3a68d784018e399535ccbc4ee16b5e7352",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgChevronDown",
+    "path": "docs/account-redesign/assets/39-2031/chevron-down.svg",
+    "slots": [
+      {
+        "nodeId": "39:2411",
+        "name": "chevron-down",
+        "wrapperClasses": "relative shrink-0 size-[14px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "14",
+      "height": "14",
+      "viewBox": "0 0 14 14"
+    },
+    "bytes": 310,
+    "sha256": "753d0b3b8c0e8a92a7c07a6d23d415ce9170bd8d6c5839ff0bb4ad99c1bdc3ed",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgSearch",
+    "path": "docs/account-redesign/assets/39-2031/search.svg",
+    "slots": [
+      {
+        "nodeId": "39:2414",
+        "name": "search",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 472,
+    "sha256": "9f7684f7f2295d751339c2b1285d60332cc7ab0c515601278286dea257c5be57",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgGlobe",
+    "path": "docs/account-redesign/assets/39-2031/globe.svg",
+    "slots": [
+      {
+        "nodeId": "39:2417",
+        "name": "globe",
+        "wrapperClasses": "relative shrink-0 size-[16px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "16",
+      "height": "16",
+      "viewBox": "0 0 16 16"
+    },
+    "bytes": 807,
+    "sha256": "4d26024c873e39389de4365ef40ade9326b411c76489f133229590b38f9c0bc3",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgChevronDown1",
+    "path": "docs/account-redesign/assets/39-2031/chevron-down1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2420",
+        "name": "chevron-down",
+        "wrapperClasses": "relative shrink-0 size-[12px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "12",
+      "height": "12",
+      "viewBox": "0 0 12 12"
+    },
+    "bytes": 302,
+    "sha256": "8031260292636dacf0dc354a0535e4e4b03210bfdacb313dcf0508eabe17c51d",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgPlus",
+    "path": "docs/account-redesign/assets/39-2031/plus.svg",
+    "slots": [
+      {
+        "nodeId": "39:2423",
+        "name": "plus",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 310,
+    "sha256": "f854a521ad0a71fe5824bae33c9b52d319c2c4a64a2fb329376d74a9437f2bef",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgHeart",
+    "path": "docs/account-redesign/assets/39-2031/heart.svg",
+    "slots": [
+      {
+        "nodeId": "39:2426",
+        "name": "heart",
+        "wrapperClasses": "relative shrink-0 size-[21px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "21",
+      "height": "21",
+      "viewBox": "0 0 21 21"
+    },
+    "bytes": 1177,
+    "sha256": "acb97796d1e9ab5c909e7d888820c3945ede0be056a0a426b7c5dcdfe7276ba4",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgBell",
+    "path": "docs/account-redesign/assets/39-2031/bell.svg",
+    "slots": [
+      {
+        "nodeId": "39:2429",
+        "name": "bell",
+        "wrapperClasses": "relative shrink-0 size-[21px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "21",
+      "height": "21",
+      "viewBox": "0 0 21 21"
+    },
+    "bytes": 1176,
+    "sha256": "35a64b459d7fd9262bc28778876aa16936e4fe2e153ee1506441aa5e7a7c9cdd",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgArrowUpRight",
+    "path": "docs/account-redesign/assets/39-2031/arrow-up-right.svg",
+    "slots": [
+      {
+        "nodeId": "39:2450",
+        "name": "arrow-up-right",
+        "wrapperClasses": "relative shrink-0 size-[14px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "14",
+      "height": "14",
+      "viewBox": "0 0 14 14"
+    },
+    "bytes": 342,
+    "sha256": "1011b022dbe791328a2a9f7727fbb92d87bd656c17276275ef8119377ba71150",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgTicket1",
+    "path": "docs/account-redesign/assets/39-2031/ticket1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2435",
+        "name": "ticket",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 1158,
+    "sha256": "55727682336eb7e24b59f8f810f8c0ce361222ac975be706cc041aa3d9275fbc",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgHeart1",
+    "path": "docs/account-redesign/assets/39-2031/heart1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2438",
+        "name": "heart",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 1169,
+    "sha256": "d68420ccf311ed1d581976b609789ceb66cd45a755dced0a1989f05000b2d625",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgUserRound",
+    "path": "docs/account-redesign/assets/39-2031/user-round.svg",
+    "slots": [
+      {
+        "nodeId": "39:2441",
+        "name": "user-round",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 634,
+    "sha256": "c3b6c0772e81a5f9c0dc32fb74db5d79042a6dea128dc6d520fd99c42fa70d23",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgBell1",
+    "path": "docs/account-redesign/assets/39-2031/bell1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2444",
+        "name": "bell",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 1166,
+    "sha256": "783fc5a7237b95262df3a154a68f0da860cd0da03facb19a72b1cc7b9343d190",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgReceiptText",
+    "path": "docs/account-redesign/assets/39-2031/receipt-text.svg",
+    "slots": [
+      {
+        "nodeId": "39:2447",
+        "name": "receipt-text",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 2053,
+    "sha256": "61baa3d422e30e08fd5fc0c8a3445f5b3411d7780032cff2c83acdaf8e69584e",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgCircleHelp",
+    "path": "docs/account-redesign/assets/39-2031/circle-help.svg",
+    "slots": [
+      {
+        "nodeId": "39:2453",
+        "name": "circle-help",
+        "wrapperClasses": "relative shrink-0 size-[17px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "17",
+      "height": "17",
+      "viewBox": "0 0 17 17"
+    },
+    "bytes": 862,
+    "sha256": "dcbef112da0efcdb3800c73d0a8e0f8c07f61c09749c3302aff0020c96dd44d3",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgLogOut",
+    "path": "docs/account-redesign/assets/39-2031/log-out.svg",
+    "slots": [
+      {
+        "nodeId": "39:2456",
+        "name": "log-out",
+        "wrapperClasses": "relative shrink-0 size-[17px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "17",
+      "height": "17",
+      "viewBox": "0 0 17 17"
+    },
+    "bytes": 555,
+    "sha256": "a98570cf23b286562b35748ae19d3b25de21e6b35f8e73dc79ae7904136cda28",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgChevronDown2",
+    "path": "docs/account-redesign/assets/39-2031/chevron-down2.svg",
+    "slots": [
+      {
+        "nodeId": "39:2459",
+        "name": "chevron-down",
+        "wrapperClasses": "relative shrink-0 size-[16px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "16",
+      "height": "16",
+      "viewBox": "0 0 16 16"
+    },
+    "bytes": 298,
+    "sha256": "23744bf9219cea647b3a83ac20487838de9f9f44bf7e47b7d4124b8a242402a5",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgContactRound",
+    "path": "docs/account-redesign/assets/39-2031/contact-round.svg",
+    "slots": [
+      {
+        "nodeId": "39:2462",
+        "name": "contact-round",
+        "wrapperClasses": "relative shrink-0 size-[20px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "20",
+      "height": "20",
+      "viewBox": "0 0 20 20"
+    },
+    "bytes": 920,
+    "sha256": "689838e3e661d5ab7d6295ea8fd3cad0bc14f4e231c6135b20d6473bb13a6817",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgMail",
+    "path": "docs/account-redesign/assets/39-2031/mail.svg",
+    "slots": [
+      {
+        "nodeId": "39:2465",
+        "name": "mail",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 649,
+    "sha256": "dcf336777c76bf830227ef14e8ba1018f5d229f40255b5f34bfe810b1492cac7",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgCircleCheck",
+    "path": "docs/account-redesign/assets/39-2031/circle-check.svg",
+    "slots": [
+      {
+        "nodeId": "39:2468",
+        "name": "circle-check",
+        "wrapperClasses": "relative shrink-0 size-[14px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "14",
+      "height": "14",
+      "viewBox": "0 0 14 14"
+    },
+    "bytes": 626,
+    "sha256": "bb0400a4bd47c7c5dac95a89b533235a6be59b6bd346ee43d2b9eda5cdaf2c4c",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgSmartphone",
+    "path": "docs/account-redesign/assets/39-2031/smartphone.svg",
+    "slots": [
+      {
+        "nodeId": "39:2471",
+        "name": "smartphone",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 529,
+    "sha256": "f2b9d50eef78d91f9a537a79795218112480d6fc30a479bdb5634e5b34306747",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgArrowRight",
+    "path": "docs/account-redesign/assets/39-2031/arrow-right.svg",
+    "slots": [
+      {
+        "nodeId": "39:2474",
+        "name": "arrow-right",
+        "wrapperClasses": "relative shrink-0 size-[13px]"
+      },
+      {
+        "nodeId": "39:2480",
+        "name": "arrow-right",
+        "wrapperClasses": "relative shrink-0 size-[13px]"
+      },
+      {
+        "nodeId": "39:2483",
+        "name": "arrow-right",
+        "wrapperClasses": "relative shrink-0 size-[13px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "13",
+      "height": "13",
+      "viewBox": "0 0 13 13"
+    },
+    "bytes": 337,
+    "sha256": "2e323376432d0615c3904302faf1593b249e23fff39e0ca80a4ace2be9d3724d",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgSend",
+    "path": "docs/account-redesign/assets/39-2031/send.svg",
+    "slots": [
+      {
+        "nodeId": "39:2477",
+        "name": "send",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 1175,
+    "sha256": "978a1ab827c5d1a28cea8fdcb064eccca9251001f87f1f3737e8be35d2559803",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2031",
+    "variable": "imgShieldCheck",
+    "path": "docs/account-redesign/assets/39-2031/shield-check.svg",
+    "slots": [
+      {
+        "nodeId": "39:2486",
+        "name": "shield-check",
+        "wrapperClasses": "relative shrink-0 size-[16px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "16",
+      "height": "16",
+      "viewBox": "0 0 16 16"
+    },
+    "bytes": 866,
+    "sha256": "1e0f1656dd13a6c0606601d912632df893ad269d10749dae00a57e35c9802537",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "screenshot",
+    "path": "docs/account-redesign/screenshots/39-2198.png",
+    "bytes": 126962,
+    "sha256": "5cfe5dd27350c0b51f94b747579a34b43d1f44b38487bebb990588283142e543",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgTicket",
+    "path": "docs/account-redesign/assets/39-2198/ticket.svg",
+    "slots": [
+      {
+        "nodeId": "39:2489",
+        "name": "ticket",
+        "wrapperClasses": "relative shrink-0 size-[27px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "27",
+      "height": "27",
+      "viewBox": "0 0 27 27"
+    },
+    "bytes": 1166,
+    "sha256": "365ae7d6dca6a48a74ad27e48b649d3a249d03d2efeca5f84fa074a4a9cb06b5",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgMapPin",
+    "path": "docs/account-redesign/assets/39-2198/map-pin.svg",
+    "slots": [
+      {
+        "nodeId": "39:2492",
+        "name": "map-pin",
+        "wrapperClasses": "relative shrink-0 size-[16px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "16",
+      "height": "16",
+      "viewBox": "0 0 16 16"
+    },
+    "bytes": 657,
+    "sha256": "bd6f0c9018c9944a92528b439bd2da3a68d784018e399535ccbc4ee16b5e7352",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgChevronDown",
+    "path": "docs/account-redesign/assets/39-2198/chevron-down.svg",
+    "slots": [
+      {
+        "nodeId": "39:2495",
+        "name": "chevron-down",
+        "wrapperClasses": "relative shrink-0 size-[14px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "14",
+      "height": "14",
+      "viewBox": "0 0 14 14"
+    },
+    "bytes": 310,
+    "sha256": "753d0b3b8c0e8a92a7c07a6d23d415ce9170bd8d6c5839ff0bb4ad99c1bdc3ed",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgSearch",
+    "path": "docs/account-redesign/assets/39-2198/search.svg",
+    "slots": [
+      {
+        "nodeId": "39:2498",
+        "name": "search",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 472,
+    "sha256": "9f7684f7f2295d751339c2b1285d60332cc7ab0c515601278286dea257c5be57",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgGlobe",
+    "path": "docs/account-redesign/assets/39-2198/globe.svg",
+    "slots": [
+      {
+        "nodeId": "39:2501",
+        "name": "globe",
+        "wrapperClasses": "relative shrink-0 size-[16px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "16",
+      "height": "16",
+      "viewBox": "0 0 16 16"
+    },
+    "bytes": 807,
+    "sha256": "4d26024c873e39389de4365ef40ade9326b411c76489f133229590b38f9c0bc3",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgChevronDown1",
+    "path": "docs/account-redesign/assets/39-2198/chevron-down1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2504",
+        "name": "chevron-down",
+        "wrapperClasses": "relative shrink-0 size-[12px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "12",
+      "height": "12",
+      "viewBox": "0 0 12 12"
+    },
+    "bytes": 302,
+    "sha256": "8031260292636dacf0dc354a0535e4e4b03210bfdacb313dcf0508eabe17c51d",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgPlus",
+    "path": "docs/account-redesign/assets/39-2198/plus.svg",
+    "slots": [
+      {
+        "nodeId": "39:2507",
+        "name": "plus",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 310,
+    "sha256": "f854a521ad0a71fe5824bae33c9b52d319c2c4a64a2fb329376d74a9437f2bef",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgHeart",
+    "path": "docs/account-redesign/assets/39-2198/heart.svg",
+    "slots": [
+      {
+        "nodeId": "39:2510",
+        "name": "heart",
+        "wrapperClasses": "relative shrink-0 size-[21px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "21",
+      "height": "21",
+      "viewBox": "0 0 21 21"
+    },
+    "bytes": 1177,
+    "sha256": "acb97796d1e9ab5c909e7d888820c3945ede0be056a0a426b7c5dcdfe7276ba4",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgBell",
+    "path": "docs/account-redesign/assets/39-2198/bell.svg",
+    "slots": [
+      {
+        "nodeId": "39:2513",
+        "name": "bell",
+        "wrapperClasses": "relative shrink-0 size-[21px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "21",
+      "height": "21",
+      "viewBox": "0 0 21 21"
+    },
+    "bytes": 1176,
+    "sha256": "35a64b459d7fd9262bc28778876aa16936e4fe2e153ee1506441aa5e7a7c9cdd",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgArrowUpRight",
+    "path": "docs/account-redesign/assets/39-2198/arrow-up-right.svg",
+    "slots": [
+      {
+        "nodeId": "39:2534",
+        "name": "arrow-up-right",
+        "wrapperClasses": "relative shrink-0 size-[14px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "14",
+      "height": "14",
+      "viewBox": "0 0 14 14"
+    },
+    "bytes": 342,
+    "sha256": "1011b022dbe791328a2a9f7727fbb92d87bd656c17276275ef8119377ba71150",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgTicket1",
+    "path": "docs/account-redesign/assets/39-2198/ticket1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2519",
+        "name": "ticket",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 1158,
+    "sha256": "55727682336eb7e24b59f8f810f8c0ce361222ac975be706cc041aa3d9275fbc",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgHeart1",
+    "path": "docs/account-redesign/assets/39-2198/heart1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2522",
+        "name": "heart",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 1169,
+    "sha256": "d68420ccf311ed1d581976b609789ceb66cd45a755dced0a1989f05000b2d625",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgUserRound",
+    "path": "docs/account-redesign/assets/39-2198/user-round.svg",
+    "slots": [
+      {
+        "nodeId": "39:2525",
+        "name": "user-round",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 634,
+    "sha256": "9053b32c670770947aa2f980c410e1a77ae265c3a274a590ee6013eddf4b8f75",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgBell1",
+    "path": "docs/account-redesign/assets/39-2198/bell1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2528",
+        "name": "bell",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 1166,
+    "sha256": "b3639d7139997f8535fa18e64add4769ed5349f00e90eb2b08cdc42853a2f4ad",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgReceiptText",
+    "path": "docs/account-redesign/assets/39-2198/receipt-text.svg",
+    "slots": [
+      {
+        "nodeId": "39:2531",
+        "name": "receipt-text",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 2053,
+    "sha256": "61baa3d422e30e08fd5fc0c8a3445f5b3411d7780032cff2c83acdaf8e69584e",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgCircleHelp",
+    "path": "docs/account-redesign/assets/39-2198/circle-help.svg",
+    "slots": [
+      {
+        "nodeId": "39:2537",
+        "name": "circle-help",
+        "wrapperClasses": "relative shrink-0 size-[17px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "17",
+      "height": "17",
+      "viewBox": "0 0 17 17"
+    },
+    "bytes": 862,
+    "sha256": "9fed6a0e74ca8026804e989f04cd20c5bef038ea21bc4e5d5b8cdfa389eb7ada",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgLogOut",
+    "path": "docs/account-redesign/assets/39-2198/log-out.svg",
+    "slots": [
+      {
+        "nodeId": "39:2540",
+        "name": "log-out",
+        "wrapperClasses": "relative shrink-0 size-[17px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "17",
+      "height": "17",
+      "viewBox": "0 0 17 17"
+    },
+    "bytes": 555,
+    "sha256": "a98570cf23b286562b35748ae19d3b25de21e6b35f8e73dc79ae7904136cda28",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgSend",
+    "path": "docs/account-redesign/assets/39-2198/send.svg",
+    "slots": [
+      {
+        "nodeId": "39:2543",
+        "name": "send",
+        "wrapperClasses": "relative shrink-0 size-[25px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "25",
+      "height": "25",
+      "viewBox": "0 0 25 25"
+    },
+    "bytes": 1046,
+    "sha256": "c018725b73983fd3d5a9abcd211896355b993fd273fb56d3b6e55c36877e8cba",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgArrowUpRight1",
+    "path": "docs/account-redesign/assets/39-2198/arrow-up-right1.svg",
+    "slots": [
+      {
+        "nodeId": "39:2546",
+        "name": "arrow-up-right",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 344,
+    "sha256": "60afd38eca2d8c9f56a2fcce1966021821b43dfb7627d2cafa1f563fa55e2f29",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgEnabledSwitch",
+    "path": "docs/account-redesign/assets/39-2198/enabled-switch.svg",
+    "slots": [
+      {
+        "nodeId": "39:2293",
+        "name": "Enabled switch",
+        "wrapperClasses": "h-[22px] relative shrink-0 w-[36px]"
+      },
+      {
+        "nodeId": "39:2299",
+        "name": "Enabled switch",
+        "wrapperClasses": "h-[22px] relative shrink-0 w-[36px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "36",
+      "height": "22",
+      "viewBox": "0 0 36 22"
+    },
+    "bytes": 319,
+    "sha256": "fe29eb400f5b2f865103ed252cbf228e27ad10a54c456feb79620f322f5157f9",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgDisabledSwitch",
+    "path": "docs/account-redesign/assets/39-2198/disabled-switch.svg",
+    "slots": [
+      {
+        "nodeId": "39:2305",
+        "name": "Disabled switch",
+        "wrapperClasses": "h-[22px] relative shrink-0 w-[36px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "36",
+      "height": "22",
+      "viewBox": "0 0 36 22"
+    },
+    "bytes": 320,
+    "sha256": "b070ce22b9906b256941feeaf4cac2778b1a9cc080007307c64368d81ae09a30",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgInfo",
+    "path": "docs/account-redesign/assets/39-2198/info.svg",
+    "slots": [
+      {
+        "nodeId": "39:2549",
+        "name": "info",
+        "wrapperClasses": "relative shrink-0 size-[16px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "16",
+      "height": "16",
+      "viewBox": "0 0 16 16"
+    },
+    "bytes": 606,
+    "sha256": "1d3fa95537a1d16e5e87783c58a737332ce5819c52ed1816a14fdff182ff7378",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgCloudAlert",
+    "path": "docs/account-redesign/assets/39-2198/cloud-alert.svg",
+    "slots": [
+      {
+        "nodeId": "39:2552",
+        "name": "cloud-alert",
+        "wrapperClasses": "relative shrink-0 size-[26px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "26",
+      "height": "26",
+      "viewBox": "0 0 26 26"
+    },
+    "bytes": 928,
+    "sha256": "90bdfd294cfc6d3961a1f97b90a33ec07e00d3455f15f0f5bec8aa783376ad20",
+    "exactExistingMatches": []
+  },
+  {
+    "kind": "svg",
+    "screenNodeId": "39:2198",
+    "variable": "imgRefreshCw",
+    "path": "docs/account-redesign/assets/39-2198/refresh-cw.svg",
+    "slots": [
+      {
+        "nodeId": "39:2555",
+        "name": "refresh-cw",
+        "wrapperClasses": "relative shrink-0 size-[18px]"
+      }
+    ],
+    "rootDimensions": {
+      "width": "18",
+      "height": "18",
+      "viewBox": "0 0 18 18"
+    },
+    "bytes": 594,
+    "sha256": "92ea56a4a15ae5ab448577ed8dccc0a3f3fe5ee21111c3f5489e3c05c0142a8f",
+    "exactExistingMatches": []
+  }
+]

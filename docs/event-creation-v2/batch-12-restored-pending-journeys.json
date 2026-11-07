@@ -1,0 +1,27 @@
+{
+  "at": "2026-10-03T07:15:04.217Z",
+  "database": "event_platform_v2_fresh_1791011626432",
+  "scope": "Isolated staging fixture; signed development payments only",
+  "action": "resume",
+  "checks": [
+    "current binary reads restored normalized content and local media",
+    "both pending formats replay unchanged and accept one original-amount signed payment",
+    "both formats issue historical QR/admission and refund once without rewriting snapshots",
+    "new deposit sale is rejected after restore"
+  ],
+  "restoredOrders": [
+    {
+      "id": "bdb6cdf1-d3cf-4e46-8db9-dde7b45fd8b0",
+      "amount": 1234,
+      "currency": "USD",
+      "status": "refunded"
+    },
+    {
+      "id": "12f82fba-b7bd-44df-b1fc-4eb759251af2",
+      "amount": 1500,
+      "currency": "KZT",
+      "status": "refunded"
+    }
+  ],
+  "passed": true
+}

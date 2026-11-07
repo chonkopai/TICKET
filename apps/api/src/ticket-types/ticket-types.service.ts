@@ -1,3 +1,4 @@
+import { assertEventRegistrationOpen } from "../events/event-registration-policy.js";
 import { historicalPaymentOption } from "../events/historical-deposit.js";
 import { assertCurrentResourceWrite,rejectDepositInput } from "../events/current-sale-policy.js";
 import { randomBytes } from "node:crypto";
@@ -270,8 +271,10 @@ export class TicketTypesService {
       throw new BadRequestException({ code: "RESERVATION_INVALID", message: "Reservation quantity and expiry are invalid" });
     }
     await lockTicketType(transaction, ticketTypeId);
-    const ticketType = await transaction.ticketType.findUnique({ where: { id: ticketTypeId } });
+    const ticketType = await transaction.ticketType.findUnique({ where: { id: ticketTypeId }, include: { event: true } });
     if (!ticketType) throw ticketTypeNotFound();
+    if (ticketType.isInternal) throw new ConflictException({ code: "TICKET_TYPE_NOT_ON_SALE", message: "Internal admission types cannot be reserved directly" });
+    assertEventRegistrationOpen(ticketType.event, now);
     assertOnSale(ticketType, now);
     const inventory = await authoritativeInventory(transaction, ticketTypeId, now);
     if (ticketType.quantityTotal - inventory.reserved - inventory.sold < quantity) {

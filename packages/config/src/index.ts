@@ -51,6 +51,8 @@ export const apiEnvSchema = z.object({
   NODE_ENV: nodeEnvironmentSchema,
   DEMO_MODE: booleanSchema,
   API_PORT: portSchema.default(3001),
+  // Enable only behind a fixed-length, controlled proxy chain; direct clients must not reach the API.
+  API_TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
   DATABASE_URL: z.url({ protocol: /^postgres(?:ql)?$/ }),
   REDIS_URL: z.url({ protocol: /^redis(?:s)?$/ }),
   JWT_SECRET: z.string().min(32),

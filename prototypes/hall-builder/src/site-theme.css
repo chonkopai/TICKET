@@ -1,0 +1,77 @@
+/* Exact light/dark tokens from apps/web/src/components/theme.css. */
+:root {
+  --ticket-bg: #f9f9ff;
+  --ticket-surface: #fff;
+  --ticket-raised: #f1eef8;
+  --ticket-hover: #ede5fa;
+  --ticket-text: #151c27;
+  --ticket-muted: #625d70;
+  --ticket-dim: #756c85;
+  --ticket-border: #e6e2ee;
+  --ticket-primary: #6320ee;
+  --ticket-primary-hover: #4f16c8;
+  --ticket-accent: #6320ee;
+  --ticket-accent-soft: #f2ecfe;
+  --ticket-danger: #b4233b;
+  --ticket-danger-soft: #fff1f3;
+  --ticket-danger-border: #f3c6ce;
+  --ticket-warning: #92400e;
+  --ticket-warning-soft: #fffbeb;
+  --ticket-warning-border: #fcd34d;
+  --ticket-success: #047857;
+  --ticket-success-soft: #ecfdf5;
+  --ticket-success-border: #6ee7b7;
+  --ticket-info: #1d4ed8;
+  --ticket-info-soft: #eff6ff;
+  --ticket-info-border: #93c5fd;
+  --ticket-hall-floor: #f3f4f6;
+  --ticket-grid-minor: #dedbec;
+  --ticket-grid-major: #cfc8e6;
+  --ticket-input-border: #e6e2ee;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ticket-bg: #111015;
+  --ticket-surface: #1b1822;
+  --ticket-raised: #25202e;
+  --ticket-hover: #342b43;
+  --ticket-text: #f5f3fa;
+  --ticket-muted: #b8b1c5;
+  --ticket-dim: #a198b0;
+  --ticket-border: #484052;
+  --ticket-primary: #7c3aed;
+  --ticket-primary-hover: #6d28d9;
+  --ticket-accent: #b794f4;
+  --ticket-accent-soft: #30233f;
+  --ticket-danger: #ffabb7;
+  --ticket-danger-soft: #3a1e29;
+  --ticket-danger-border: #8f465c;
+  --ticket-warning: #f8d894;
+  --ticket-warning-soft: #362b18;
+  --ticket-warning-border: #856532;
+  --ticket-success: #8ce4bf;
+  --ticket-success-soft: #19332c;
+  --ticket-success-border: #3d8067;
+  --ticket-info: #a6ccff;
+  --ticket-info-soft: #1c2b42;
+  --ticket-info-border: #446b9f;
+  --ticket-hall-floor: #25202e;
+  --ticket-grid-minor: #282231;
+  --ticket-grid-major: #3d334b;
+  --ticket-input-border: #756782;
+  --ticket-creation-accent: var(--ticket-accent);
+  --ticket-creation-primary: var(--ticket-primary);
+  --ticket-creation-primary-hover: var(--ticket-primary-hover);
+  --ticket-creation-tint: var(--ticket-accent-soft);
+  --ticket-creation-text: var(--ticket-text);
+  --ticket-creation-muted: var(--ticket-muted);
+  --ticket-creation-dim: var(--ticket-dim);
+  --ticket-creation-border: var(--ticket-border);
+  --ticket-creation-bg: var(--ticket-bg);
+  --ticket-creation-raised: var(--ticket-raised);
+  --ticket-creation-hover: var(--ticket-hover);
+  --ticket-creation-danger: var(--ticket-danger);
+  --ticket-creation-danger-soft: var(--ticket-danger-soft);
+  --ticket-creation-danger-border: var(--ticket-danger-border);
+}

@@ -15,6 +15,7 @@ import {
 import { DATABASE_CLIENT } from "../auth/auth.constants.js";
 import { PAYMENT_PROVIDER } from "../booking/booking.constants.js";
 import type { PaymentProvider } from "../booking/payment-provider.js";
+import { lockTable } from "../tables/tables.service.js";
 import { type StaffPrincipal, parse, staffAudit } from "./staff.config.js";
 import { validId } from "./platform-support.service.js";
 const orderInclude = {
@@ -363,6 +364,8 @@ export class StaffRefundsService implements OnModuleInit, OnModuleDestroy {
         await lock(tx, first.orderId);
         const row = await tx.staffRefund.findUniqueOrThrow({ where: { id } });
         if (row.status === "succeeded") return row;
+        const booking = await tx.booking.findUnique({ where: { orderId: row.orderId }, select: { tableId: true } });
+        if (booking) await lockTable(tx, booking.tableId);
         const order = await tx.order.findUniqueOrThrow({
           where: { id: row.orderId },
           include: orderInclude,
@@ -433,7 +436,7 @@ export class StaffRefundsService implements OnModuleInit, OnModuleDestroy {
             where: { orderId: row.orderId, status: "active" },
             data: { status: "cancelled" },
           });
-          if (order.booking) {
+          if (order.booking?.status === "confirmed") {
             await tx.booking.update({
               where: { id: order.booking.id },
               data: { status: "cancelled" },

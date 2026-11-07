@@ -1,4 +1,5 @@
 "use client";
+import { useEventEnded } from "../../../lib/use-event-ended";
 import { RefundPolicyText } from "../../../components/event-presentation";
 
 import { INTL_LOCALES, localeUrl } from "../../../lib/locale";
@@ -34,6 +35,7 @@ interface CheckoutPanelProps {
 
 export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId, onTableChange, ticketQuantities, onTicketChange, onClearSeats, onRefreshAvailability, readOnly = false, emptyMessage, onLockChange, onRestoreSelection }: CheckoutPanelProps) {
   const locale = useLocale();
+  const ended = useEventEnded(event) && !readOnly;
   const copy = CHECKOUT_COPY[locale];
   const design = BOOKING_PANEL_COPY[locale];
   const formatMoney = (value: number, currency: string): string => new Intl.NumberFormat(INTL_LOCALES[locale], { style: "currency", currency }).format(value / 100);
@@ -86,7 +88,7 @@ export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId,
   }, [selection.items.length]);
 
   async function checkout(): Promise<void> {
-    if (readOnly || !accepted || busy || !selection.valid || (emailRequested && !emailChoice)) return;
+    if (readOnly || ended || !accepted || busy || !selection.valid || (emailRequested && !emailChoice)) return;
     setBusy(true); setError(null); setResult(null);
     try {
       const emailDelivery = emailChoice ? { emailDelivery: emailChoice } : {};
@@ -115,6 +117,9 @@ export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId,
     <span className="checkout-heading-icon"><AccountIcon name="ticket" /></span>
     <div><h2>{copy.choose}</h2><p>{event.saleMode === "free" ? design.freeIntro : design.paidIntro}</p></div>
   </header>;
+  if (ended) return <aside id="tickets" className="event-booking">
+    <div className="checkout-empty" role="status"><AccountIcon name="info" /><h3>{design.ended}</h3><p>{design.endedHint}</p></div>
+  </aside>;
   if (event.paymentMode === "deposit") return <aside id="tickets" className="event-booking">
     {header}<div className="checkout-empty"><AccountIcon name="info" /><h3>{design.paused}</h3><p>{design.pausedHint}</p></div>
   </aside>;

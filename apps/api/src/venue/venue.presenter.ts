@@ -5,6 +5,7 @@ import { presentTable } from "../tables/tables.presenter.js";
 
 export function presentVenueLayout(layout: VenueLayoutRecord & { tables: Table[]; rows?: Array<VenueRowRecord & { seats: Seat[] }> },projected?:VenueLayout["layoutJson"]): VenueLayout {
   return {
+    archived:!!(layout.layoutJson&&typeof layout.layoutJson==="object"&&!Array.isArray(layout.layoutJson)&&layout.layoutJson.libraryArchived===true),
     id: layout.id,
     eventId: layout.eventId,
     organizerId: layout.organizerId,

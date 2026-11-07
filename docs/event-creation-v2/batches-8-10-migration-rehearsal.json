@@ -1,0 +1,24 @@
+{
+  "at": "2026-10-02T19:44:37.006Z",
+  "databases": {
+    "fresh": {
+      "name": "event_platform_v2_fresh_1790941250928",
+      "eventsBefore": "26",
+      "eventsAfter": "26",
+      "migrationOutput": "Datasource \"db\": PostgreSQL database \"event_platform_v2_fresh_1790941250928\", schema \"public\" at \"localhost:5432\"\n\n48 migrations found in prisma/migrations\n\n\nNo pending migrations to apply.\n"
+    },
+    "legacy": {
+      "name": "event_platform_v2_legacy_1790941250928",
+      "eventsBefore": "43",
+      "eventsAfter": "43",
+      "migrationOutput": "Datasource \"db\": PostgreSQL database \"event_platform_v2_legacy_1790941250928\", schema \"public\" at \"localhost:5432\"\n\n48 migrations found in prisma/migrations\n\n\nNo pending migrations to apply.\n"
+    }
+  },
+  "schemaDifferences": [],
+  "initialMigrationChecksumMismatch": [
+    {
+      "migration_name": "20260902023000_init_core_schema",
+      "checksum": "b5a3e80e1a58060f7b602ff38ca525a017c58b0558265c8e4c9634a53127d448"
+    }
+  ]
+}

@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      { source: "/ticket-email/:path*", destination: `${apiBaseUrl}/ticket-email/:path*` },
       { source: "/platform-support/:path*", destination: `${apiBaseUrl}/platform-support/:path*` },
       { source: "/api/creation-drafts/:path*", destination: `${apiBaseUrl}/creation-drafts/:path*` },
       { source: "/api/quick/:path*", destination: `${apiBaseUrl}/quick/:path*` },

@@ -107,6 +107,11 @@ API_BASE_URL=http://localhost:3001
 Keep `API_BASE_URL` local: the bot calls the API directly, while the Next.js application proxies
 browser requests to the API and `/telegram/webhook` to the bot service.
 
+For browser requests through Next.js alone, set `API_TRUST_PROXY_HOPS=1` as in `.env.example`.
+Use `0` for direct API access; demo Compose sets `2` for its Caddy → Next.js → API chain.
+Keep API ports private whenever proxy trust is enabled so clients cannot supply trusted
+forwarding headers through a shorter route.
+
 Set `TELEGRAM_WEBHOOK_SECRET` to a separate random value, then register the public webhook:
 
 ```bash

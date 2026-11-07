@@ -3,6 +3,7 @@ import { ru, type RefreshResponse } from "@event-platform/shared-types";
 import { clearSession, getSession, saveSession, type BrowserSession } from "./session";
 import { authErrorMessage } from "./public-auth";
 import { localeFromBrowser } from "../../../lib/locale";
+import { BOOKING_PANEL_COPY } from "../../../lib/booking-panel-copy";
 import { EVENTS_COPY } from "../../../lib/events-copy";
 import { TICKET_TYPES_COPY } from "../../../lib/ticket-types-copy";
 
@@ -111,6 +112,7 @@ async function errorMessage(response: Response): Promise<string> {
       message?: string | string[];
       details?: { missingFields?: string[] };
     };
+    if (body.code === "EVENT_ENDED") return BOOKING_PANEL_COPY[localeFromBrowser()].endedHint;
     if (body.code === "EVENT_PUBLISH_VALIDATION_FAILED" && body.details?.missingFields) {
       const fields = body.details.missingFields.map(eventFieldName);
       return `${EVENTS_COPY[localeFromBrowser()].errors.publishMissing}: ${fields.join(", ")}.`;

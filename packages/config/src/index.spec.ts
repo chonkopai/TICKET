@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
-import { loadApiEnv, loadBotEnv, loadWebEnv,loadTranslationEnv } from "./index.js";
+import { apiEnvSchema, loadApiEnv, loadBotEnv, loadWebEnv,loadTranslationEnv } from "./index.js";
 
 describe("environment loaders", () => {
+  it("accepts only an explicit bounded integer proxy hop count", () => {
+    const hops = apiEnvSchema.shape.API_TRUST_PROXY_HOPS;
+    expect(hops.parse(undefined)).toBe(0);
+    expect(hops.parse("1")).toBe(1);
+    expect(hops.parse("2")).toBe(2);
+    for (const value of ["true", "-1", "1.5", "11", "loopback"]) expect(() => hops.parse(value)).toThrow(ZodError);
+  });
   it("enables Telegram approval only with explicit server configuration and a canonical origin", () => {
     const base = { DATABASE_URL: "postgresql://user:password@localhost:5432/test", REDIS_URL: "redis://localhost:6379", JWT_SECRET: "a".repeat(32), JWT_REFRESH_SECRET: "b".repeat(32), BOT_API_SECRET: "c".repeat(32), TELEGRAM_BOT_TOKEN: "123456:test-token", TELEGRAM_BOT_USERNAME: "event_platform_bot", WEB_ORIGIN: "https://staging.ticketron.live" };
     expect(loadApiEnv(base).TELEGRAM_OIDC_ENABLED).toBe(false);
@@ -26,6 +33,7 @@ describe("environment loaders", () => {
     });
 
     expect(env.API_PORT).toBe(3101);
+    expect(env.API_TRUST_PROXY_HOPS).toBe(0);
     expect(env.PAYMENT_PROVIDER_NAME).toBe("mock");
     expect(env.TABLE_HOLD_TTL_SECONDS).toBe(600);
     expect(env.TABLE_HOLD_CLEANUP_INTERVAL_SECONDS).toBe(60);

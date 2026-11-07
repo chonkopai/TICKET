@@ -1,3 +1,5 @@
+import { assertEventRegistrationOpen } from "../events/event-registration-policy.js";
+import { orderEventsArePublished } from "../events/event-lifecycle-lock.js";
 import { assertCurrentSale } from "../events/current-sale-policy.js";
 import { acceptedSnapshot } from "./accepted-policy-snapshot.js";
 import { readCheckoutSnapshot,parseHistoricalPurchaseSnapshot } from "@event-platform/shared-types";
@@ -112,6 +114,7 @@ export class BookingService {
         if (!event) throw new NotFoundException({ code: "EVENT_NOT_FOUND", message: "Event was not found" });
         assertCurrentSale(event);
         const now = this.clock.now();
+        assertEventRegistrationOpen(event, now);
         const configuredExpiry = new Date(now.getTime() + this.config.checkoutTtlSeconds * 1_000);
         const types = tickets.length ? await transaction.ticketType.findMany({ where: { id: { in: tickets.map((item) => item.ticketTypeId) }, eventId: event.id, isInternal: false, seats: { none: {} }, status: TicketTypeStatus.active } }) : [];
         if (types.length !== tickets.length || types.some((type) => (type.salesStartAt && type.salesStartAt > now) || (type.salesEndAt && type.salesEndAt <= now))) throw new ConflictException({ code: "TICKET_UNAVAILABLE", message: "A selected ticket is unavailable" });
@@ -222,13 +225,14 @@ export class BookingService {
         if (replay) return replay;
 
         const ticketType = await transaction.ticketType.findFirst({
-          where: { id: input.ticketTypeId, seats: { none: {} }, status: TicketTypeStatus.active, event: { status: EventStatus.published } },
+          where: { id: input.ticketTypeId, isInternal: false, seats: { none: {} }, status: TicketTypeStatus.active, event: { status: EventStatus.published } },
           include: { event: true },
         });
         if (!ticketType) throw new NotFoundException({ code: "TICKET_TYPE_NOT_FOUND", message: "Ticket type was not found" });
         assertCurrentSale(ticketType.event);
 
         const now = this.clock.now();
+        assertEventRegistrationOpen(ticketType.event, now);
         const expiresAt = new Date(now.getTime() + this.config.checkoutTtlSeconds * 1_000);
         const amounts = paymentAmounts(ticketType.event, ticketType.price, input.quantity);
         const snapshot: CheckoutSnapshot = {
@@ -345,6 +349,7 @@ export class BookingService {
         if (table.saleMode === TableSaleMode.per_seat) throw new ConflictException({ code: "TABLE_REQUIRES_SEAT_SELECTION", message: "Select individual seats for this table" });
 
         const now = this.clock.now();
+        assertEventRegistrationOpen(event, now);
         const configuredExpiry = new Date(now.getTime() + this.config.checkoutTtlSeconds * 1_000);
         const holdKey = `checkout-${createHash("sha256").update(`${userId}:${key}`).digest("hex")}`;
         const hold = await this.tables.holdInTransaction(transaction, table.id, holdKey, now);
@@ -487,6 +492,7 @@ export class BookingService {
         const locked = await transaction.seat.findMany({ where: { id: { in: seatIds } }, include: { allocations: { where: { status: { in: [SeatAllocationStatus.active, SeatAllocationStatus.consumed] } }, select: { id: true } } } });
         if (locked.some((seat) => seat.status !== SeatStatus.available || seat.allocations.length > 0)) throw new ConflictException({ code: "SEAT_UNAVAILABLE", message: "One or more selected seats are unavailable" });
         const now = this.clock.now();
+        assertEventRegistrationOpen(event, now);
         if (seats.some((seat) => (seat.ticketType!.salesStartAt && seat.ticketType!.salesStartAt > now) || (seat.ticketType!.salesEndAt && seat.ticketType!.salesEndAt <= now))) {
           throw new ConflictException({ code: "SEAT_SALES_WINDOW_CLOSED", message: "Selected seats are not currently on sale" });
         }
@@ -609,6 +615,10 @@ export class BookingService {
     if (!order) throw orderNotFound();
     if (order.paymentStatus === PaymentStatus.paid) return;
     if (order.paymentStatus !== PaymentStatus.pending || (order.expiresAt && order.expiresAt <= this.clock.now())) throw new ConflictException({ code: "CHECKOUT_NOT_PAYABLE", message: "Checkout is no longer payable" });
+    if (!await orderEventsArePublished(transaction, orderId)) throw new ConflictException({ code: "EVENT_NOT_PUBLISHED", message: "This event no longer accepts payment settlement" });
+    if (order.tickets.some(ticket => ticket.status !== TicketStatus.pending_payment)) {
+      throw new ConflictException({ code: "CHECKOUT_SELECTION_CHANGED", message: "Checkout selection no longer matches the payment" });
+    }
     if (order.type === OrderType.ticket) {
       const byType = new Map<string, number>();
       for (const ticket of order.tickets) byType.set(ticket.ticketTypeId, (byType.get(ticket.ticketTypeId) ?? 0) + 1);
@@ -649,7 +659,7 @@ export class BookingService {
       await transaction.webhookEvent.update({ where: { id: claim.id }, data: { paymentId: payment.id, orderId: payment.orderId } });
       await lockOrder(transaction, payment.orderId);
       payment=await transaction.payment.findUniqueOrThrow({where:{id:payment.id}});
-      const order = await transaction.order.findUnique({ where: { id: payment.orderId }, include: { booking: { include: { tableHold: true } } } });
+      const order = await transaction.order.findUnique({ where: { id: payment.orderId }, include: { tickets: { select: { status: true } }, booking: { include: { tableHold: true } } } });
       if (!order) throw orderNotFound();
       if (webhook.eventType === "payment.succeeded") {
         // A delayed duplicate of the original payment must not resurrect a refunded payment.
@@ -663,7 +673,9 @@ export class BookingService {
           return { accepted: true as const, duplicate: false, reviewRequired: false };
         }
         let reviewRequired = false;
-        const eligible = order.paymentStatus === PaymentStatus.pending && (!order.expiresAt || order.expiresAt > this.clock.now()) && (!order.booking || (order.booking.status === BookingStatus.pending && order.booking.tableHold?.status === TableHoldStatus.active));
+        const eventUnavailable = !await orderEventsArePublished(transaction, order.id);
+        const selectionChanged = order.tickets.some(ticket => ticket.status !== TicketStatus.pending_payment);
+        const eligible = !eventUnavailable && !selectionChanged && order.paymentStatus === PaymentStatus.pending && (!order.expiresAt || order.expiresAt > this.clock.now()) && (!order.booking || (order.booking.status === BookingStatus.pending && order.booking.tableHold?.status === TableHoldStatus.active));
         if (eligible) {
           await this.settleSucceededInTransaction(transaction, order.id);
           await transaction.payment.update({ where: { id: payment.id }, data: { status: PaymentStatus.paid, payloadHash: webhook.payloadHash, ...(webhook.metadata ? { rawWebhook: webhook.metadata as Prisma.InputJsonObject } : {}), ...(payment.webhookReceivedAt?{}:{webhookReceivedAt:this.clock.now()}) } });
@@ -673,11 +685,13 @@ export class BookingService {
           reviewRequired = true;
           if (order.paymentStatus === PaymentStatus.pending && order.expiresAt && order.expiresAt <= this.clock.now()) {
             await this.failOrderInTransaction(transaction, order.id, "expired");
+          } else if (order.paymentStatus === PaymentStatus.pending && (selectionChanged || eventUnavailable)) {
+            await this.failOrderInTransaction(transaction, order.id, "released");
           }
           await transaction.payment.update({ where: { id: payment.id }, data: { status: PaymentStatus.paid, payloadHash: webhook.payloadHash, ...(webhook.metadata ? { rawWebhook: webhook.metadata as Prisma.InputJsonObject } : {}), ...(payment.webhookReceivedAt?{}:{webhookReceivedAt:this.clock.now()}) } });
           const review = await transaction.outboxEvent.findFirst({ where: { eventType: "payment.review_required", aggregateId: order.id } });
           if (!review) {
-            await this.domainEvents.append(transaction, { eventType: "payment.review_required", aggregateType: "order", aggregateId: order.id, payload: { provider: webhook.provider, providerPaymentId: webhook.providerPaymentId, reason: "late_or_released_order" } });
+            await this.domainEvents.append(transaction, { eventType: "payment.review_required", aggregateType: "order", aggregateId: order.id, payload: { provider: webhook.provider, providerPaymentId: webhook.providerPaymentId, reason: eventUnavailable ? "event_not_published" : selectionChanged ? "checkout_selection_changed" : "late_or_released_order" } });
             await transaction.auditLog.create({ data: { actorId: order.buyerUserId, action: "payment.review_required", entityType: "order", entityId: order.id, meta: { provider: webhook.provider, eventId: webhook.eventId } } });
           }
         }
@@ -740,16 +754,23 @@ export class BookingService {
       return await this.database.$transaction(async (transaction) => {
         const replay = await claimCancellation(transaction, userId, TICKET_CANCEL, key);
         if (replay) return replay;
+        const initial = await transaction.ticket.findFirst({ where: { id, order: { buyerUserId: userId } }, select: { orderId: true } });
+        if (!initial) throw resourceNotFound("TICKET_NOT_FOUND");
+        await lockOrder(transaction, initial.orderId);
         const current = await transaction.ticket.findFirst({ where: { id, order: { buyerUserId: userId } }, include: { order: true, seatAllocation: true } });
         if (!current) throw resourceNotFound("TICKET_NOT_FOUND");
         if (snapshot(current.order.checkoutSnapshot).itemKind === "cart") throw new ConflictException({ code: "CART_CANCELLATION_REQUIRES_ORDER_REFUND", message: "For a combined purchase, contact the organizer to refund the whole order" });
         if (current.seatAllocation) throw new ConflictException({ code: "TABLE_CHILD_TICKET_CANCEL", message: "Cancel the whole table booking instead of an individual table seat" });
-        await lockOrder(transaction, current.orderId);
         if(await transaction.staffRefund.findFirst({where:{orderId:current.orderId,status:{in:["requested","processing"]}}}))throw new ConflictException({code:"REFUND_IN_PROGRESS"});
         if (current.status === TicketStatus.used || current.status === TicketStatus.refunded) {
           throw cancellationNotAllowed("TICKET_CANCELLATION_NOT_ALLOWED");
         }
         assertAcceptedCancellation(current.order);
+        // Provider links retain their original amount. Never remove only part of an unpaid selection.
+        if (current.status !== TicketStatus.cancelled && current.order.paymentStatus === PaymentStatus.pending
+          && await transaction.ticket.count({ where: { orderId: current.orderId, id: { not: id }, status: { not: TicketStatus.cancelled } } }) > 0) {
+          throw new ConflictException({ code: "PENDING_ORDER_PARTIAL_CANCELLATION_UNAVAILABLE", message: "An unpaid checkout cannot be partially cancelled. Let it expire, then create a new checkout with the tickets you need." });
+        }
         const refundPending = current.order.paymentStatus === PaymentStatus.paid && current.order.amount > 0;
         if (current.status !== TicketStatus.cancelled) {
           const sold = current.status === TicketStatus.paid || current.status === TicketStatus.active;
@@ -786,13 +807,15 @@ export class BookingService {
       return await this.database.$transaction(async (transaction) => {
         const replay = await claimCancellation(transaction, userId, BOOKING_CANCEL, key);
         if (replay) return replay;
+        const initial = await transaction.booking.findFirst({ where: { id, order: { buyerUserId: userId } }, select: { orderId: true, tableId: true } });
+        if (!initial) throw resourceNotFound("BOOKING_NOT_FOUND");
+        await lockOrder(transaction, initial.orderId);
+        await lockTable(transaction, initial.tableId);
         const booking = await transaction.booking.findFirst({ where: { id, order: { buyerUserId: userId } }, include: { order: { include: { tickets: true } }, tableHold: true } });
         if (!booking) throw resourceNotFound("BOOKING_NOT_FOUND");
         if (snapshot(booking.order.checkoutSnapshot).itemKind === "cart") throw new ConflictException({ code: "CART_CANCELLATION_REQUIRES_ORDER_REFUND", message: "For a combined purchase, contact the organizer to refund the whole order" });
-        await lockOrder(transaction, booking.orderId);
         if(await transaction.staffRefund.findFirst({where:{orderId:booking.orderId,status:{in:["requested","processing"]}}}))throw new ConflictException({code:"REFUND_IN_PROGRESS"});
-        await lockTable(transaction, booking.tableId);
-        if (booking.status === BookingStatus.expired) throw cancellationNotAllowed("BOOKING_CANCELLATION_NOT_ALLOWED");
+        if (booking.status === BookingStatus.expired || booking.order.tickets.some(ticket => ticket.status === TicketStatus.used || ticket.status === TicketStatus.refunded)) throw cancellationNotAllowed("BOOKING_CANCELLATION_NOT_ALLOWED");
         assertAcceptedCancellation(booking.order);
         const refundPending = booking.order.paymentStatus === PaymentStatus.paid && booking.order.amount > 0;
         if (booking.status !== BookingStatus.cancelled) {

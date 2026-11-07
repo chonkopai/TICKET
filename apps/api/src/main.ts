@@ -5,11 +5,13 @@ import { loadApiEnv } from "@event-platform/config";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
+import { configureHttpProxy } from "./http-proxy.js";
 
 async function bootstrap(): Promise<void> {
   const env = loadApiEnv();
   const { AppModule } = await import("./app.module.js");
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true, bodyParser: true });
+  configureHttpProxy(app, env.API_TRUST_PROXY_HOPS);
 
   // A 2,000-seat editor document exceeds Express's 100 KB default; retain a bounded JSON body.
   app.useBodyParser("json", { limit: "4mb" });

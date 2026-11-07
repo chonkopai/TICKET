@@ -1,0 +1,26 @@
+{
+  "at": "2026-10-03T13:41:13.337Z",
+  "databases": {
+    "source": {
+      "Event": "0",
+      "Order": "0",
+      "Payment": "0",
+      "Deposit": "0",
+      "Ticket": "0",
+      "User": "18",
+      "OutboxEvent": "15400",
+      "appliedMigrations": "38"
+    },
+    "target": {
+      "Event": "0",
+      "Order": "0",
+      "Payment": "0",
+      "Deposit": "0",
+      "Ticket": "0",
+      "User": "18",
+      "OutboxEvent": "0",
+      "appliedMigrations": "48",
+      "drafts": "2"
+    }
+  }
+}

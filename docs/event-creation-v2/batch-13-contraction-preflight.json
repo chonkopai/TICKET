@@ -1,0 +1,5212 @@
+{
+  "at": "2026-10-03T07:53:07.989Z",
+  "database": "event_platform_v2_legacy_1791011626433",
+  "readOnly": true,
+  "counts": {
+    "events": 43,
+    "created_v2": 0,
+    "unresolved_events": 43,
+    "unknown_ends": 43,
+    "legacy_deposit_sales": 9,
+    "invalid_new_events": 0
+  },
+  "reasons": [
+    {
+      "reason": "active_deposit",
+      "events": 9
+    },
+    {
+      "reason": "ambiguous_free_inventory",
+      "events": 1
+    },
+    {
+      "reason": "currency_unknown",
+      "events": 7
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000217000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000217000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000217000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000217000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000219000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000219000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000219000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000221000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000221000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000228000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000228000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000228000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000228000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000229000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000229000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000005-0000-4000-8000-000229000007",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000205000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000205000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000205000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000205000007",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000205000008",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000213000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000213000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000213000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000218000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000218000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000218000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000221000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000007",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000008",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000009",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000010",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000011",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000012",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000013",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000014",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000015",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000016",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000017",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000018",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000019",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000020",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000021",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000022",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000023",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000024",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000025",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000026",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000027",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000028",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000029",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000030",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000031",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000032",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000033",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000034",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000035",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000036",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000037",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000038",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000039",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000040",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000041",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000006-0000-4000-8000-000227000042",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000007",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000008",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000009",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000010",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000011",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000012",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000013",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000014",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000015",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000016",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000017",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000018",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000019",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000020",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000021",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000022",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000023",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000024",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000025",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000026",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000027",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000028",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000029",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000030",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000031",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000032",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000033",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000034",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000035",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000036",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000037",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000038",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000039",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000040",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000041",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000042",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000043",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000044",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000045",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000046",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000047",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000048",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000049",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000050",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000051",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000052",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000053",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000054",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000055",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000056",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000057",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000058",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000059",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000060",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000061",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000062",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000063",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000064",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000065",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000066",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000067",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000068",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000069",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000070",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000071",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000072",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000073",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000074",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000075",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000076",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000077",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000078",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000079",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000080",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000081",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000082",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000083",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000084",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000085",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000086",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000087",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000088",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000089",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000090",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000091",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000205000092",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000007",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000008",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000009",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000010",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000011",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000012",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000013",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000014",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000015",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000016",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000017",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000018",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000019",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000020",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000021",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000022",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000023",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000024",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000025",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000026",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000027",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000028",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000029",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000030",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000031",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000032",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000033",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000034",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000035",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000213000036",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000007",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000008",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000009",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000010",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000011",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000012",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000013",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000014",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000015",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000016",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000017",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000018",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000019",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000020",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000021",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000022",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000023",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000217000024",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000007",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000008",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000009",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000010",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000011",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000012",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000013",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000014",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000015",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000016",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000017",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000018",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000019",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000020",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000021",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000022",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000023",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000024",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000025",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000026",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000027",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000028",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000029",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000030",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000031",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000032",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000033",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000034",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000035",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000218000036",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000007",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000008",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000009",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000010",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000011",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000012",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000013",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000014",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000015",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000016",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000017",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000219000018",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000007",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000008",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000009",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000010",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000011",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000012",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000013",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000014",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000015",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000016",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000017",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000018",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000019",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000221000020",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000007",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000008",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000009",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000010",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000011",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000012",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000013",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000014",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000015",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000016",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000017",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000018",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000019",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000020",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000021",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000022",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000023",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000024",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000025",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000026",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000027",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000028",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000029",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000030",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000031",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000032",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000033",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000034",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000035",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000036",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000037",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000038",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000039",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000040",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000041",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000042",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000043",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000044",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000045",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000046",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000047",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000048",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000049",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000050",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000051",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000052",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000053",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000054",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000055",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000056",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000057",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000058",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000059",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000060",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000061",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000062",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000063",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000064",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000065",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000066",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000067",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000068",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000069",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000070",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000071",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000072",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000073",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000074",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000075",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000076",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000077",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000078",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000079",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000080",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000081",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000082",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000083",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000084",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000085",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000086",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000087",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000088",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000089",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000090",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000091",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000092",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000093",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000094",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000095",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000096",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000097",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000098",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000099",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000100",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000101",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000102",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000103",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000104",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000105",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000106",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000107",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000108",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000109",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000110",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000111",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000112",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000113",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000114",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000115",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000116",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000117",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000118",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000119",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000120",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000121",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000122",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000123",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000124",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000125",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000126",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000127",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000128",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000129",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000130",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000131",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000132",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000133",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000134",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000135",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000136",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000137",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000138",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000139",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000140",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000141",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000142",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000143",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000144",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000145",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000146",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000147",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000148",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000149",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000150",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000151",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000152",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000153",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000154",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000155",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000156",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000157",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000158",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000159",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000160",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000161",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000162",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000163",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000164",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000165",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000166",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000167",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000168",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000169",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000170",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000171",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000172",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000173",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000174",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000175",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000176",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000177",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000178",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000179",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000180",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000181",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000182",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000183",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000184",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000185",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000186",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000187",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000188",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000189",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000190",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000191",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000192",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000193",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000194",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000195",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000196",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000197",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000198",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000199",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000200",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000201",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000202",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000203",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000204",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000205",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000206",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000207",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000208",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000209",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000210",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000211",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000212",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000213",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000214",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000215",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000216",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000217",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000218",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000219",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000220",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000221",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000222",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000223",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000224",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000225",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000226",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000227",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000228",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000229",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000230",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000231",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000232",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000233",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000234",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000235",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000236",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000237",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000238",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000239",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000240",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000241",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000242",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000243",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000244",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000245",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000246",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000247",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000248",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000249",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000250",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000251",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000252",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000253",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000254",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000255",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000256",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000257",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000258",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000259",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000260",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000261",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000262",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000263",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000264",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000265",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000266",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000267",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000268",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000269",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000270",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000271",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000272",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000273",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000274",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000275",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000276",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000277",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000278",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000279",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000280",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000281",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000282",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000283",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000284",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000285",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000286",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000287",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000288",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000289",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000290",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000291",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000292",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000293",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000294",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000295",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000296",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000297",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000298",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000299",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000300",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000301",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000302",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000303",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000304",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000305",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000306",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000307",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000308",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000309",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000310",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000311",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000312",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000313",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000314",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000315",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000316",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000317",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000318",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000319",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000320",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000321",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000322",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000323",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000324",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000325",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000326",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000327",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000328",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000329",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000330",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000331",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000332",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000333",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000334",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000335",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000336",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000337",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000338",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000339",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000340",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000341",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000342",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000343",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000344",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000345",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000346",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000347",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000348",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000349",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000350",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000351",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000352",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000353",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000354",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000355",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000356",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000357",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000358",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000359",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000360",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000361",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000362",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000363",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000364",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000365",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000366",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000367",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000368",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000369",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000370",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000371",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000372",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000373",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000374",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000375",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000376",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000377",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000378",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000379",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000380",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000381",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000382",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000383",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000384",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000385",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000386",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000387",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000388",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000389",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000390",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000391",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000392",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000393",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000394",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000395",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000396",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000397",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000398",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000399",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000400",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000401",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000402",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000403",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000404",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000405",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000406",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000407",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000408",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000409",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000410",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000411",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000412",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000413",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000414",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000415",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000416",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000417",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000418",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000419",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000420",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000421",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000422",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000423",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000424",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000425",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000426",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000427",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000428",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000429",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000430",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000431",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000432",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000433",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000434",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000435",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000436",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000437",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000438",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000439",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000440",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000441",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000442",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000443",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000444",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000445",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000446",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000447",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000448",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000449",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000450",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000451",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000452",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000453",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000454",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000455",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000456",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000457",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000458",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000459",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000460",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000461",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000462",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000463",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000464",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000465",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000466",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000467",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000468",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000469",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000470",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000471",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000472",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000473",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000474",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000475",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000476",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000477",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000478",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000479",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000480",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000481",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000482",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000483",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000484",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000485",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000486",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000487",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000488",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000489",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000490",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000491",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000492",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000493",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000494",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000495",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000496",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000497",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000498",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000499",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000500",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000501",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000502",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000503",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000504",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000505",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000506",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000507",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000508",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000509",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000510",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000511",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000512",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000513",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000514",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000515",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000516",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000517",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000518",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000519",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000520",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000521",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000522",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000523",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000524",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000525",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000526",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000527",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000528",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000529",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000530",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000531",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000532",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000533",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000534",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000535",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000536",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000537",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000538",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000539",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000540",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000541",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000542",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000543",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000544",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000545",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000546",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000547",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000548",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000549",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000550",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000551",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000552",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000553",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000554",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000555",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000556",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000557",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000558",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000559",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000560",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000561",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000562",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000563",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000564",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000565",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000566",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000567",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000568",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000569",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000570",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000571",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000572",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000573",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000574",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000575",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000576",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000577",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000578",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000579",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000580",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000581",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000582",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000583",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000584",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000585",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000586",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000587",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000588",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000589",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000590",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000591",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000592",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000593",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000594",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000595",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000596",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000597",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000598",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000599",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000600",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000601",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000602",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000603",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000604",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000605",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000606",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000607",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000608",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000609",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000610",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000611",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000612",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000613",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000614",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000615",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000616",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000617",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000618",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000619",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000620",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000621",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000622",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000623",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000624",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000625",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000626",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000627",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000628",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000629",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000630",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000631",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000632",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000633",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000634",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000635",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000636",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000637",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000638",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000639",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000640",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000641",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000642",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000643",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000644",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000645",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000646",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000647",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000648",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000649",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000650",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000651",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000652",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000653",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000654",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000655",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000656",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000657",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000658",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000659",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000660",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000661",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000662",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000663",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000664",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000665",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000666",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000667",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000668",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000669",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000670",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000671",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000672",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000673",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000674",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000675",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000676",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000677",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000678",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000679",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000680",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000681",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000682",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000683",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000684",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000685",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000686",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000687",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000688",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000689",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000690",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000691",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000692",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000693",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000694",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000695",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000696",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000697",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000698",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000699",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000700",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000701",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000702",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000703",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000704",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000705",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000706",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000707",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000708",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000709",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000710",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000711",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000712",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000713",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000714",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000715",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000716",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000717",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000718",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000719",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000720",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000721",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000722",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000723",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000724",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000725",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000726",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000727",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000728",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000729",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000730",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000731",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000732",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000733",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000734",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000735",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000736",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000737",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000738",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000739",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000740",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000741",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000742",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000743",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000744",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000745",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000746",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000747",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000748",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000749",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000750",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000751",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000752",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000753",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000754",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000755",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000756",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000757",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000758",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000759",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000760",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000761",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000762",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000763",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000764",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000765",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000766",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000767",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000768",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000769",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000770",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000771",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000772",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000773",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000774",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000775",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000776",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000777",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000778",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000779",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000780",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000781",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000782",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000783",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000784",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000785",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000786",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000787",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000788",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000789",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000790",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000791",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000792",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000793",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000794",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000795",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000796",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000797",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000798",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000799",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000800",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000801",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000802",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000803",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000804",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000805",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000806",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000807",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000808",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000809",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000810",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000811",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000812",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000813",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000814",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000815",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000816",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000817",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000818",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000819",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000820",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000821",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000822",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000823",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000824",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000825",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000826",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000827",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000828",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000829",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000830",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000831",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000832",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000833",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000834",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000835",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000836",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000837",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000838",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000839",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000840",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000841",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000842",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000843",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000227000844",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000007",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000008",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000009",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000010",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000011",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000012",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000013",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000014",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000015",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000016",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000017",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000018",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000019",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000020",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000021",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000022",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000023",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000228000024",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000005",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000007",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000008",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000009",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000010",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000011",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000012",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000013",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000014",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000015",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000016",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000017",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000007-0000-4000-8000-000229000018",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000205000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000205000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000205000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000205000009",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000213000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000213000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000217000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000217000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000218000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000218000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000219000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000219000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000220000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000220000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000220000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000220000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000221000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000221000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000221000006",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000227000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000227000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000227000043",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000227000044",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000227000045",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000228000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000228000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000228000007",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000228000008",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000229000001",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000229000002",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000229000003",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:00000008-0000-4000-8000-000229000004",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:1602f242-f085-4a29-bd87-89376da387ce",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:1c1346f2-57d6-423d-9c33-838880e4c5d3",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:2b18f85b-5894-4cef-b232-4b38f882e856",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:43ccb325-1da2-44b7-9ef4-402d8ee303ac",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:685df12e-f5ca-490a-a12a-53b5b6589ea7",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:6ce98589-76f9-4123-8f78-61b66f97aafa",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:8d8829eb-b772-4e53-8a69-3e3a2fe907e5",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:921bc6d9-cda0-4935-b834-f377369f8bc0",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:b9052d12-287f-4d79-b53d-b1277f3d42fe",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:bc3b0117-b765-48ba-b420-d8944b80979a",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:cac84ce3-084c-48d9-af94-fa28033452b5",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:eb4a601d-b849-4da9-b7de-e16a7c805bd5",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:f630d61e-57b2-4555-a7fa-359054a1770f",
+      "events": 1
+    },
+    {
+      "reason": "hall_object_text_review:fe7c5978-461e-4c4b-a7f6-08b6ed512227",
+      "events": 1
+    },
+    {
+      "reason": "historical_deposit_prices",
+      "events": 11
+    },
+    {
+      "reason": "hybrid_sale_modes",
+      "events": 8
+    },
+    {
+      "reason": "legacy_deposit",
+      "events": 12
+    },
+    {
+      "reason": "media_decode_review:0",
+      "events": 3
+    },
+    {
+      "reason": "missing_or_inconsistent_capacity",
+      "events": 1
+    },
+    {
+      "reason": "missing_text:TableContent:ad16c6a8-0daf-479b-8152-5d8dc3b6726e:name",
+      "events": 1
+    },
+    {
+      "reason": "missing_text:TableContent:b6e99927-bfea-4447-b632-93394ff0c91a:name",
+      "events": 1
+    },
+    {
+      "reason": "missing_text:TableContent:dec780f3-1bf3-4808-92b1-0846e43b6dcd:name",
+      "events": 1
+    },
+    {
+      "reason": "missing_text:TableContent:e77fbdb6-671b-4370-9599-2fbab7bc8475:name",
+      "events": 1
+    },
+    {
+      "reason": "missing_text:ru:description",
+      "events": 4
+    },
+    {
+      "reason": "missing_text:ru:summary",
+      "events": 4
+    },
+    {
+      "reason": "missing_trusted_card",
+      "events": 40
+    },
+    {
+      "reason": "mixed_currencies",
+      "events": 1
+    },
+    {
+      "reason": "protected_inventory_locks",
+      "events": 5
+    },
+    {
+      "reason": "refund_choice_unknown",
+      "events": 43
+    },
+    {
+      "reason": "sale_mode_unknown",
+      "events": 4
+    },
+    {
+      "reason": "translation_currentness_review:en",
+      "events": 25
+    },
+    {
+      "reason": "translation_currentness_review:kk",
+      "events": 25
+    },
+    {
+      "reason": "unknown_end",
+      "events": 43
+    },
+    {
+      "reason": "unknown_media:0",
+      "events": 25
+    },
+    {
+      "reason": "unknown_media:1",
+      "events": 25
+    },
+    {
+      "reason": "unknown_media:2",
+      "events": 25
+    }
+  ],
+  "orders": [
+    {
+      "type": "table",
+      "status": "cancelled",
+      "orders": 3,
+      "currency": "KZT",
+      "minor_total": "34000000"
+    },
+    {
+      "type": "ticket",
+      "status": "cancelled",
+      "orders": 8,
+      "currency": "KZT",
+      "minor_total": "4000000"
+    },
+    {
+      "type": "ticket",
+      "status": "paid",
+      "orders": 17,
+      "currency": "KZT",
+      "minor_total": "181854000"
+    },
+    {
+      "type": "ticket",
+      "status": "paid",
+      "orders": 1,
+      "currency": "USD",
+      "minor_total": "50"
+    },
+    {
+      "type": "ticket",
+      "status": "refunded",
+      "orders": 7,
+      "currency": "KZT",
+      "minor_total": "460000"
+    }
+  ],
+  "pending": [],
+  "anomalies": [
+    {
+      "kind": "payment_order_money_mismatch",
+      "count": 3
+    },
+    {
+      "kind": "missing_order_snapshot",
+      "count": 20
+    },
+    {
+      "kind": "new_format_deposit",
+      "count": 0
+    },
+    {
+      "kind": "new_snapshot_money_mismatch",
+      "count": 0
+    },
+    {
+      "kind": "invalid_new_media",
+      "count": 0
+    },
+    {
+      "kind": "new_event_missing_card",
+      "count": 0
+    },
+    {
+      "kind": "negative_or_oversold_inventory",
+      "count": 0
+    },
+    {
+      "kind": "unvalidated_constraints",
+      "count": 0
+    }
+  ],
+  "financial": {
+    "rows": {
+      "Order": {
+        "count": "36",
+        "digest": "cdc7feafaf01fdb77b46ff81984fe6e2"
+      },
+      "Payment": {
+        "count": "26",
+        "digest": "e75f45b871b499b28b347a371c6d5e46"
+      },
+      "Deposit": {
+        "count": "6",
+        "digest": "62921c98a1652e3b083cb5597be82c7e"
+      },
+      "RefundRequest": {
+        "count": "0",
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "Ticket": {
+        "count": "72",
+        "digest": "b33e20b33b70146a7af5a3bec52f41ad"
+      },
+      "Booking": {
+        "count": "3",
+        "digest": "364aeb639a29bb8ef68b1343215e17bf"
+      },
+      "TicketReservation": {
+        "count": "10",
+        "digest": "3b1bd4842f5a3d6e809aad4d64cc25ea"
+      },
+      "SeatAllocation": {
+        "count": "58",
+        "digest": "13800070a5e4ac76a093142fa7a4c0e7"
+      },
+      "GroupPass": {
+        "count": "1",
+        "digest": "f6efe44c8b70b694b4c1c18177ccefda"
+      },
+      "TableHold": {
+        "count": "4",
+        "digest": "efad72d95fba49b91efefc3137a7fcc3"
+      },
+      "Seat": {
+        "count": "1193",
+        "digest": "a95fe7b0613c696f7223027a9a3fdea6"
+      },
+      "TicketType": {
+        "count": "1199",
+        "digest": "3bb1e9a9fd5103a95006086b5a4d5ad9"
+      },
+      "Table": {
+        "count": "39",
+        "digest": "36486559de712eecb119342b1b377e6e"
+      },
+      "VenueRow": {
+        "count": "54",
+        "digest": "513afacfedd8622d0ab72550e90b6b1c"
+      },
+      "VenueLayout": {
+        "count": "20",
+        "digest": "5fbc004d1bd7832e10c0d5030c18e57d"
+      }
+    },
+    "totals": {
+      "Order": [
+        {
+          "currency": "KZT",
+          "status": "cancelled",
+          "count": "11",
+          "minor_total": "38000000"
+        },
+        {
+          "currency": "KZT",
+          "status": "paid",
+          "count": "17",
+          "minor_total": "181854000"
+        },
+        {
+          "currency": "KZT",
+          "status": "refunded",
+          "count": "7",
+          "minor_total": "460000"
+        },
+        {
+          "currency": "USD",
+          "status": "paid",
+          "count": "1",
+          "minor_total": "50"
+        }
+      ],
+      "Payment": [
+        {
+          "currency": "KZT",
+          "status": "paid",
+          "count": "10",
+          "minor_total": "181770000"
+        },
+        {
+          "currency": "KZT",
+          "status": "pending",
+          "count": "10",
+          "minor_total": "8000000"
+        },
+        {
+          "currency": "KZT",
+          "status": "refunded",
+          "count": "6",
+          "minor_total": "450000"
+        }
+      ],
+      "Deposit": [
+        {
+          "currency": "KZT",
+          "status": "cancelled",
+          "count": "6",
+          "minor_total": "32400000"
+        }
+      ],
+      "RefundRequest": []
+    }
+  },
+  "contraction": {
+    "eligible": false,
+    "blockers": [
+      "No authorized deployed-consumer inventory or completed cutover observation.",
+      "Legacy content/media and active-sale review must be resolved before dropping live projections.",
+      "Historical Deposit/OrderType archive and reader migration are not proven."
+    ]
+  }
+}

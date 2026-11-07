@@ -22,6 +22,7 @@ import { normalizedPresentation } from "../public-events/normalized-presentation
 import { guestOrganizerContact, guestOrderChatPath, guestEventTiming, guestEventTimingSelect } from "./guest-ticket-details.js";
 import { eventContent, eventContentHash } from "../events/event-translation-content.js";
 import { DomainEventsService } from "../domain-events/domain-events.service.js";
+import { lockEventLifecycle } from "../events/event-lifecycle-lock.js";
 import { WALLET_PASS_GENERATOR } from "../wallet/wallet.constants.js";
 import type { WalletPassGenerator } from "../wallet/wallet-pass-generator.js";
 import {
@@ -41,7 +42,8 @@ export const TICKET_TRANSITIONS: Readonly<Record<SharedTicketStatus, readonly Sh
   refunded: [],
 };
 
-const groupPassTimingInclude = { table: { select: { venueLayout: { select: { event: { select: guestEventTimingSelect } } } } } } as const;
+const admissionEventSelect = { ...guestEventTimingSelect, id: true, status: true } as const;
+const groupPassTimingInclude = { table: { select: { venueLayout: { select: { event: { select: admissionEventSelect } } } } } } as const;
 
 @Injectable()
 export class TicketsService {
@@ -92,7 +94,7 @@ export class TicketsService {
     };
     const guest = { ...presentGuestTicket(ticket), eventDetails, chatPath: guestOrderChatPath(userId, event.id, ticket.order) };
     const accepted=parseHistoricalPurchaseSnapshot(ticket.order?.checkoutSnapshot);
-    if(accepted.version===2)return {...guest,eventTitle:accepted.snapshot.title,contentLocale:accepted.snapshot.contentLocale,sourceLocale:accepted.snapshot.sourceLocale,walletPath:ticket.status===TicketStatus.active&&!hasEventEnded(eventDetails)&&this.wallet.isConfigured()?`/me/tickets/${ticket.id}/wallet`:null};
+    if(accepted.version===2)return {...guest,eventTitle:accepted.snapshot.title,contentLocale:accepted.snapshot.contentLocale,sourceLocale:accepted.snapshot.sourceLocale,walletPath:ticket.status===TicketStatus.active&&event.status==="published"&&!hasEventEnded(eventDetails)&&this.wallet.isConfigured()?`/me/tickets/${ticket.id}/wallet`:null};
     const sourceLocale = event.sourceLocale as EventLocale;
     const candidate = sourceLocale === locale ? null : await this.database.eventTranslation.findUnique({ where: { eventId_locale: { eventId: event.id, locale } } });
     const translation = candidate && (candidate.origin === "manual" || candidate.sourceHash === eventContentHash(eventContent(event))) ? candidate : null;
@@ -102,7 +104,7 @@ export class TicketsService {
       eventTitle: translation?.title ?? event.title,
       contentLocale: translation ? locale : sourceLocale,
       sourceLocale,
-      walletPath: ticket.status === TicketStatus.active && !hasEventEnded(eventDetails) && this.wallet.isConfigured() ? `/me/tickets/${ticket.id}/wallet` : null,
+      walletPath: ticket.status === TicketStatus.active && event.status === "published" && !hasEventEnded(eventDetails) && this.wallet.isConfigured() ? `/me/tickets/${ticket.id}/wallet` : null,
     };
   }
 
@@ -112,7 +114,7 @@ export class TicketsService {
   async assetForAnonymousOrder(orderId: string, id: string, wallet: boolean): Promise<Buffer> {
     const ticket = await this.database.ticket.findFirst({ where: { id, orderId, order: { paymentStatus: "paid" }, status: { in: ["active", "used"] } }, include: ticketContextInclude });
     if (!ticket) throw new NotFoundException({ code: "TICKET_NOT_FOUND" });
-    ensureEventNotEnded(ticket.ticketType.event);
+    ensureEventAdmissionOpen(ticket.ticketType.event);
     if (wallet) return this.walletPassForTicket(ticket);
     return QRCode.toBuffer(ticket.qrToken, { type: "png", errorCorrectionLevel: "M", margin: 2, width: 320 });
   }
@@ -122,7 +124,7 @@ export class TicketsService {
     if (ticket.status === TicketStatus.cancelled || ticket.status === TicketStatus.refunded) {
       throw invalidTransition(ticket.status, "qr");
     }
-    ensureEventNotEnded(ticket.ticketType.event);
+    ensureEventAdmissionOpen(ticket.ticketType.event);
     return QRCode.toBuffer(ticket.qrToken, {
       type: "png", errorCorrectionLevel: "M", margin: 2, width: 320,
     });
@@ -136,7 +138,7 @@ export class TicketsService {
   async renderGroupPassQrForUser(userId: string, id: string): Promise<Buffer> {
     const pass = await this.database.groupPass.findFirst({ where: { id, order: { buyerUserId: userId, paymentStatus: "paid" }, status: { in: [GroupPassStatus.active, GroupPassStatus.used] } }, include: groupPassTimingInclude });
     if (!pass) throw new NotFoundException({ code: "GROUP_PASS_NOT_FOUND", message: "Group pass was not found" });
-    ensureEventNotEnded(pass.table.venueLayout.event);
+    ensureEventAdmissionOpen(pass.table.venueLayout.event);
     return QRCode.toBuffer(pass.token, { type: "png", errorCorrectionLevel: "M", margin: 2, width: 320 });
   }
 
@@ -144,7 +146,7 @@ export class TicketsService {
   async assetGroupPassForOrder(orderId: string, id: string): Promise<Buffer> {
     const pass = await this.database.groupPass.findFirst({ where: { id, orderId, order: { paymentStatus: "paid" }, status: { in: [GroupPassStatus.active, GroupPassStatus.used] } }, include: groupPassTimingInclude });
     if (!pass) throw new NotFoundException({ code: "GROUP_PASS_NOT_FOUND" });
-    ensureEventNotEnded(pass.table.venueLayout.event);
+    ensureEventAdmissionOpen(pass.table.venueLayout.event);
     return QRCode.toBuffer(pass.token, { type: "png", errorCorrectionLevel: "M", margin: 2, width: 320 });
   }
 
@@ -154,6 +156,12 @@ export class TicketsService {
     target: SharedTicketStatus,
   ): Promise<OrganizerTicket> {
     const updated = await this.database.$transaction(async (transaction) => {
+      const initial = await this.findOwned(transaction, organizerId, { id });
+      await lockOrder(transaction, initial.orderId);
+      if (target === TicketStatus.used) {
+        await lockEventLifecycle(transaction, initial.ticketType.eventId);
+        await ensureNotRefunding(transaction, initial.orderId);
+      }
       await lockTicket(transaction, id);
       const current = await this.findOwned(transaction, organizerId, { id });
       return this.applyTransition(transaction, organizerId, current, target);
@@ -166,13 +174,13 @@ export class TicketsService {
       where: { qrToken: token, ticketType: { event: { id: eventId, organizerId } } },
       include: ticketContextInclude,
     });
-    if (ticket) { ensureEventNotEnded(ticket.ticketType.event); return { kind: "ticket", ticket: presentTicket(ticket) }; }
+    if (ticket) { ensureEventAdmissionOpen(ticket.ticketType.event); return { kind: "ticket", ticket: presentTicket(ticket) }; }
     const pass = await this.database.groupPass.findFirst({
       where: { token, table: { venueLayout: { event: { id: eventId, organizerId } } } },
-      select: { id: true, tableId: true, status: true, totalSeats: true, table: { select: { number: true, venueLayout: { select: { event: { select: guestEventTimingSelect } } } } }, order: { select: { paymentStatus: true, tickets: { select: { status: true, seatAllocation: { select: { seat: { select: { tableId: true } } } } } } } } },
+      select: { id: true, tableId: true, status: true, totalSeats: true, table: { select: { number: true, venueLayout: { select: { event: { select: admissionEventSelect } } } } }, order: { select: { paymentStatus: true, tickets: { select: { status: true, seatAllocation: { select: { seat: { select: { tableId: true } } } } } } } } },
     });
     if (!pass) throw new NotFoundException({ code: "SCAN_NOT_FOUND", message: "Code was not found for this event" });
-    ensureEventNotEnded(pass.table.venueLayout.event);
+    ensureEventAdmissionOpen(pass.table.venueLayout.event);
     const tableTickets = pass.order.tickets.filter((item) => item.seatAllocation?.seat.tableId === pass.tableId);
     const admitted = tableTickets.filter((item) => item.status === TicketStatus.used).length;
     return {
@@ -187,6 +195,7 @@ export class TicketsService {
     const ticket = await this.database.$transaction(async (transaction) => {
       const initial = await this.findOwned(transaction, organizerId, { qrToken }, eventId);
       await lockOrder(transaction, initial.orderId);
+      await lockEventLifecycle(transaction, initial.ticketType.eventId);
       await ensureNotRefunding(transaction, initial.orderId);
       const belongsToPass = initial.order.groupPass?.tableId === initial.seatAllocation?.seat.tableId;
       if (belongsToPass && initial.order.groupPass) await lockGroupPass(transaction, initial.order.groupPass.id);
@@ -212,14 +221,16 @@ export class TicketsService {
         include: { ...groupPassTimingInclude, order: { include: { tickets: { include: { seatAllocation: { include: { seat: true } } } } } } },
       });
       if (!initial) throw new NotFoundException({ code: "GROUP_PASS_NOT_FOUND", message: "Group pass was not found" });
-      ensureEventNotEnded(initial.table.venueLayout.event);
+      ensureEventAdmissionOpen(initial.table.venueLayout.event);
       await lockOrder(transaction, initial.orderId);
+      await lockEventLifecycle(transaction, initial.table.venueLayout.event!.id);
       await ensureNotRefunding(transaction, initial.orderId);
       await lockGroupPass(transaction, initial.id);
       const pass = await transaction.groupPass.findUniqueOrThrow({
         where: { id: initial.id },
-        include: { order: { include: { tickets: { include: { seatAllocation: { include: { seat: true } } } } } } },
+        include: { ...groupPassTimingInclude, order: { include: { tickets: { include: { seatAllocation: { include: { seat: true } } } } } } },
       });
+      ensureEventAdmissionOpen(pass.table.venueLayout.event);
       if (pass.status === GroupPassStatus.cancelled || pass.order.paymentStatus !== "paid") {
         throw new ConflictException({ code: "GROUP_PASS_NOT_ACTIVE", message: "This group pass is not active" });
       }
@@ -258,7 +269,7 @@ export class TicketsService {
     if (ticket.status === TicketStatus.cancelled || ticket.status === TicketStatus.refunded) {
       throw invalidTransition(ticket.status, "qr");
     }
-    ensureEventNotEnded(ticket.ticketType.event);
+    ensureEventAdmissionOpen(ticket.ticketType.event);
     return QRCode.toBuffer(ticket.qrToken, {
       type: "png",
       errorCorrectionLevel: "M",
@@ -274,7 +285,7 @@ export class TicketsService {
 
   private async walletPassForTicket(ticket: TicketWithContext): Promise<Buffer> {
     if (ticket.status !== TicketStatus.active) throw invalidTransition(ticket.status, "wallet");
-    ensureEventNotEnded(ticket.ticketType.event);
+    ensureEventAdmissionOpen(ticket.ticketType.event);
     if (!this.wallet.isConfigured()) {
       throw new ServiceUnavailableException({
         code: "WALLET_NOT_CONFIGURED",
@@ -303,7 +314,7 @@ export class TicketsService {
     current: TicketWithContext,
     target: SharedTicketStatus,
   ): Promise<TicketWithContext> {
-    if (target === TicketStatus.used) ensureEventNotEnded(current.ticketType.event);
+    if (target === TicketStatus.used) ensureEventAdmissionOpen(current.ticketType.event);
     if (current.status === target) {
       if (target === TicketStatus.used) throw alreadyUsed(current.usedAt);
       throw new ConflictException({
@@ -472,8 +483,9 @@ function isSold(status: SharedTicketStatus): boolean {
   return status === TicketStatus.paid || status === TicketStatus.active || status === TicketStatus.used;
 }
 
-function ensureEventNotEnded(event: Parameters<typeof guestEventTiming>[0] | null): void {
+function ensureEventAdmissionOpen(event: (Parameters<typeof guestEventTiming>[0] & { status: string }) | null): void {
   if (!event) throw new NotFoundException({ code: "EVENT_NOT_FOUND", message: "The event was not found" });
+  if (event.status !== "published") throw new ConflictException({ code: "EVENT_NOT_PUBLISHED", message: "This event no longer accepts admission" });
   if (hasEventEnded(guestEventTiming(event))) throw new ConflictException({ code: "EVENT_ENDED", message: "This event has ended. The ticket is no longer available." });
 }
 

@@ -1,0 +1,10 @@
+{
+  "source": "localhost:5432/event_platform",
+  "at": "2026-10-02T19:23:01.623Z",
+  "readOnly": "on",
+  "changedFingerprintTables": [],
+  "tableCount": 17,
+  "migrationsBefore": 38,
+  "migrationsAfter": 38,
+  "migrationRecordsUnchanged": true
+}

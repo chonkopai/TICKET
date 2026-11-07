@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-03T07:44:10.482680+00:00",
+  "source": "localhost:5432/event_platform",
+  "readOnly": "on",
+  "changedFingerprintTables": [],
+  "tableCount": 17,
+  "events": 43,
+  "orders": 36,
+  "sourcePreserved": true,
+  "migrationsBefore": 38,
+  "migrationsAfter": 38,
+  "migrationRecordsUnchanged": true
+}

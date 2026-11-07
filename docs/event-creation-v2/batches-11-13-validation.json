@@ -1,0 +1,81 @@
+{
+  "at": "2026-10-03T07:58:22.170431+00:00",
+  "scope": "Local application and authorized isolated database staging only",
+  "tests": {
+    "api": 252,
+    "shared": 32,
+    "configuration": 6,
+    "bot": 15,
+    "database": 5,
+    "backfillPlanner": 12,
+    "standaloneBrowserAndHall": 32
+  },
+  "distinctPassed": 354,
+  "lint": "passed; one pre-existing unused ArrowIcon warning",
+  "typecheck": "passed; nine tasks",
+  "productionBuild": "passed; six tasks including Next production build",
+  "prismaValidation": "passed",
+  "seedVerification": "passed; explicit isolated seeded fresh database",
+  "databaseMediaRestore": "passed; 54 tables per database and 12 media files",
+  "pendingOrderRecovery": "passed; signed development payments and exact-once refunds for both formats",
+  "restoredConcurrency": "passed; four rolled-back probes",
+  "finalReconciliation": "passed; 43 legacy originals and financial/history evidence preserved",
+  "sourcePreserved": true,
+  "sourceMigrationRecordsUnchanged": 38,
+  "pnpm": {
+    "pinned": "11.19.0",
+    "used": "11.24.0",
+    "fallback": "pnpm_config_pm_on_fail=ignore skips failed version switch; dependency integrity verification retained"
+  },
+  "logs": {
+    "lint": {
+      "path": "regression-logs/batches-11-13-lint.log",
+      "sha256": "06dc673edb8d4b30061dd884c4a77dc5dc50af86562ff6ee95261adb61ab714c"
+    },
+    "typecheck": {
+      "path": "regression-logs/batches-11-13-typecheck.log",
+      "sha256": "86e7f7f257f86f689cd1913149116f37575a734dec22131e41d51ddd2253db21"
+    },
+    "test": {
+      "path": "regression-logs/batches-11-13-test.log",
+      "sha256": "fc17ec34f2dd635a55f04c69e5359c979602f4bd6bb126a59b6f800f9c3d829f"
+    },
+    "build": {
+      "path": "regression-logs/batches-11-13-build.log",
+      "sha256": "61122bece8ccb2bcfd73ae9927be77bf9cef4da1f440351106acb933b9c13574"
+    },
+    "prisma": {
+      "path": "regression-logs/batches-11-13-prisma.log",
+      "sha256": "7010b1a9a844be2a26416d9bb09f6d164fee6c3aaec071fce05de8a053aa7dd7"
+    },
+    "seed": {
+      "path": "regression-logs/batches-11-13-seed.log",
+      "sha256": "5a0d279147f146a94f87dad67d8564c2ce314225e143870a1d29b15d9c4012d9"
+    },
+    "seedVerify": {
+      "path": "regression-logs/batches-11-13-seedVerify.log",
+      "sha256": "2700bf0d89ab1b27674f472cbe216e025e8e47f0857cb69c8ede2dc73d1636dc"
+    },
+    "standalone": {
+      "path": "regression-logs/batches-11-13-standalone.log",
+      "sha256": "a69c30266c1ecb390feb94da300a527378573b2b7d534c9ca1924c8e25b9ac79"
+    },
+    "hall": {
+      "path": "regression-logs/batches-11-13-hall.log",
+      "sha256": "589053401b6ad854d723c4b887ef06d8fdd7b8fcfe50b87a181ac629442de6d3"
+    }
+  },
+  "standaloneCommands": [
+    "node packages/database/tools/run-v2-browser-unit-tests.mjs apps/web/src/lib/creation-draft-client.spec.ts apps/web/src/lib/creation-publication-client.spec.ts \"apps/web/src/app/(auth)/_lib/public-auth.spec.ts\" apps/web/src/proxy.spec.ts apps/web/src/lib/countdown.spec.ts",
+    "node --test apps/web/src/app/organizer/venue-builder/_components/hall-state.spec.mjs apps/web/src/app/organizer/venue-builder/_components/venue-editor-geometry.spec.mjs"
+  ],
+  "browserEvidence": [
+    "browser-evidence/batch-11-legacy-review.jpg",
+    "browser-evidence/batch-11-paused-deposit-sales.jpg",
+    "browser-evidence/batch-12-normalized-editor.jpg"
+  ],
+  "liveProvidersVerified": false,
+  "deployed": false,
+  "contractionExecuted": false,
+  "contractionGate": "Unmet: historical mapping/readers and deployed-consumer/cutover observation proof"
+}

@@ -1,0 +1,37 @@
+{
+  "checks": [
+    "address is a real text input with adjacent map button",
+    "live address suggestions are displayed",
+    "duplicate search fields removed",
+    "live map click fills the main address"
+  ],
+  "errors": [],
+  "providerStatuses": [
+    {
+      "service": "suggest-maps.yandex.ru",
+      "path": "/v1/suggest",
+      "status": 200
+    },
+    {
+      "service": "suggest-maps.yandex.ru",
+      "path": "/v1/suggest",
+      "status": 200
+    },
+    {
+      "service": "website geocoder",
+      "status": 200
+    },
+    {
+      "service": "website geocoder",
+      "status": 200
+    },
+    {
+      "service": "website geocoder",
+      "status": 200
+    }
+  ],
+  "status": [],
+  "mainAddress": "Казахстан, Алматы, Алатауский район, микрорайон Акбулак, улица Шарипханова, 13",
+  "draftTransport": "mocked",
+  "resolution": "Server Geocoder request now sends Referer from configured WEB_ORIGIN. Both APIs return HTTP 200; live map-click autofill verified."
+}

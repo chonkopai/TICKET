@@ -1,0 +1,652 @@
+{
+  "assertions": [
+    "publication notice and query cleanup",
+    "four live metrics",
+    "API poster fallback and modes",
+    "preview and management preserve locale",
+    "events desktop: navbar",
+    "events desktop: font",
+    "events desktop: tokens",
+    "events desktop: loadedIcons",
+    "events desktop: no horizontal overflow",
+    "API poster is displayed",
+    "profile desktop: navbar",
+    "profile desktop: font",
+    "profile desktop: tokens",
+    "profile desktop: loadedIcons",
+    "profile desktop: no horizontal overflow",
+    "hidden contacts are accurately previewed",
+    "visibility preview reacts before save",
+    "failed save retains edits",
+    "save persists contacts and privacy",
+    "save only uses organizer contact endpoint",
+    "session contacts refreshed",
+    "invalid image rejected without request",
+    "upload preserves unsaved fields",
+    "multipart photo upload is separate",
+    "cancel does not save text or undo uploaded photo",
+    "pagination requests second page",
+    "filter resets pagination and retains draft action",
+    "cancel deletion sends no request",
+    "confirmed draft deletion refreshes list",
+    "whole tables retain included seats and guard zero capacity",
+    "deposit events cannot reopen",
+    "eligible reopen refreshes archive",
+    "existing sort picker changes query",
+    "late filter response cannot overwrite current list",
+    "summary failure does not suppress events/profile",
+    "mixed currency has no fabricated revenue",
+    "list retry recovers independently",
+    "profile retry recovers",
+    "profile 1024: navbar",
+    "profile 1024: font",
+    "profile 1024: tokens",
+    "profile 1024: loadedIcons",
+    "profile 1024: no horizontal overflow",
+    "events 1024: navbar",
+    "events 1024: font",
+    "events 1024: tokens",
+    "events 1024: loadedIcons",
+    "events 1024: no horizontal overflow",
+    "profile 768: navbar",
+    "profile 768: font",
+    "profile 768: tokens",
+    "profile 768: loadedIcons",
+    "profile 768: no horizontal overflow",
+    "events 768: navbar",
+    "events 768: font",
+    "events 768: tokens",
+    "events 768: loadedIcons",
+    "events 768: no horizontal overflow",
+    "profile 390: navbar",
+    "profile 390: font",
+    "profile 390: tokens",
+    "profile 390: loadedIcons",
+    "profile 390: no horizontal overflow",
+    "events 390: navbar",
+    "events 390: font",
+    "events 390: tokens",
+    "events 390: loadedIcons",
+    "events 390: no horizontal overflow",
+    "profile dark mobile: navbar",
+    "profile dark mobile: font",
+    "profile dark mobile: tokens",
+    "profile dark mobile: loadedIcons",
+    "profile dark mobile: no horizontal overflow",
+    "events dark mobile: navbar",
+    "events dark mobile: font",
+    "events dark mobile: tokens",
+    "events dark mobile: loadedIcons",
+    "events dark mobile: no horizontal overflow",
+    "help dialog closes accessibly",
+    "events kk: navbar",
+    "events kk: font",
+    "events kk: tokens",
+    "events kk: loadedIcons",
+    "events kk: no horizontal overflow",
+    "profile kk: navbar",
+    "profile kk: font",
+    "profile kk: tokens",
+    "profile kk: loadedIcons",
+    "profile kk: no horizontal overflow",
+    "events en: navbar",
+    "events en: font",
+    "events en: tokens",
+    "events en: loadedIcons",
+    "events en: no horizontal overflow",
+    "profile en: navbar",
+    "profile en: font",
+    "profile en: tokens",
+    "profile en: loadedIcons",
+    "profile en: no horizontal overflow",
+    "profile dark desktop: navbar",
+    "profile dark desktop: font",
+    "profile dark desktop: tokens",
+    "profile dark desktop: loadedIcons",
+    "profile dark desktop: no horizontal overflow",
+    "no browser runtime errors"
+  ],
+  "browserErrors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "PATCH",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "PATCH",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "POST",
+      "path": "/me/organizer-profile/photo",
+      "query": ""
+    },
+    {
+      "method": "POST",
+      "path": "/me/organizer-profile/photo",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=2&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=draft&sort=updated_desc"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/organizer/events/draft",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=draft&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=archive&sort=updated_desc"
+    },
+    {
+      "method": "POST",
+      "path": "/api/organizer/events/table/reopen",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=archive&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=archive&sort=date_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=draft&sort=date_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=on_sale&sort=date_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=draft&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=draft&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events",
+      "query": "?page=1&limit=10&statusGroup=all&sort=updated_desc"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/organizer-profile",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/organizer/events/dashboard/summary",
+      "query": ""
+    }
+  ]
+}

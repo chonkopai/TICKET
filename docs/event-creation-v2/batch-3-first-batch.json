@@ -1,0 +1,649 @@
+{
+  "version": 1,
+  "at": "2026-10-02T11:59:01.029Z",
+  "database": "event_platform_v2_legacy_1790941250928",
+  "dryRun": false,
+  "batchSize": 10,
+  "maxBatches": 1,
+  "checkpoint": "event-creation-v2-v1",
+  "resume": false,
+  "events": [
+    {
+      "eventId": "00000000-0000-4000-8000-000000000002",
+      "fingerprint": "f2891397c7e73e951c4938f9093a17b36593ea75895bced0973373327ebfcf0f",
+      "reasons": [
+        "active_deposit",
+        "historical_deposit_prices",
+        "hybrid_sale_modes",
+        "missing_trusted_card",
+        "refund_choice_unknown",
+        "translation_currentness_review:en",
+        "translation_currentness_review:kk",
+        "unknown_end",
+        "unknown_media:0",
+        "unknown_media:1",
+        "unknown_media:2"
+      ],
+      "actions": {
+        "content": 10
+      },
+      "pendingOrders": [],
+      "moneyMismatches": [],
+      "sourceAndTargets": 3,
+      "resourceContent": 7,
+      "trustedMedia": 0
+    },
+    {
+      "eventId": "00000000-0000-4000-8000-000000000201",
+      "fingerprint": "34467116d2bf6e86cffeebf7fe2c8352b9e1a65474fce252ffd8dd4929558519",
+      "reasons": [
+        "missing_trusted_card",
+        "refund_choice_unknown",
+        "translation_currentness_review:en",
+        "translation_currentness_review:kk",
+        "unknown_end",
+        "unknown_media:0",
+        "unknown_media:1",
+        "unknown_media:2"
+      ],
+      "actions": {
+        "content": 5
+      },
+      "pendingOrders": [],
+      "moneyMismatches": [],
+      "sourceAndTargets": 3,
+      "resourceContent": 2,
+      "trustedMedia": 0
+    },
+    {
+      "eventId": "00000000-0000-4000-8000-000000000202",
+      "fingerprint": "8ccdce54ee856095ee856e5da73c6ab3549575a8a0ac2ae5d310c1397e81b17e",
+      "reasons": [
+        "missing_trusted_card",
+        "refund_choice_unknown",
+        "translation_currentness_review:en",
+        "translation_currentness_review:kk",
+        "unknown_end",
+        "unknown_media:0",
+        "unknown_media:1",
+        "unknown_media:2"
+      ],
+      "actions": {
+        "content": 5
+      },
+      "pendingOrders": [],
+      "moneyMismatches": [],
+      "sourceAndTargets": 3,
+      "resourceContent": 2,
+      "trustedMedia": 0
+    },
+    {
+      "eventId": "00000000-0000-4000-8000-000000000203",
+      "fingerprint": "2e6c90977394508e4416c9dde10f2aa4db44885bc1fd76ff109bac42a3c97097",
+      "reasons": [
+        "active_deposit",
+        "historical_deposit_prices",
+        "missing_trusted_card",
+        "refund_choice_unknown",
+        "translation_currentness_review:en",
+        "translation_currentness_review:kk",
+        "unknown_end",
+        "unknown_media:0",
+        "unknown_media:1",
+        "unknown_media:2"
+      ],
+      "actions": {
+        "content": 5
+      },
+      "pendingOrders": [],
+      "moneyMismatches": [],
+      "sourceAndTargets": 3,
+      "resourceContent": 2,
+      "trustedMedia": 0
+    },
+    {
+      "eventId": "00000000-0000-4000-8000-000000000204",
+      "fingerprint": "ebf6bdc108634cb7138cc8202eca9087b6648b94ada6ce6c8aeb155ae3a9ad5a",
+      "reasons": [
+        "missing_trusted_card",
+        "refund_choice_unknown",
+        "translation_currentness_review:en",
+        "translation_currentness_review:kk",
+        "unknown_end",
+        "unknown_media:0",
+        "unknown_media:1",
+        "unknown_media:2"
+      ],
+      "actions": {
+        "content": 4
+      },
+      "pendingOrders": [],
+      "moneyMismatches": [],
+      "sourceAndTargets": 3,
+      "resourceContent": 1,
+      "trustedMedia": 0
+    },
+    {
+      "eventId": "00000000-0000-4000-8000-000000000205",
+      "fingerprint": "1c0b3559290cd5bd4f77a33adc2ff54af9374422863dcf4b7e834c29191714ba",
+      "reasons": [
+        "active_deposit",
+        "hall_object_text_review:00000006-0000-4000-8000-000205000004",
+        "hall_object_text_review:00000006-0000-4000-8000-000205000005",
+        "hall_object_text_review:00000006-0000-4000-8000-000205000006",
+        "hall_object_text_review:00000006-0000-4000-8000-000205000007",
+        "hall_object_text_review:00000006-0000-4000-8000-000205000008",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000001",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000002",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000003",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000004",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000005",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000006",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000007",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000008",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000009",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000010",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000011",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000012",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000013",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000014",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000015",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000016",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000017",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000018",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000019",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000020",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000021",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000022",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000023",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000024",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000025",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000026",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000027",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000028",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000029",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000030",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000031",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000032",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000033",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000034",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000035",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000036",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000037",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000038",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000039",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000040",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000041",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000042",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000043",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000044",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000045",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000046",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000047",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000048",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000049",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000050",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000051",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000052",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000053",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000054",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000055",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000056",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000057",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000058",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000059",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000060",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000061",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000062",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000063",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000064",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000065",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000066",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000067",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000068",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000069",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000070",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000071",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000072",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000073",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000074",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000075",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000076",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000077",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000078",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000079",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000080",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000081",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000082",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000083",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000084",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000085",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000086",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000087",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000088",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000089",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000090",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000091",
+        "hall_object_text_review:00000007-0000-4000-8000-000205000092",
+        "hall_object_text_review:00000008-0000-4000-8000-000205000001",
+        "hall_object_text_review:00000008-0000-4000-8000-000205000002",
+        "hall_object_text_review:00000008-0000-4000-8000-000205000003",
+        "hall_object_text_review:00000008-0000-4000-8000-000205000009",
+        "historical_deposit_prices",
+        "hybrid_sale_modes",
+        "missing_trusted_card",
+        "refund_choice_unknown",
+        "translation_currentness_review:en",
+        "translation_currentness_review:kk",
+        "unknown_end",
+        "unknown_media:0",
+        "unknown_media:1",
+        "unknown_media:2"
+      ],
+      "actions": {
+        "tariff": 4,
+        "content": 106
+      },
+      "pendingOrders": [],
+      "moneyMismatches": [],
+      "sourceAndTargets": 3,
+      "resourceContent": 103,
+      "trustedMedia": 0
+    },
+    {
+      "eventId": "00000000-0000-4000-8000-000000000206",
+      "fingerprint": "028c3cca93706d1311953b7e1975d003b5eb28c56f8e0e7c2f988a77cf94924c",
+      "reasons": [
+        "missing_trusted_card",
+        "refund_choice_unknown",
+        "translation_currentness_review:en",
+        "translation_currentness_review:kk",
+        "unknown_end",
+        "unknown_media:0",
+        "unknown_media:1",
+        "unknown_media:2"
+      ],
+      "actions": {
+        "content": 5
+      },
+      "pendingOrders": [],
+      "moneyMismatches": [],
+      "sourceAndTargets": 3,
+      "resourceContent": 2,
+      "trustedMedia": 0
+    },
+    {
+      "eventId": "00000000-0000-4000-8000-000000000212",
+      "fingerprint": "b4b51c2597f734e0e8b196176c8ace95f11888e2efb7c84bf52ee8866657804e",
+      "reasons": [
+        "active_deposit",
+        "historical_deposit_prices",
+        "missing_trusted_card",
+        "refund_choice_unknown",
+        "translation_currentness_review:en",
+        "translation_currentness_review:kk",
+        "unknown_end",
+        "unknown_media:0",
+        "unknown_media:1",
+        "unknown_media:2"
+      ],
+      "actions": {
+        "content": 5
+      },
+      "pendingOrders": [],
+      "moneyMismatches": [],
+      "sourceAndTargets": 3,
+      "resourceContent": 2,
+      "trustedMedia": 0
+    },
+    {
+      "eventId": "00000000-0000-4000-8000-000000000213",
+      "fingerprint": "3711b94563bc558250ead8be81fdf62c6ae51571b057122b9f64691fe22ba122",
+      "reasons": [
+        "hall_object_text_review:00000006-0000-4000-8000-000213000003",
+        "hall_object_text_review:00000006-0000-4000-8000-000213000004",
+        "hall_object_text_review:00000006-0000-4000-8000-000213000005",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000001",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000002",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000003",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000004",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000005",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000006",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000007",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000008",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000009",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000010",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000011",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000012",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000013",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000014",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000015",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000016",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000017",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000018",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000019",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000020",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000021",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000022",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000023",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000024",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000025",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000026",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000027",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000028",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000029",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000030",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000031",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000032",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000033",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000034",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000035",
+        "hall_object_text_review:00000007-0000-4000-8000-000213000036",
+        "hall_object_text_review:00000008-0000-4000-8000-000213000001",
+        "hall_object_text_review:00000008-0000-4000-8000-000213000002",
+        "hybrid_sale_modes",
+        "missing_trusted_card",
+        "protected_inventory_locks",
+        "refund_choice_unknown",
+        "translation_currentness_review:en",
+        "translation_currentness_review:kk",
+        "unknown_end",
+        "unknown_media:0",
+        "unknown_media:1",
+        "unknown_media:2"
+      ],
+      "actions": {
+        "tariff": 4,
+        "content": 47
+      },
+      "pendingOrders": [],
+      "moneyMismatches": [],
+      "sourceAndTargets": 3,
+      "resourceContent": 44,
+      "trustedMedia": 0
+    },
+    {
+      "eventId": "00000000-0000-4000-8000-000000000214",
+      "fingerprint": "dc99c3b4e109700559f21e720d237e537e504c2df2f03436406f5290f3865dfc",
+      "reasons": [
+        "active_deposit",
+        "historical_deposit_prices",
+        "missing_trusted_card",
+        "refund_choice_unknown",
+        "translation_currentness_review:en",
+        "translation_currentness_review:kk",
+        "unknown_end",
+        "unknown_media:0",
+        "unknown_media:1",
+        "unknown_media:2"
+      ],
+      "actions": {
+        "content": 4
+      },
+      "pendingOrders": [],
+      "moneyMismatches": [],
+      "sourceAndTargets": 3,
+      "resourceContent": 1,
+      "trustedMedia": 0
+    }
+  ],
+  "complete": false,
+  "financialBefore": {
+    "rows": {
+      "Order": {
+        "count": "36",
+        "digest": "cdc7feafaf01fdb77b46ff81984fe6e2"
+      },
+      "Payment": {
+        "count": "26",
+        "digest": "e75f45b871b499b28b347a371c6d5e46"
+      },
+      "Deposit": {
+        "count": "6",
+        "digest": "62921c98a1652e3b083cb5597be82c7e"
+      },
+      "RefundRequest": {
+        "count": "0",
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "Ticket": {
+        "count": "72",
+        "digest": "b33e20b33b70146a7af5a3bec52f41ad"
+      },
+      "Booking": {
+        "count": "3",
+        "digest": "364aeb639a29bb8ef68b1343215e17bf"
+      },
+      "TicketReservation": {
+        "count": "10",
+        "digest": "3b1bd4842f5a3d6e809aad4d64cc25ea"
+      },
+      "SeatAllocation": {
+        "count": "58",
+        "digest": "13800070a5e4ac76a093142fa7a4c0e7"
+      },
+      "GroupPass": {
+        "count": "1",
+        "digest": "f6efe44c8b70b694b4c1c18177ccefda"
+      },
+      "TableHold": {
+        "count": "4",
+        "digest": "efad72d95fba49b91efefc3137a7fcc3"
+      },
+      "Seat": {
+        "count": "1193",
+        "digest": "a95fe7b0613c696f7223027a9a3fdea6"
+      },
+      "TicketType": {
+        "count": "1199",
+        "digest": "3bb1e9a9fd5103a95006086b5a4d5ad9"
+      },
+      "Table": {
+        "count": "39",
+        "digest": "36486559de712eecb119342b1b377e6e"
+      },
+      "VenueRow": {
+        "count": "54",
+        "digest": "513afacfedd8622d0ab72550e90b6b1c"
+      },
+      "VenueLayout": {
+        "count": "20",
+        "digest": "5fbc004d1bd7832e10c0d5030c18e57d"
+      }
+    },
+    "totals": {
+      "Order": [
+        {
+          "currency": "KZT",
+          "status": "cancelled",
+          "count": "11",
+          "minor_total": "38000000"
+        },
+        {
+          "currency": "KZT",
+          "status": "paid",
+          "count": "17",
+          "minor_total": "181854000"
+        },
+        {
+          "currency": "KZT",
+          "status": "refunded",
+          "count": "7",
+          "minor_total": "460000"
+        },
+        {
+          "currency": "USD",
+          "status": "paid",
+          "count": "1",
+          "minor_total": "50"
+        }
+      ],
+      "Payment": [
+        {
+          "currency": "KZT",
+          "status": "paid",
+          "count": "10",
+          "minor_total": "181770000"
+        },
+        {
+          "currency": "KZT",
+          "status": "pending",
+          "count": "10",
+          "minor_total": "8000000"
+        },
+        {
+          "currency": "KZT",
+          "status": "refunded",
+          "count": "6",
+          "minor_total": "450000"
+        }
+      ],
+      "Deposit": [
+        {
+          "currency": "KZT",
+          "status": "cancelled",
+          "count": "6",
+          "minor_total": "32400000"
+        }
+      ],
+      "RefundRequest": []
+    }
+  },
+  "startCursor": null,
+  "endCursor": "00000000-0000-4000-8000-000000000214",
+  "processedCount": 10,
+  "financialAfter": {
+    "rows": {
+      "Order": {
+        "count": "36",
+        "digest": "cdc7feafaf01fdb77b46ff81984fe6e2"
+      },
+      "Payment": {
+        "count": "26",
+        "digest": "e75f45b871b499b28b347a371c6d5e46"
+      },
+      "Deposit": {
+        "count": "6",
+        "digest": "62921c98a1652e3b083cb5597be82c7e"
+      },
+      "RefundRequest": {
+        "count": "0",
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "Ticket": {
+        "count": "72",
+        "digest": "b33e20b33b70146a7af5a3bec52f41ad"
+      },
+      "Booking": {
+        "count": "3",
+        "digest": "364aeb639a29bb8ef68b1343215e17bf"
+      },
+      "TicketReservation": {
+        "count": "10",
+        "digest": "3b1bd4842f5a3d6e809aad4d64cc25ea"
+      },
+      "SeatAllocation": {
+        "count": "58",
+        "digest": "13800070a5e4ac76a093142fa7a4c0e7"
+      },
+      "GroupPass": {
+        "count": "1",
+        "digest": "f6efe44c8b70b694b4c1c18177ccefda"
+      },
+      "TableHold": {
+        "count": "4",
+        "digest": "efad72d95fba49b91efefc3137a7fcc3"
+      },
+      "Seat": {
+        "count": "1193",
+        "digest": "a95fe7b0613c696f7223027a9a3fdea6"
+      },
+      "TicketType": {
+        "count": "1199",
+        "digest": "3bb1e9a9fd5103a95006086b5a4d5ad9"
+      },
+      "Table": {
+        "count": "39",
+        "digest": "36486559de712eecb119342b1b377e6e"
+      },
+      "VenueRow": {
+        "count": "54",
+        "digest": "513afacfedd8622d0ab72550e90b6b1c"
+      },
+      "VenueLayout": {
+        "count": "20",
+        "digest": "5fbc004d1bd7832e10c0d5030c18e57d"
+      }
+    },
+    "totals": {
+      "Order": [
+        {
+          "currency": "KZT",
+          "status": "cancelled",
+          "count": "11",
+          "minor_total": "38000000"
+        },
+        {
+          "currency": "KZT",
+          "status": "paid",
+          "count": "17",
+          "minor_total": "181854000"
+        },
+        {
+          "currency": "KZT",
+          "status": "refunded",
+          "count": "7",
+          "minor_total": "460000"
+        },
+        {
+          "currency": "USD",
+          "status": "paid",
+          "count": "1",
+          "minor_total": "50"
+        }
+      ],
+      "Payment": [
+        {
+          "currency": "KZT",
+          "status": "paid",
+          "count": "10",
+          "minor_total": "181770000"
+        },
+        {
+          "currency": "KZT",
+          "status": "pending",
+          "count": "10",
+          "minor_total": "8000000"
+        },
+        {
+          "currency": "KZT",
+          "status": "refunded",
+          "count": "6",
+          "minor_total": "450000"
+        }
+      ],
+      "Deposit": [
+        {
+          "currency": "KZT",
+          "status": "cancelled",
+          "count": "6",
+          "minor_total": "32400000"
+        }
+      ],
+      "RefundRequest": []
+    }
+  },
+  "financialUnchanged": true,
+  "reasonCounts": {
+    "active_deposit": 5,
+    "historical_deposit_prices": 5,
+    "hybrid_sale_modes": 3,
+    "missing_trusted_card": 10,
+    "refund_choice_unknown": 10,
+    "translation_currentness_review": 20,
+    "unknown_end": 10,
+    "unknown_media": 30,
+    "hall_object_text_review": 142,
+    "protected_inventory_locks": 1
+  }
+}

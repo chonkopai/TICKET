@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-03T13:29:20.081Z",
+  "origin": "https://sulphate-shown-subtract.ngrok-free.dev",
+  "scope": "Disposable ngrok fixtures; HTTPS HTTP calls, signed mock payments only",
+  "checks": [
+    "password authentication over ngrok HTTPS using disposable fixture identities",
+    "paid_general: processed image, slot 2 Main/Background, overnight USD publication, public rendering and protected edit over HTTPS",
+    "metadata-free running API rejects deposit input and invalid quantity before checkout",
+    "original 1234 USD minor-unit payment, admission/QR and exact-once refund with unchanged snapshot",
+    "paid_seated: processed image, slot 2 Main/Background, overnight USD publication, public rendering and protected edit over HTTPS",
+    "original 4600 USD minor-unit payment, admission/QR and exact-once refund with unchanged snapshot",
+    "browser-published free event registers immediately, issues QR and cancels without payment",
+    "all current checkout modes create zero Deposit rows"
+  ],
+  "events": [
+    "a5e5afae-8551-4506-9719-f98edb5033cf",
+    "082bc08e-15fd-417a-9711-2b319923265d"
+  ],
+  "passed": true
+}

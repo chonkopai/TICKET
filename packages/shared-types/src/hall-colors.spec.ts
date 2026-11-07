@@ -32,6 +32,10 @@ describe("tariff-driven hall appearance", () => {
     for (const color of ["#FFFFFF", "#000000", "#D1D5DB", "#6320ee", "#ff0066"]) expect(TARIFF_COLORS.some(item => item.color === tariffColor(color))).toBe(true);
     expect(hallObjectPaint({ ...parent, type: "prop", color: "#112233" }, editor).color).toBe("#112233");
   });
+  it("uses an arbitrary category color without replacing it with a fixed palette color", () => {
+    const custom = { ...editor, tariffs: [{ ...editor.tariffs[0]!, color: "#123abc" }] };
+    expect(hallObjectPaint(seat, custom).color).toBe("#123abc");
+  });
   it("provides readable number labels on every palette color", () => {
     expect(hallTextColor("#FFFFFF")).toBe("#151C27");
     expect(hallTextColor("#5B21B6")).toBe("#FFFFFF");

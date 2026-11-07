@@ -38,7 +38,7 @@ export function hallObjectPaint(object: HallObject, editor: HallEditor) {
   const parent = object.type === "seat" ? editor.objects.find(item => item.id === object.parentId) : undefined;
   const neutral = Boolean(object.type.startsWith("table_") && object.saleMode === "per_seat" || parent?.type.startsWith("table_") && parent.saleMode === "whole_table");
   const decoration = object.type === "prop" || object.type === "entrance";
-  const color = decoration ? object.color : neutral ? "#FFFFFF" : tariff ? tariffColor(tariff.color, editor.tariffs.indexOf(tariff)) : TARIFF_COLORS[0].color;
+  const color = decoration ? object.color : neutral ? "#FFFFFF" : tariff ? tariff.color : TARIFF_COLORS[0].color;
   return { color, neutral, tariff };
 }
 

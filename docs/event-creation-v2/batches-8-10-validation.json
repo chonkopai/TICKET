@@ -1,0 +1,22 @@
+{
+  "at": "2026-10-02T19:48:54.793350+00:00",
+  "scope": "Local application and isolated database verification only",
+  "tests": {
+    "api": 257,
+    "shared": 32,
+    "configuration": 6,
+    "bot": 15,
+    "database": 5,
+    "backfillPlanner": 12,
+    "standaloneBrowserAndHall": 32
+  },
+  "distinctPassed": 359,
+  "targetedRerunPassed": 21,
+  "productionBuild": "passed",
+  "prismaValidation": "passed",
+  "seedVerification": "passed",
+  "lint": "passed; one existing ArrowIcon warning",
+  "sourcePreserved": true,
+  "liveProvidersVerified": false,
+  "deployed": false
+}

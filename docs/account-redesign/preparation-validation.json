@@ -1,0 +1,26 @@
+{
+  "svgAssets": 72,
+  "svgSlots": 76,
+  "screenshots": [
+    {
+      "path": "docs/account-redesign/screenshots/39-1909.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/account-redesign/screenshots/39-2031.png",
+      "width": 1440,
+      "height": 1084
+    },
+    {
+      "path": "docs/account-redesign/screenshots/39-2198.png",
+      "width": 1440,
+      "height": 1000
+    }
+  ],
+  "assetIntegrity": "passed",
+  "capturedSlotGeometry": "passed",
+  "issues": [],
+  "applicationCodeChanged": false,
+  "runtimeVisualVerification": "pending implementation"
+}

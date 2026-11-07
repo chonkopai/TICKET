@@ -17,6 +17,7 @@ export const tableGeometrySchema = z
 const venueLayoutV1Schema = z
   .object({
     version: z.literal(1),
+    libraryArchived:z.boolean().optional(),
     canvas: z
       .object({
         width: finiteNumber.min(320).max(5_000),
@@ -78,6 +79,7 @@ export const rowGeometryV2Schema = z.object({
 
 export const venueLayoutSchemaV2 = z.object({
   version: z.literal(2),
+  libraryArchived:z.boolean().optional(),
   editor: hallEditorSchema.optional(),
   room: z.object({ widthM: finiteNumber.min(1).max(200), heightM: finiteNumber.min(1).max(200) }).strict(),
   stage: z.object({ label: z.string().trim().min(1).max(80), x: finiteNumber.min(-1000).max(1000), y: finiteNumber.min(-1000).max(1000), width: finiteNumber.min(0.5).max(200), height: finiteNumber.min(0.5).max(200), rotation: finiteNumber.min(-180).max(180).optional() }).strict().nullable().optional(),
@@ -176,6 +178,8 @@ export interface VenueTable {
 }
 
 export interface VenueLayout {
+  archived?:boolean;
+  currency?:string;
   canonicalVersion?:3;
   id: string;
   eventId: string | null;
@@ -196,6 +200,7 @@ export interface CreateVenueLayoutRequest {
 }
 
 export interface UpdateVenueLayoutRequest {
+  archived?:boolean;
   templateName?: string;
   layoutJson?: VenueLayoutAny;
   revision?: number;

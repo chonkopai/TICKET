@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 
 import { Prisma, TableStatus, type PrismaClient } from "@event-platform/database";
 import {
-  venueLayoutSchemaAny,
+  venueLayoutSchemaAny,cloneHallEditor,hallV3Editor,
   publishedHallV3Schema,canonicalHallGeometry,editorHallV3,newEventCreationDraft,type EventLocale,
   type CreateVenueLayoutRequest,
   type UpdateVenueLayoutRequest,
@@ -83,6 +83,10 @@ export class VenueService {
       }
       const data: Prisma.VenueLayoutUpdateInput = {};
       const changedFields: string[] = [];
+      if(input.archived!==undefined){
+        if(current.eventId||input.layoutJson!==undefined)throw new BadRequestException({code:"VENUE_TEMPLATE_ONLY"});
+        data.layoutJson={...(current.layoutJson as Prisma.JsonObject),libraryArchived:input.archived};changedFields.push("archived");
+      }
       if (input.templateName !== undefined) {
         data.templateName = normalizedName(input.templateName);
         changedFields.push("templateName");
@@ -143,7 +147,7 @@ export class VenueService {
         if (json.version !== 2 || !json.editor || objectIds.some((id) => !json.editor!.objects.some((o) => o.id === id))) throw new BadRequestException({code:"VENUE_TEMPLATE_SELECTION_INVALID",message:"Select objects belonging to this layout"});
         const selected = new Set(objectIds);
         const objects = json.editor.objects.filter((o) => selected.has(o.id) || (o.parentId && selected.has(o.parentId))).map((o) => ({...o, parentId:o.parentId && selected.has(o.parentId) ? o.parentId : null, side:o.parentId && !selected.has(o.parentId) ? null : o.side}));
-        const selectedEditor={...json.editor,objects,tariffs:json.editor.tariffs.filter((t)=>objects.some((o)=>o.tariffId===t.id))};
+        const selectedEditor={...json.editor,objects,tariffs:json.editor.tariffs.filter((t)=>objects.some((o)=>o.tariffId===t.id||o.builder?.tariffId===t.id||o.builder?.group?.tariffId===t.id))};
         templateSource = {...source,layoutJson:original?JSON.parse(JSON.stringify(canonicalHallGeometry(editorHallV3(json.room,selectedEditor,original,canonicalHallSource(original))))):{...json,editor:selectedEditor}};
       }
       const cloned = await cloneLayout(transaction, templateSource, { organizerId, templateName: normalizedName(name) });
@@ -151,6 +155,22 @@ export class VenueService {
       return cloned;
     }, { timeout: 60_000 });
     return this.present(template);
+  }
+
+  async createLibraryTemplate(organizerId:string,input:{name:string;currency:string;layoutJson:VenueLayoutAny;locale?:EventLocale}):Promise<VenueLayout>{
+    rejectHallDepositInput(input.layoutJson);
+    const parsed=parseIncomingLayout(input.layoutJson);
+    if(parsed.version!==2||!parsed.editor)throw new BadRequestException({code:"VENUE_EDITOR_REQUIRED"});
+    if(!configuredPaymentCurrencies(loadApiEnv()).some(c=>c.code===input.currency))throw new BadRequestException({code:"CURRENCY_UNSUPPORTED"});
+    const editor=cloneHallEditor(parsed.editor,randomUUID),locale=input.locale??"ru";
+    let hall;try{hall=editorHallV3(parsed.room,editor,null,locale);}catch{throw new BadRequestException({code:"VENUE_LAYOUT_INVALID"});}
+    const created=await this.database.$transaction(async tx=>{
+      const layout=await tx.venueLayout.create({data:{organizerId,templateName:normalizedName(input.name),layoutJson:EMPTY_LAYOUT}});
+      await persistCanonicalHall(tx,null,layout.id,hall,locale,input.currency);
+      await this.record(tx,organizerId,layout.id,"venue_layout.template_created",{source:"hall_builder"});
+      return tx.venueLayout.findUniqueOrThrow({where:{id:layout.id},include:{tables:{include:{seatRecords:true}},rows:{include:{seats:true}}}});
+    },{timeout:60_000});
+    return this.present(created);
   }
 
   async listTemplates(organizerId: string, query: { page: number; limit: number }): Promise<VenueTemplateList> {
@@ -194,7 +214,7 @@ export class VenueService {
     if(!publishedHallV3Schema.safeParse(layout.layoutJson).success)return presentVenueLayout(layout);
     const hall=await readCanonicalHall(this.database,layout.id,layout.layoutJson);
     const source=layout.eventId?await this.database.event.findUniqueOrThrow({where:{id:layout.eventId},select:{sourceLocale:true}}):null;
-    return {...presentVenueLayout(layout,canonicalHallCompatibility(hall,(source?.sourceLocale??canonicalHallSource(hall)) as EventLocale)),canonicalVersion:3};
+    return {...presentVenueLayout(layout,canonicalHallCompatibility(hall,(source?.sourceLocale??canonicalHallSource(hall)) as EventLocale)),canonicalVersion:3,currency:(await this.database.hallTariff.findFirst({where:{venueLayoutId:layout.id},select:{currency:true}}))?.currency?.trim()??layout.tables[0]?.currency?.trim()??"KZT"};
   }
 
   private async findOwned(
@@ -230,8 +250,8 @@ async function cloneLayout(
   if(publishedHallV3Schema.safeParse(source.layoutJson).success){
     const original=await readCanonicalHall(transaction,source.id,source.layoutJson),locale=canonicalHallSource(original),resources=await transaction.hallTariff.findMany({where:{venueLayoutId:source.id},select:{currency:true}}),currencies=[...new Set(resources.map(row=>row.currency?.trim()).filter((code):code is string=>!!code))];
     if(currencies.length>1)throw new ConflictException({code:"EVENT_CURRENCY_REVIEW_REQUIRED"});
-    const currency=currencies[0]??"KZT",objectIds=new Map(original.objects.map(object=>[object.id,randomUUID()])),tariffIds=new Map(original.tariffs.map(tariff=>[tariff.id,randomUUID()]));
-    const hall={...original,objects:original.objects.map(object=>({...object,id:objectIds.get(object.id)!,parentId:object.parentId?objectIds.get(object.parentId)!:null,tariffId:object.tariffId?tariffIds.get(object.tariffId)!:null})),tariffs:original.tariffs.map(tariff=>({...tariff,id:tariffIds.get(tariff.id)!}))};
+    const currency=currencies[0]??"KZT";
+    const copied=cloneHallEditor(hallV3Editor(original,locale),randomUUID),hall=editorHallV3(original.room,copied,original,locale);
     const created=await transaction.venueLayout.create({data:{...owner,layoutJson:EMPTY_LAYOUT},include:{tables:true}});
     if("eventId" in owner){const event=await transaction.event.findUniqueOrThrow({where:{id:owner.eventId}});if(event.currency&&event.currency.trim()!==currency)throw new ConflictException({code:"CURRENCY_RELABEL_CONFIRMATION_REQUIRED"});const draft={...newEventCreationDraft(randomUUID(),event.sourceLocale as EventLocale),selectedMode:"paid_seated" as const,paidSeated:hall,currency};await persistSelectedSale(transaction,event.id,event.organizerId,draft,configuredPaymentCurrencies(loadApiEnv()));}
     else await persistCanonicalHall(transaction,null,created.id,hall,locale,currency);
@@ -248,12 +268,7 @@ async function cloneLayout(
   if("eventId" in owner){const event=await transaction.event.findUniqueOrThrow({where:{id:owner.eventId}});if(event.currency&&event.currency.trim()!==sourceCurrency)throw new ConflictException({code:"CURRENCY_RELABEL_CONFIRMATION_REQUIRED"});}
   const created = await transaction.venueLayout.create({ data: { ...owner, layoutJson: EMPTY_LAYOUT }, include: { tables: true } });
   if (sourceJson.version === 2 && sourceJson.editor) {
-    const ids = new Map(sourceJson.editor.objects.map((o) => [o.id, randomUUID()]));
-    const tariffIds = new Map(sourceJson.editor.tariffs.map((t) => [t.id, randomUUID()]));
-    const editor = { ...sourceJson.editor,
-      objects: sourceJson.editor.objects.map((o) => ({ ...o, id: ids.get(o.id)!, parentId: o.parentId ? ids.get(o.parentId)! : null, tariffId: o.tariffId ? tariffIds.get(o.tariffId)! : null })),
-      tariffs: sourceJson.editor.tariffs.map((t) => ({ ...t, id: tariffIds.get(t.id)! })),
-    };
+    const editor = cloneHallEditor(sourceJson.editor,randomUUID);
     const layoutJson = await persistHallEditor(transaction, created.id, "eventId" in owner ? owner.eventId : null, { ...sourceJson, editor },sourceCurrency);
     return transaction.venueLayout.update({ where: { id: created.id }, data: { layoutJson }, include: { tables: { include: { seatRecords: true }, orderBy: { number: "asc" } }, rows: { include: { seats: { orderBy: { sortOrder: "asc" } } }, orderBy: { number: "asc" } } } });
   }

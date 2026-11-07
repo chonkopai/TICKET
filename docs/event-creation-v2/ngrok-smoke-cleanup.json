@@ -1,0 +1,22 @@
+{
+  "at": "2026-10-03T13:32:07.162Z",
+  "scope": "Only named disposable verification identities and their records removed; other new tester records preserved",
+  "removed": {
+    "users": 2,
+    "events": 6,
+    "drafts": 12,
+    "orders": 7,
+    "assets": 6,
+    "residualFixtureOutbox": 23
+  },
+  "retainedUsers": "18",
+  "retainedUsersUnchanged": true,
+  "originalUserRowsEqual": true,
+  "remaining": {
+    "events": 0,
+    "orders": 0,
+    "tickets": 0,
+    "drafts": 1,
+    "outbox": 0
+  }
+}

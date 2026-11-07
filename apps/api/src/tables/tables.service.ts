@@ -1,3 +1,4 @@
+import { assertEventRegistrationOpen } from "../events/event-registration-policy.js";
 import { historicalPaymentOption } from "../events/historical-deposit.js";
 import { assertCurrentResourceWrite,rejectDepositInput } from "../events/current-sale-policy.js";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -258,10 +259,13 @@ export class TablesService {
   ): Promise<TableHold> {
       const requestKey = validateRequestKey(rawRequestKey);
       await lockTable(transaction, tableId);
-      let table = await transaction.table.findFirst({
+      const candidate = await transaction.table.findFirst({
         where: { id: tableId, venueLayout: { event: { status: EventStatus.published } } },
+        include: { venueLayout: { include: { event: true } } },
       });
-      if (!table) throw tableNotFound();
+      if (!candidate?.venueLayout.event) throw tableNotFound();
+      assertEventRegistrationOpen(candidate.venueLayout.event, now);
+      let table: Table = candidate;
       if (table.saleMode === "per_seat") throw new ConflictException({ code: "TABLE_REQUIRES_SEAT_SELECTION", message: "Select individual seats for this table" });
       await this.expireLocked(transaction, table, now);
       table = await transaction.table.findUniqueOrThrow({ where: { id: tableId } });
@@ -320,10 +324,7 @@ export class TablesService {
       }
       const refreshed = await transaction.table.findUniqueOrThrow({ where: { id: tableId } });
       if (refreshed.status !== TableStatus.held || refreshed.holdToken !== token) throw holdConflict();
-      await transaction.booking.updateMany({ where: { tableId, status: BookingStatus.pending }, data: { status: BookingStatus.expired } });
-      await transaction.seatAllocation.updateMany({ where: { order: { booking: { tableId } }, status: SeatAllocationStatus.active }, data: { status: SeatAllocationStatus.released, releasedAt: this.clock.now() } });
-      await transaction.ticket.updateMany({ where: { order: { booking: { tableId } }, status: TicketStatus.pending_payment }, data: { status: TicketStatus.cancelled, cancelledAt: this.clock.now() } });
-      await transaction.groupPass.updateMany({ where: { table: { id: tableId }, status: "active" }, data: { status: "cancelled" } });
+      await this.releaseHoldInventory(transaction, tableId, current.id, this.clock.now());
       await transaction.tableHold.update({ where: { id: current.id }, data: { status: TableHoldStatus.released } });
       await transaction.table.update({ where: { id: tableId }, data: clearHold(TableStatus.available) });
       await this.record(transaction, actorId, tableId, "table.hold_released", { holdId: current.id }, true);
@@ -408,10 +409,7 @@ export class TablesService {
     if (table.status !== TableStatus.held || !table.holdExpiresAt || table.holdExpiresAt > now || !table.holdToken) return false;
     const hold = await transaction.tableHold.findUnique({ where: { token: table.holdToken } });
     if (!hold || hold.status !== TableHoldStatus.active) return false;
-    await transaction.booking.updateMany({ where: { tableId: table.id, status: BookingStatus.pending }, data: { status: BookingStatus.expired } });
-    await transaction.seatAllocation.updateMany({ where: { order: { booking: { tableId: table.id } }, status: SeatAllocationStatus.active }, data: { status: SeatAllocationStatus.released, releasedAt: now } });
-    await transaction.ticket.updateMany({ where: { order: { booking: { tableId: table.id } }, status: TicketStatus.pending_payment }, data: { status: TicketStatus.cancelled, cancelledAt: now } });
-    await transaction.groupPass.updateMany({ where: { tableId: table.id, status: "active" }, data: { status: "cancelled" } });
+    await this.releaseHoldInventory(transaction, table.id, hold.id, now);
     await transaction.tableHold.update({ where: { id: hold.id }, data: { status: TableHoldStatus.expired } });
     await transaction.table.update({ where: { id: table.id }, data: clearHold(TableStatus.available) });
     await this.domainEvents.append(transaction, {
@@ -421,6 +419,23 @@ export class TablesService {
       payload: { holdId: hold.id, expiredAt: now.toISOString() },
     });
     return true;
+  }
+
+  /** Caller holds the table lock. Historical paid orders cannot belong to a
+   * later hold; old pending bookings may predate the tableHoldId relation. */
+  private async releaseHoldInventory(transaction: TableTransaction, tableId: string, holdId: string, now: Date): Promise<void> {
+    const bookings = await transaction.booking.findMany({
+      where: { tableId, OR: [
+        { tableHoldId: holdId },
+        { tableHoldId: null, status: BookingStatus.pending, order: { paymentStatus: "pending" } },
+      ] },
+      select: { id: true, orderId: true },
+    });
+    const orderIds = bookings.map(booking => booking.orderId);
+    await transaction.booking.updateMany({ where: { id: { in: bookings.map(booking => booking.id) }, status: BookingStatus.pending }, data: { status: BookingStatus.expired } });
+    await transaction.seatAllocation.updateMany({ where: { orderId: { in: orderIds }, status: SeatAllocationStatus.active }, data: { status: SeatAllocationStatus.released, releasedAt: now } });
+    await transaction.ticket.updateMany({ where: { orderId: { in: orderIds }, status: TicketStatus.pending_payment }, data: { status: TicketStatus.cancelled, cancelledAt: now } });
+    await transaction.groupPass.updateMany({ where: { orderId: { in: orderIds }, status: "active" }, data: { status: "cancelled" } });
   }
 
   private async findOwnedLayout(

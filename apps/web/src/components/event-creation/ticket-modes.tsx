@@ -1,7 +1,8 @@
 "use client";
 import { useEffect,useState } from "react";
-import { hallV3Editor, hallObjectPaint, UNAVAILABLE_HALL_COLOR, type CurrencyCapability,type EventLocale,type EventSaleMode,type DraftHallV3 } from "@event-platform/shared-types";
-import { useRouter } from "next/navigation";
+import { type CurrencyCapability,type EventLocale,type EventSaleMode } from "@event-platform/shared-types";
+import { EventHallField } from "./event-hall-field";
+export { HallThumbnail } from "./hall-thumbnail";
 import { DraftAutosave,creationDraftRequest } from "../../lib/creation-draft-client";
 import { CountedField } from "./counted-field";
 import { MoneyField } from "./money-field";
@@ -12,7 +13,7 @@ const copy={ru:{modes:["Бесплатно","Платные билеты","Пл�
 const currencyLabels = { ru: { USD: "Доллары", RUB: "Рубли", KZT: "Тенге" }, en: { USD: "US dollars", RUB: "Russian rubles", KZT: "Tenge" }, kk: { USD: "АҚШ доллары", RUB: "Ресей рублі", KZT: "Теңге" } };
 const button="creation-button";
 export function TicketModes({client,locale,contentLocale,locked=false}:{client:DraftAutosave;locale:EventLocale;contentLocale:EventLocale;locked?:boolean}){
-  const [,tick]=useState(0),[currencies,setCurrencies]=useState<CurrencyCapability[]>([]),[pending,setPending]=useState<string|null>(null),[error,setError]=useState("");const router=useRouter(),draft=client.aggregate,words=copy[locale],currency=currencies.find(value=>value.code===draft.currency)??{code:draft.currency,exponent:2};
+  const [,tick]=useState(0),[currencies,setCurrencies]=useState<CurrencyCapability[]>([]),[pending,setPending]=useState<string|null>(null),[error,setError]=useState("");const draft=client.aggregate,words=copy[locale],currency=currencies.find(value=>value.code===draft.currency)??{code:draft.currency,exponent:2};
   useEffect(()=>client.subscribe(()=>tick(value=>value+1)),[client]);useEffect(()=>{void creationDraftRequest<{currencies:CurrencyCapability[]}>("/api/creation-drafts/capabilities").then(value=>setCurrencies(value.currencies)).catch(reason=>setError(reason.message));},[]);
   useEffect(() => setPending(null), [contentLocale, draft.currency]);
   const extra = {
@@ -44,22 +45,12 @@ export function TicketModes({client,locale,contentLocale,locked=false}:{client:D
       const change = (patch: Partial<typeof row>) => client.patch({ paidGeneral: draft.paidGeneral.map(value => value.id === row.id ? { ...value, ...patch } : value) });
       return <fieldset key={row.id} className="creation-ticket-row creation-fields"><legend>{extra[locale].ticket} {index + 1}</legend><CountedField validationKey={contentLocale === draft.sourceLocale ? `sale.${row.id}.name` : undefined} required={contentLocale === draft.sourceLocale} label={words.name} max={60} value={row.content[contentLocale]?.name ?? ""} onChange={name => change({ content: { ...row.content, [contentLocale]: { ...row.content[contentLocale], name } } })} /><CountedField label={words.description} max={300} value={row.content[contentLocale]?.description ?? ""} multiline onChange={description => change({ content: { ...row.content, [contentLocale]: { ...row.content[contentLocale], description } } })} /><div className="creation-two-columns"><MoneyField validationKey={`sale.${row.id}.amount`} disabled={locked} label={words.price} value={row.amount} currency={currency} onChange={amount => change({ amount })} /><CapacityField field={`sale.${row.id}.capacity`} label={words.capacity} ariaLabel={`${words.capacity} ${index + 1}`} disabled={locked} value={row.capacity} onChange={value => { try { change({ capacity: capacity(value) }); setError(""); } catch { capacityError(); } }} /></div><div className="flex items-center justify-between gap-2"><label className="flex items-center gap-2 text-xs"><input disabled={locked} type="checkbox" checked={row.active} onChange={event => change({ active: event.target.checked })} />{extra[locale].active}</label><button type="button" className={`${button} creation-button-small !text-red-700 dark:!text-ticket-danger`} disabled={locked} onClick={() => client.patch({ paidGeneral: draft.paidGeneral.filter(value => value.id !== row.id) })}>{words.remove}</button></div></fieldset>;
     })}<button type="button" className={button} disabled={locked || draft.paidGeneral.length >= 100} onClick={() => client.patch({ paidGeneral: [...draft.paidGeneral, { id: crypto.randomUUID(), active: true, amount: null, capacity: null, content: {} }] })}><CreationIcon name="plus" size={17} />{words.add}</button></div> : null}
-    {draft.selectedMode === "paid_seated" ? <ValidationField field="paidSeated" className="creation-ticket-fields creation-fields">{draft.paidSeated ? <><HallThumbnail hall={draft.paidSeated} locale={locale} /><p className="creation-hint">{words.savedHall}: {draft.paidSeated.objects.filter(object => object.type === "seat" && !object.locked).length + draft.paidSeated.objects.filter(object => object.type === "zone" && !object.locked).reduce((sum, object) => sum + object.capacity, 0)} · {words.tariffs}: {draft.paidSeated.tariffs.filter(tariff => tariff.active).map(tariff => `${tariff.content[contentLocale]?.name ?? "—"} (${new Intl.NumberFormat(locale, { style: "currency", currency: draft.currency }).format((tariff.amount ?? 0) / 10 ** currency.exponent)})`).join(", ")}</p></> : <p className="creation-hint !mt-0">{extra[locale].hall}</p>}<button type="button" className={button} disabled={locked} onClick={() => void client.flush().then(() => router.push(`/events/create/hall?draftId=${client.saved.id}&lang=${locale}&contentLocale=${contentLocale}`)).catch(reason => setError(reason.message))}><CreationIcon name="armchair" size={17} />{words.hall}</button></ValidationField> : null}
+    {draft.selectedMode === "paid_seated" ? <ValidationField field="paidSeated" className="creation-ticket-fields creation-fields"><EventHallField client={client} locale={locale} contentLocale={contentLocale} locked={locked} exponent={currency.exponent} /></ValidationField> : null}
     {draft.selectedMode && draft.selectedMode !== "free" ? <ValidationField field="refundsAvailable"><fieldset className="creation-refunds creation-fields"><legend>{words.refund}<span aria-hidden="true" className="creation-required"> *</span></legend><div className="flex gap-5">{[true, false].map(value => <label key={String(value)} className="flex gap-2 text-sm"><input type="radio" name="refund-available" checked={draft.refundsAvailable === value} onChange={() => client.patch({ refundsAvailable: value })} />{value ? words.yes : words.no}</label>)}</div>{draft.refundsAvailable ? <CountedField validationKey={contentLocale === draft.sourceLocale ? "content.refundConditions" : undefined} required={contentLocale === draft.sourceLocale} label={words.conditions} max={2000} multiline value={draft.content[contentLocale]?.refundConditions ?? ""} onChange={refundConditions => client.patch({ content: { [contentLocale]: { ...draft.content[contentLocale], refundConditions } } })} /> : draft.refundsAvailable === false ? <p className="creation-hint">{words.unavailable}</p> : null}</fieldset></ValidationField> : null}
     {error ? <p role="alert" className="creation-error">{error}</p> : null}
   </div>;
 }
 
-export function HallThumbnail({ hall, locale = "ru" }: { hall: DraftHallV3; locale?: EventLocale }) {
-  const editor = hallV3Editor(hall, locale);
-  return <svg role="img" aria-label={locale === "ru" ? "Предпросмотр зала" : locale === "kk" ? "Залды алдын ала қарау" : "Hall preview"} className="h-40 w-full rounded-xl border border-slate-200 dark:border-ticket-border bg-white dark:bg-ticket-surface" viewBox={`0 0 ${hall.room.widthM} ${hall.room.heightM}`}>
-    <rect width={hall.room.widthM} height={hall.room.heightM} fill="#f8f7fc" stroke="#cbc7d4" strokeWidth=".1" />
-    {editor.objects.map(object => {
-      const paint = hallObjectPaint(object, editor), color = object.locked ? UNAVAILABLE_HALL_COLOR : paint.color;
-      return <g key={object.id} transform={`translate(${object.x} ${object.y}) rotate(${object.rotation})`}>{object.type === "seat" ? <circle r=".22" fill={color} /> : <rect x={-object.width / 2} y={-object.height / 2} width={object.width} height={object.height} rx={object.type === "table_round" ? object.width / 2 : .05} fill={color} stroke={paint.neutral ? "#94a3b8" : color} strokeWidth=".06" opacity={object.type === "zone" ? .3 : 1} />}</g>;
-    })}
-  </svg>;
-}
 
 function CapacityField({ field, label, ariaLabel, value, disabled, onChange }: { field: string; label: string; ariaLabel?: string; value: number | null; disabled: boolean; onChange: (value: string) => void }) {
   const validation = useCreationValidation(field);

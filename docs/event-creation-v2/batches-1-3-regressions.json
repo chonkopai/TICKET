@@ -1,0 +1,28 @@
+{
+  "at": "2026-10-02T12:06:21.644Z",
+  "database": "event_platform_v2_fresh_1790941250928",
+  "scope": "Seeded isolated fresh database; no source/production mutation",
+  "steps": [
+    {
+      "name": "seed",
+      "startedAt": "2026-10-02T12:06:21.645Z",
+      "completedAt": "2026-10-02T12:06:27.953Z",
+      "exitCode": 0,
+      "log": "regression-logs/seed.log"
+    },
+    {
+      "name": "tests",
+      "startedAt": "2026-10-02T12:06:27.954Z",
+      "completedAt": "2026-10-02T12:07:15.976Z",
+      "exitCode": 0,
+      "log": "regression-logs/tests.log"
+    },
+    {
+      "name": "verify",
+      "startedAt": "2026-10-02T12:07:15.977Z",
+      "completedAt": "2026-10-02T12:07:19.167Z",
+      "exitCode": 0,
+      "log": "regression-logs/verify.log"
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import type { DomainEventsService } from "../domain-events/domain-events.service
 import type { WalletPassGenerator } from "../wallet/wallet-pass-generator.js";
 
 function fixture() {
-  const event = { id: "event", title: "Concert", sourceLocale: "ru", creationVersion: 1, v2State: "legacy", startsAt: new Date("2030-01-01T15:00:00Z"), date: new Date("2030-01-01"), time: new Date("1970-01-01T20:00:00Z"), timezone: "Asia/Almaty", address: "Venue", organizer: { name: "Organizer", phone: "+77000000000", email: "events@example.test", organizerProfile: { organizationName: "Events", address: "Office", showContactInfo: true } } };
+  const event = { id: "event", status: "published", title: "Concert", sourceLocale: "ru", creationVersion: 1, v2State: "legacy", startsAt: new Date("2030-01-01T15:00:00Z"), date: new Date("2030-01-01"), time: new Date("1970-01-01T20:00:00Z"), timezone: "Asia/Almaty", address: "Venue", organizer: { name: "Organizer", phone: "+77000000000", email: "events@example.test", organizerProfile: { organizationName: "Events", address: "Office", showContactInfo: true } } };
   const ticket = { id: "ticket", ticketTypeId: "type", status: "active", seatLabelSnapshot: "Row 1, seat 2", usedAt: null, createdAt: new Date(), updatedAt: new Date(), ticketType: { id: "type", eventId: "event", name: "Entry", event }, seatAllocation: null, order: { id: "order", buyerUserId: "buyer", paymentStatus: "paid", checkoutSnapshot: null }, qrToken: "isolated-test-token" };
   const findFirst = vi.fn().mockResolvedValue(ticket);
   const db = { ticket: { findFirst } } as unknown as PrismaClient;

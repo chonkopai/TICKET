@@ -5,6 +5,10 @@ import { newHallObject, type PublicEvent, type PublicVenueLayout } from "@event-
 import { CurrencyProvider } from "../components/currency-provider";
 import { VenueSection } from "../app/events/[id]/event-client";
 import { EventHero } from "../app/events/[id]/event-hero";
+import { newEventCreationDraft } from "@event-platform/shared-types";
+import { starterHall } from "../components/hall-builder/model.mjs";
+import { canonicalEventHall } from "./event-hall-library";
+import { draftEventPreview } from "./draft-event-preview";
 
 function renderHall(whole: boolean, available = true, selected = false) {
   const table = { ...newHallObject("table", "table_rect", 5, 5), tariffId: "green", name: "Table", saleMode: whole ? "whole_table" as const : "per_seat" as const };
@@ -40,6 +44,30 @@ test("whole-table chairs are white and decorative; only the colored table is sel
   assert.doesNotMatch(html, /aria-label="место 1/);
   assert.match(html, /aria-hidden="true"><circle r="0.225" fill="white" stroke="#94A3B8"/);
   assert.match(html, /fill="#15803D"/);
+});
+
+test("halls selected by the event picker render rows, whole tables and standing admission in the buyer view", () => {
+  for (const kind of ["rows", "tables", "standing"]) {
+    const hall = starterHall(kind, "RUB");
+    hall.categories.forEach(category => { category.price = 250; });
+    const draft = newEventCreationDraft(crypto.randomUUID(), "ru");
+    draft.selectedMode = "paid_seated";
+    draft.currency = "RUB";
+    draft.paidSeated = canonicalEventHall(hall, "ru");
+    const model = draftEventPreview(crypto.randomUUID(), draft, "ru", [], { title: "Event", address: "Address", invitation: "Entry" });
+    assert.ok(model.layout);
+    const html = renderToStaticMarkup(<CurrencyProvider><VenueSection event={model.event} layout={model.layout} selectedSeatIds={[]} selectedTableId={null} ticketQuantities={{}} onChange={() => {}} onTableChange={() => {}} onTicketChange={() => {}} /></CurrencyProvider>);
+    assert.match(html, /aria-label="Схема зала"/);
+    assert.match(html, /Тарифы и цены/);
+    assert.match(html, /aria-disabled="false"/);
+    if (kind === "rows") assert.match(html, /aria-label="место 1/);
+    if (kind === "tables") assert.match(html, /aria-hidden="true"><circle/);
+    if (kind === "standing") {
+      assert.equal(model.event.ticketTypes.length, 1);
+      assert.equal(model.event.ticketTypes[0]?.remaining, 200);
+      assert.match(html, /<polygon/);
+    }
+  }
 });
 
 test("hero thumbnails are deduplicated, capped at four, and identify the initial background", () => {

@@ -1,4 +1,5 @@
 "use client";
+import { useEventEnded } from "../../../lib/use-event-ended";
 import { VerifiedOrganizerBadge } from "../../../components/verified-organizer-badge";
 
 import { localeFromBrowser } from "../../../lib/locale";
@@ -230,7 +231,8 @@ export function VenueSection({ layout, event, selectedSeatIds, onChange, selecte
     if (viewport) zoomFocus.current = { x: viewport.clientWidth / 2, y: viewport.clientHeight / 2, previous: mapZoom };
     setMapZoom(next);
   };
-  const salesAvailable = event.paymentMode !== "deposit";
+  const ended = useEventEnded(event);
+  const salesAvailable = event.paymentMode !== "deposit" && !ended;
   const toggle = (seat: PublicVenueSeat | (PublicVenueLayout["tables"][number]["seatRecords"][number])) => {
     if (!salesAvailable || seat.availability !== "available") return;
     if (selected.has(seat.id)) { setSelectionError(""); onChange(selectedSeatIds.filter((id) => id !== seat.id)); return; }

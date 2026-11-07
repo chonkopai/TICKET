@@ -1,0 +1,10 @@
+{
+  "at": "2026-10-02T12:10:29.198Z",
+  "checks": [
+    "legacy event writes wait for backfill event lock",
+    "manual normalized content writes wait for backfill content lock",
+    "legacy price writes wait for preserved inventory lock",
+    "card assignment serializes concurrent kind changes"
+  ],
+  "rolledBack": true
+}

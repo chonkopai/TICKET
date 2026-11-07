@@ -1,0 +1,221 @@
+{
+  "at": "2026-10-03T07:53:08.160Z",
+  "database": "event_platform_v2_fresh_1791011626432",
+  "readOnly": true,
+  "counts": {
+    "events": 29,
+    "created_v2": 2,
+    "unresolved_events": 27,
+    "unknown_ends": 27,
+    "legacy_deposit_sales": 2,
+    "invalid_new_events": 0
+  },
+  "reasons": [],
+  "orders": [
+    {
+      "type": "ticket",
+      "status": "paid",
+      "orders": 24,
+      "currency": "KZT",
+      "minor_total": "181520000"
+    },
+    {
+      "type": "ticket",
+      "status": "paid",
+      "orders": 2,
+      "currency": "USD",
+      "minor_total": "0"
+    },
+    {
+      "type": "ticket",
+      "status": "refunded",
+      "orders": 1,
+      "currency": "KZT",
+      "minor_total": "1500"
+    },
+    {
+      "type": "ticket",
+      "status": "refunded",
+      "orders": 1,
+      "currency": "USD",
+      "minor_total": "1234"
+    }
+  ],
+  "pending": [],
+  "anomalies": [
+    {
+      "kind": "payment_order_money_mismatch",
+      "count": 0
+    },
+    {
+      "kind": "missing_order_snapshot",
+      "count": 0
+    },
+    {
+      "kind": "new_format_deposit",
+      "count": 0
+    },
+    {
+      "kind": "new_snapshot_money_mismatch",
+      "count": 0
+    },
+    {
+      "kind": "invalid_new_media",
+      "count": 0
+    },
+    {
+      "kind": "new_event_missing_card",
+      "count": 0
+    },
+    {
+      "kind": "negative_or_oversold_inventory",
+      "count": 0
+    },
+    {
+      "kind": "unvalidated_constraints",
+      "count": 0
+    }
+  ],
+  "financial": {
+    "rows": {
+      "Order": {
+        "count": "28",
+        "digest": "ed85902bee08eca91c0a54a241ad25fe"
+      },
+      "Payment": {
+        "count": "6",
+        "digest": "2e0d9504d59cd9e5d3b3614422ba1ea0"
+      },
+      "Deposit": {
+        "count": "1",
+        "digest": "09026dcf46b933ee5a7b40fe2b04833a"
+      },
+      "RefundRequest": {
+        "count": "2",
+        "digest": "97766713cb7817b4db2b8d86bd1162b1"
+      },
+      "Ticket": {
+        "count": "75",
+        "digest": "9660dfd3ef255e81ec6d21892db2219d"
+      },
+      "Booking": {
+        "count": "0",
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "TicketReservation": {
+        "count": "4",
+        "digest": "95c7a404fda84b603a62d1901fdcf35a"
+      },
+      "SeatAllocation": {
+        "count": "51",
+        "digest": "7459a5916dde581126fcb727f89cbb91"
+      },
+      "GroupPass": {
+        "count": "0",
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "TableHold": {
+        "count": "0",
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "Seat": {
+        "count": "1112",
+        "digest": "dd94b7a5e7f8d2e3339baa535541fe37"
+      },
+      "TicketType": {
+        "count": "1093",
+        "digest": "e1eac7b85775d233ed2f243e32aca318"
+      },
+      "Table": {
+        "count": "21",
+        "digest": "7b631b01a1f1efb20712c5fa1002e185"
+      },
+      "VenueRow": {
+        "count": "50",
+        "digest": "9a7bf3e720b571698dc4f77e096a11b2"
+      },
+      "VenueLayout": {
+        "count": "11",
+        "digest": "68e99a981468bb411e89ad2efc5279e5"
+      }
+    },
+    "totals": {
+      "Order": [
+        {
+          "currency": "KZT",
+          "status": "paid",
+          "count": "24",
+          "minor_total": "181520000"
+        },
+        {
+          "currency": "KZT",
+          "status": "refunded",
+          "count": "1",
+          "minor_total": "1500"
+        },
+        {
+          "currency": "USD",
+          "status": "paid",
+          "count": "2",
+          "minor_total": "0"
+        },
+        {
+          "currency": "USD",
+          "status": "refunded",
+          "count": "1",
+          "minor_total": "1234"
+        }
+      ],
+      "Payment": [
+        {
+          "currency": "KZT",
+          "status": "paid",
+          "count": "4",
+          "minor_total": "181500000"
+        },
+        {
+          "currency": "KZT",
+          "status": "refunded",
+          "count": "1",
+          "minor_total": "1500"
+        },
+        {
+          "currency": "USD",
+          "status": "refunded",
+          "count": "1",
+          "minor_total": "1234"
+        }
+      ],
+      "Deposit": [
+        {
+          "currency": "KZT",
+          "status": "refunded",
+          "count": "1",
+          "minor_total": "1500"
+        }
+      ],
+      "RefundRequest": [
+        {
+          "currency": "KZT",
+          "status": "succeeded",
+          "count": "1",
+          "minor_total": "1500"
+        },
+        {
+          "currency": "USD",
+          "status": "succeeded",
+          "count": "1",
+          "minor_total": "1234"
+        }
+      ]
+    }
+  },
+  "contraction": {
+    "eligible": false,
+    "blockers": [
+      "No authorized deployed-consumer inventory or completed cutover observation.",
+      "Legacy content/media and active-sale review must be resolved before dropping live projections.",
+      "Historical Deposit/OrderType archive and reader migration are not proven."
+    ]
+  }
+}

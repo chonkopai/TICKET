@@ -1,0 +1,31 @@
+{
+  "at": "2026-10-02T12:04:50.634Z",
+  "checks": [
+    "invalid locale",
+    "partial optional locale remains legal",
+    "duplicate locale",
+    "missing content owner",
+    "end before start",
+    "unpaired coordinates",
+    "incomplete ready asset",
+    "video cannot be card",
+    "card cannot change to video",
+    "sixth slot",
+    "singleton card",
+    "singleton background",
+    "cross-event attachment",
+    "unversioned draft rejected",
+    "claimed capability revoked",
+    "one intent per draft revision",
+    "intent consumption needs result",
+    "publication requires ready roles and source",
+    "old writes invalidate normalized reads",
+    "complete source and ready singleton roles pass publication constraints",
+    "published source deletion rejected",
+    "published source move validates old owner",
+    "published card deletion rejected",
+    "published ready asset downgrade rejected",
+    "unused legacy deletion retains asset and archival provenance"
+  ],
+  "rolledBack": true
+}

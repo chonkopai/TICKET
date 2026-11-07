@@ -1,0 +1,450 @@
+{
+  "assertions": [
+    "tickets desktop: original shared navbar",
+    "tickets desktop: inherited site font",
+    "tickets desktop: shared site palette",
+    "tickets desktop: site SVG icon style",
+    "tickets desktop: existing bold heading style",
+    "tickets desktop: no horizontal overflow",
+    "orders preview loads on tickets",
+    "section navigation updates URL",
+    "settings desktop: original shared navbar",
+    "settings desktop: inherited site font",
+    "settings desktop: shared site palette",
+    "settings desktop: site SVG icon style",
+    "settings desktop: existing bold heading style",
+    "settings desktop: no horizontal overflow",
+    "contact save does not mutate login identity",
+    "SMS remains disabled",
+    "resend cooldown",
+    "email verification and completion stay functional",
+    "notifications desktop: original shared navbar",
+    "notifications desktop: inherited site font",
+    "notifications desktop: shared site palette",
+    "notifications desktop: site SVG icon style",
+    "notifications desktop: existing bold heading style",
+    "notifications desktop: no horizontal overflow",
+    "inbox error does not hide saved preferences",
+    "failed preference restores value",
+    "successful preference persists",
+    "inbox retry recovers",
+    "mark-read request",
+    "notifications 1024: original shared navbar",
+    "notifications 1024: inherited site font",
+    "notifications 1024: shared site palette",
+    "notifications 1024: site SVG icon style",
+    "notifications 1024: existing bold heading style",
+    "notifications 1024: no horizontal overflow",
+    "notifications 768: original shared navbar",
+    "notifications 768: inherited site font",
+    "notifications 768: shared site palette",
+    "notifications 768: site SVG icon style",
+    "notifications 768: existing bold heading style",
+    "notifications 768: no horizontal overflow",
+    "notifications 390: original shared navbar",
+    "notifications 390: inherited site font",
+    "notifications 390: shared site palette",
+    "notifications 390: site SVG icon style",
+    "notifications 390: existing bold heading style",
+    "notifications 390: no horizontal overflow",
+    "notifications dark mobile: original shared navbar",
+    "notifications dark mobile: inherited site font",
+    "notifications dark mobile: shared site palette",
+    "notifications dark mobile: site SVG icon style",
+    "notifications dark mobile: existing bold heading style",
+    "notifications dark mobile: no horizontal overflow",
+    "populated orders retain organizer chat",
+    "past total uses event total",
+    "tickets dark mobile: original shared navbar",
+    "tickets dark mobile: inherited site font",
+    "tickets dark mobile: shared site palette",
+    "tickets dark mobile: site SVG icon style",
+    "tickets dark mobile: existing bold heading style",
+    "tickets dark mobile: no horizontal overflow",
+    "settings dark mobile: original shared navbar",
+    "settings dark mobile: inherited site font",
+    "settings dark mobile: shared site palette",
+    "settings dark mobile: site SVG icon style",
+    "settings dark mobile: existing bold heading style",
+    "settings dark mobile: no horizontal overflow",
+    "browser history restores account section",
+    "help opens working order history",
+    "metrics failure does not hide profile or orders",
+    "settings kk mobile: original shared navbar",
+    "settings kk mobile: inherited site font",
+    "settings kk mobile: shared site palette",
+    "settings kk mobile: site SVG icon style",
+    "settings kk mobile: existing bold heading style",
+    "settings kk mobile: no horizontal overflow",
+    "settings en mobile: original shared navbar",
+    "settings en mobile: inherited site font",
+    "settings en mobile: shared site palette",
+    "settings en mobile: site SVG icon style",
+    "settings en mobile: existing bold heading style",
+    "settings en mobile: no horizontal overflow",
+    "no browser runtime errors"
+  ],
+  "browserErrors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/me",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/dashboard",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-preferences",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=upcoming&page=1&limit=10&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=past&page=1&limit=1&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/orders",
+      "query": "?page=1&limit=3"
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/dashboard",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-preferences",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=upcoming&page=1&limit=10&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=past&page=1&limit=1&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/orders",
+      "query": "?page=1&limit=3"
+    },
+    {
+      "method": "GET",
+      "path": "/me/identities",
+      "query": ""
+    },
+    {
+      "method": "PATCH",
+      "path": "/me",
+      "query": ""
+    },
+    {
+      "method": "POST",
+      "path": "/me/identities/request-code",
+      "query": ""
+    },
+    {
+      "method": "POST",
+      "path": "/me/identities/verify-code",
+      "query": ""
+    },
+    {
+      "method": "POST",
+      "path": "/me/identities/complete",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notifications",
+      "query": "?page=1&limit=10&unreadOnly=false"
+    },
+    {
+      "method": "GET",
+      "path": "/me/notifications",
+      "query": "?page=1&limit=10&unreadOnly=false"
+    },
+    {
+      "method": "GET",
+      "path": "/me/notifications",
+      "query": "?page=1&limit=10&unreadOnly=false"
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-preferences",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notifications",
+      "query": "?page=1&limit=10&unreadOnly=false"
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-preferences",
+      "query": ""
+    },
+    {
+      "method": "PATCH",
+      "path": "/me/notification-preferences",
+      "query": ""
+    },
+    {
+      "method": "PATCH",
+      "path": "/me/notification-preferences",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notifications",
+      "query": "?page=1&limit=10&unreadOnly=false"
+    },
+    {
+      "method": "GET",
+      "path": "/me/notifications",
+      "query": "?page=1&limit=10&unreadOnly=true"
+    },
+    {
+      "method": "PATCH",
+      "path": "/me/notifications/notification-test/read",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notifications",
+      "query": "?page=1&limit=10&unreadOnly=true"
+    },
+    {
+      "method": "GET",
+      "path": "/me/dashboard",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=upcoming&page=1&limit=10&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=past&page=1&limit=1&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/orders",
+      "query": "?page=1&limit=3"
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=past&page=1&limit=10&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=upcoming&page=1&limit=1&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/identities",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/dashboard",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=past&page=1&limit=10&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=upcoming&page=1&limit=1&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/orders",
+      "query": "?page=1&limit=3"
+    },
+    {
+      "method": "GET",
+      "path": "/me/orders",
+      "query": "?page=1&limit=10"
+    },
+    {
+      "method": "GET",
+      "path": "/me/dashboard",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=past&page=1&limit=10&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=upcoming&page=1&limit=1&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/orders",
+      "query": "?page=1&limit=3"
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/dashboard",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-preferences",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=upcoming&page=1&limit=10&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=past&page=1&limit=1&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/orders",
+      "query": "?page=1&limit=3"
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/dashboard",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-preferences",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=upcoming&page=1&limit=10&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/events",
+      "query": "?status=past&page=1&limit=1&locale=ru"
+    },
+    {
+      "method": "GET",
+      "path": "/me/orders",
+      "query": "?page=1&limit=3"
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-preferences",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/identities",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-preferences",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/identities",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-preferences",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/identities",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-preferences",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/me/identities",
+      "query": ""
+    }
+  ]
+}

@@ -12,7 +12,7 @@ import type { AuthenticatedPrincipal } from "../auth/auth.constants.js";
 import { CurrentUser, Roles } from "../auth/auth.decorators.js";
 import { JwtAuthGuard, RolesGuard } from "../auth/auth.guards.js";
 import { ExplicitDtoPipe } from "../events/explicit-dto.pipe.js";
-import { ApplyVenueTemplateDto, CreateVenueLayoutDto, CreateVenueTemplateDto, UpdateVenueLayoutDto, VenueListQueryDto } from "./venue.dto.js";
+import { SaveHallLibraryDto, ApplyVenueTemplateDto, CreateVenueLayoutDto, CreateVenueTemplateDto, UpdateVenueLayoutDto, VenueListQueryDto } from "./venue.dto.js";
 import { VenueService } from "./venue.service.js";
 
 @Controller("organizer")
@@ -40,6 +40,9 @@ export class VenueController {
     @Param("eventId", new ParseUUIDPipe({ version: "4" })) eventId: string,
     @Body(new ExplicitDtoPipe(ApplyVenueTemplateDto)) body: ApplyVenueTemplateRequest,
   ): Promise<VenueLayout> { return this.venue.applyTemplate(principal.userId, eventId, body.templateId); }
+
+  @Post("venue-layout-templates")
+  saveLibrary(@CurrentUser() principal: AuthenticatedPrincipal,@Body(new ExplicitDtoPipe(SaveHallLibraryDto)) body:SaveHallLibraryDto):Promise<VenueLayout>{return this.venue.createLibraryTemplate(principal.userId,body);}
 
   @Get("venue-layout-templates")
   listTemplates(

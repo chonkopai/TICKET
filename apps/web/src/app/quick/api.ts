@@ -1,3 +1,4 @@
+import { BOOKING_PANEL_COPY } from "../../lib/booking-panel-copy";
 import { localeFromBrowser } from "../../lib/locale";
 import { QUICK_COPY, QUICK_EXTRA } from "../../lib/quick-copy";
 
@@ -7,6 +8,7 @@ export async function quickRequest<T>(path: string, token?: string, body?: unkno
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { code?: string } | null;
+    if (body?.code === "EVENT_ENDED") throw new Error(BOOKING_PANEL_COPY[localeFromBrowser()].endedHint);
     if (["SEAT_UNAVAILABLE", "SEAT_SALES_WINDOW_CLOSED", "INSUFFICIENT_INVENTORY", "TABLE_UNAVAILABLE"].includes(body?.code ?? "")) {
       throw new Error(QUICK_EXTRA[localeFromBrowser()].seatSelectionChanged);
     }

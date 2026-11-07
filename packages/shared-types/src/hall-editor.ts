@@ -5,6 +5,17 @@ const size = z.number().finite().min(0.1).max(200).refine((n) => Math.abs(n * 10
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const money = z.number().int().min(0).max(2_000_000_000);
 const draftTariffText=z.object({name:z.string().max(3840).optional(),description:z.string().max(19200).optional()}).strict();
+// Layout-only builder metadata. Sales keep using the existing row/seat/table/zone records.
+export const hallBuilderMetadataSchema = z.object({
+  version: z.literal(1), pinned: z.boolean(), disabled: z.boolean(),
+  kind: z.enum(["rows","round","rect","standing","stage","obstacle","entrance","seat"]),
+  arrangement: z.enum(["even","open","two","three","all","custom"]).optional(),
+  shape: z.array(z.object({x:z.number().finite().min(-.5).max(.5),y:z.number().finite().min(-.5).max(.5)}).strict()).min(3).max(100).nullable().optional(),
+  tariffId: z.string().uuid().nullable().optional(),
+  seat: z.object({dx:z.number().finite().min(-1000).max(1000),dy:z.number().finite().min(-1000).max(1000),angle:z.number().finite().min(-Math.PI*2).max(Math.PI*2).optional(),number:z.number().int().min(1).max(1_000_000).optional()}).strict().optional(),
+  group: z.object({id:z.string().uuid(),tariffId:z.string().uuid().nullable().optional(),name:z.string().max(120),x:metre,y:metre,rotation:z.number().min(-180).max(180),seatPitch:z.number().finite().min(.1).max(200),rowPitch:z.number().finite().min(.1).max(200),aisle:z.enum(["none","center","left","right"]),aisleWidth:z.number().min(0).max(200),firstRow:z.number().int().min(1).max(999000),firstSeat:z.number().int().min(1).max(999000),reverse:z.boolean(),curvature:z.number().finite().min(-100).max(100)}).strict().optional(),
+  row: z.object({index:z.number().int().min(0).max(99),dx:metre,dy:metre,pitch:size.optional()}).strict().optional(),
+}).strict();
 export const hallObjectSchema = z.object({
   id: z.string().uuid(), type: z.enum(["table_rect", "table_round", "seat", "row", "zone", "prop", "entrance"]),
   name: z.string().max(120), x: metre, y: metre, width: size, height: size,
@@ -19,11 +30,12 @@ export const hallObjectSchema = z.object({
   opacity: z.number().min(0.05).max(1), points: z.array(z.object({ x: metre, y: metre }).strict()).max(100),
   curvature: z.number().finite().min(-100).max(100), reverse: z.boolean(), startNumber: z.number().int().min(1).max(999_000),
   entranceType: z.enum(["in", "out", "both"]),
+  builder: hallBuilderMetadataSchema.optional(),
 }).strict();
 export const hallEditorSchema = z.object({
   version: z.literal(1),
   objects: z.array(hallObjectSchema).max(3000),
-  tariffs: z.array(z.object({ id: z.string().uuid(), name: z.string().min(1).max(120), color, price: money,description:z.string().max(19200).optional(),draftAmount:z.number().int().min(0).max(2147483647).nullable().optional(),localized:z.object({ru:draftTariffText.optional(),en:draftTariffText.optional(),kk:draftTariffText.optional()}).strict().optional() }).strict()).max(100),
+  tariffs: z.array(z.object({ id: z.string().uuid(), name: z.string().min(1).max(120), color, price: money, unit:z.enum(["seat","table","entry"]).optional(),active:z.boolean().optional(),description:z.string().max(19200).optional(),draftAmount:z.number().int().min(0).max(2147483647).nullable().optional(),localized:z.object({ru:draftTariffText.optional(),en:draftTariffText.optional(),kk:draftTariffText.optional()}).strict().optional() }).strict()).max(100),
 }).strict().superRefine((editor, ctx) => {
   if (editor.objects.filter((o) => o.type.startsWith("table_")).length > 500 || editor.objects.filter((o) => o.type === "row").length > 100) ctx.addIssue({ code: "custom", message: "Maximum 500 tables and 100 rows" });
   const ids = new Set<string>();
@@ -32,6 +44,8 @@ export const hallEditorSchema = z.object({
   for (const object of editor.objects) {
     if (ids.has(object.id)) ctx.addIssue({ code: "custom", message: "Duplicate object IDs" });
     ids.add(object.id);
+    if(object.builder?.group?.tariffId&&!tariffs.has(object.builder.group.tariffId))ctx.addIssue({code:"custom",message:"Unknown block tariff"});
+    if(object.builder?.tariffId&&!tariffs.has(object.builder.tariffId))ctx.addIssue({code:"custom",message:"Unknown builder tariff"});
     if (object.tariffId && !tariffs.has(object.tariffId)) ctx.addIssue({ code: "custom", message: "Unknown tariff" });
     if (object.type === "seat" && (object.width !== 0.45 || object.height !== 0.45)) ctx.addIssue({ code: "custom", message: "Seat footprint must be 0.45 m square" });
     if (object.type === "table_round" && object.height !== object.width) ctx.addIssue({ code: "custom", message: "Round tables require a uniform diameter" });
@@ -144,4 +158,12 @@ export function arrangeSeats(editor: HallEditor, parentId: string): HallEditor {
     if (p) positions.set(seat.id, { ...p, number: parent.type === "row" ? parent.startNumber + (parent.reverse ? seats.length - i - 1 : i) : i + 1 });
   });
   return { ...editor, objects: editor.objects.map((o) => positions.get(o.id) ?? o) };
+}
+
+/** Reusable copies never retain inventory IDs or cross-template builder group references. */
+export function cloneHallEditor(editor: HallEditor, id:()=>string):HallEditor {
+  const objects=new Map(editor.objects.map(o=>[o.id,id()])),tariffs=new Map(editor.tariffs.map(t=>[t.id,id()]));
+  const groups=new Map([...new Set(editor.objects.flatMap(o=>o.builder?.group?[o.builder.group.id]:[]))].map(key=>[key,id()]));
+  const tariffRef=(key:string|null|undefined)=>key?tariffs.get(key)??null:null;
+  return {...editor,tariffs:editor.tariffs.map(t=>({...t,id:tariffs.get(t.id)!})),objects:editor.objects.map(o=>({...o,id:objects.get(o.id)!,parentId:o.parentId?objects.get(o.parentId)??null:null,tariffId:tariffRef(o.tariffId),...(o.builder?{builder:{...o.builder,...(o.builder.tariffId===undefined?{}:{tariffId:tariffRef(o.builder.tariffId)}),...(o.builder.group?{group:{...o.builder.group,id:groups.get(o.builder.group.id)!,tariffId:tariffRef(o.builder.group.tariffId)}}:{})}}:{})}))};
 }

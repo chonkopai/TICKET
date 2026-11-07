@@ -1,0 +1,409 @@
+{
+  "at": "2026-10-03T07:46:47.944Z",
+  "database": "event_platform_v2_legacy_1791011626433",
+  "readOnly": true,
+  "executedDrops": 0,
+  "eligible": false,
+  "observation": {
+    "events": 43,
+    "created_v2": 0,
+    "unresolved_events": 43,
+    "unknown_ends": 43,
+    "legacy_deposit_sales": 9,
+    "invalid_new_events": 0
+  },
+  "blockers": [
+    "No authorized deployed-consumer inventory or completed cutover observation.",
+    "Legacy content/media and active-sale review must be resolved before dropping live projections.",
+    "Historical Deposit/OrderType archive and reader migration are not proven."
+  ],
+  "candidateEventColumns": [
+    {
+      "column_name": "address",
+      "data_type": "text",
+      "udt_name": "text",
+      "column_default": null
+    },
+    {
+      "column_name": "announcement",
+      "data_type": "text",
+      "udt_name": "text",
+      "column_default": null
+    },
+    {
+      "column_name": "cancellationTerms",
+      "data_type": "text",
+      "udt_name": "text",
+      "column_default": null
+    },
+    {
+      "column_name": "date",
+      "data_type": "date",
+      "udt_name": "date",
+      "column_default": null
+    },
+    {
+      "column_name": "depositTerms",
+      "data_type": "text",
+      "udt_name": "text",
+      "column_default": null
+    },
+    {
+      "column_name": "description",
+      "data_type": "text",
+      "udt_name": "text",
+      "column_default": null
+    },
+    {
+      "column_name": "extraConditions",
+      "data_type": "text",
+      "udt_name": "text",
+      "column_default": null
+    },
+    {
+      "column_name": "galleryUrls",
+      "data_type": "ARRAY",
+      "udt_name": "_text",
+      "column_default": "ARRAY[]::text[]"
+    },
+    {
+      "column_name": "paymentMode",
+      "data_type": "USER-DEFINED",
+      "udt_name": "EventPaymentMode",
+      "column_default": "'full_payment'::\"EventPaymentMode\""
+    },
+    {
+      "column_name": "posterUrl",
+      "data_type": "text",
+      "udt_name": "text",
+      "column_default": null
+    },
+    {
+      "column_name": "program",
+      "data_type": "text",
+      "udt_name": "text",
+      "column_default": null
+    },
+    {
+      "column_name": "rules",
+      "data_type": "text",
+      "udt_name": "text",
+      "column_default": null
+    },
+    {
+      "column_name": "showFullAmountForDeposit",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "column_default": "false"
+    },
+    {
+      "column_name": "time",
+      "data_type": "time without time zone",
+      "udt_name": "time",
+      "column_default": null
+    },
+    {
+      "column_name": "title",
+      "data_type": "text",
+      "udt_name": "text",
+      "column_default": null
+    },
+    {
+      "column_name": "venueName",
+      "data_type": "text",
+      "udt_name": "text",
+      "column_default": null
+    },
+    {
+      "column_name": "visitTerms",
+      "data_type": "text",
+      "udt_name": "text",
+      "column_default": null
+    }
+  ],
+  "dependencies": {
+    "constraints": [
+      {
+        "table_name": "Deposit",
+        "name": "Deposit_amount_check",
+        "definition": "CHECK ((amount >= 0))"
+      },
+      {
+        "table_name": "Deposit",
+        "name": "Deposit_eventId_fkey",
+        "definition": "FOREIGN KEY (\"eventId\") REFERENCES \"Event\"(id) ON UPDATE CASCADE ON DELETE CASCADE"
+      },
+      {
+        "table_name": "Deposit",
+        "name": "Deposit_orderId_fkey",
+        "definition": "FOREIGN KEY (\"orderId\") REFERENCES \"Order\"(id) ON UPDATE CASCADE ON DELETE CASCADE"
+      },
+      {
+        "table_name": "Deposit",
+        "name": "Deposit_pkey",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "Event",
+        "name": "Event_creation_version_check",
+        "definition": "CHECK (((\"creationVersion\" IS NULL) OR (\"creationVersion\" = 2)))"
+      },
+      {
+        "table_name": "Event",
+        "name": "Event_deposit_display_check",
+        "definition": "CHECK (((\"paymentMode\" = 'deposit'::\"EventPaymentMode\") OR (\"showFullAmountForDeposit\" = false)))"
+      },
+      {
+        "table_name": "Event",
+        "name": "Event_organizerId_fkey",
+        "definition": "FOREIGN KEY (\"organizerId\") REFERENCES \"User\"(id) ON UPDATE CASCADE ON DELETE RESTRICT"
+      },
+      {
+        "table_name": "Event",
+        "name": "Event_pkey",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "Event",
+        "name": "Event_timezone_not_blank_check",
+        "definition": "CHECK ((length(btrim(timezone)) > 0))"
+      },
+      {
+        "table_name": "Event",
+        "name": "Event_v2_publication_complete",
+        "definition": "TRIGGER DEFERRABLE INITIALLY DEFERRED"
+      },
+      {
+        "table_name": "Event",
+        "name": "Event_v2_values_check",
+        "definition": "CHECK (((revision > 0) AND (\"refundPolicyRevision\" >= 0) AND ((currency IS NULL) OR (currency ~ '^[A-Z]{3}$'::text)) AND ((\"endsAt\" IS NULL) OR ((\"startsAt\" IS NOT NULL) AND (\"endsAt\" > \"startsAt\"))) AND (((latitude IS NULL) AND (longitude IS NULL)) OR ((latitude IS NOT NULL) AND (longitude IS NOT NULL) AND ((latitude >= ('-90'::integer)::double precision) AND (latitude <= (90)::double precision)) AND ((longitude >= ('-180'::integer)::double precision) AND (longitude <= (180)::double precision)))) AND (jsonb_typeof(\"reviewReasons\") = 'array'::text) AND ((\"v2State\" <> 'reconciled'::\"EventV2State\") OR ((\"saleMode\" IS NOT NULL) AND (currency IS NOT NULL) AND (\"startsAt\" IS NOT NULL) AND (\"endsAt\" IS NOT NULL) AND (\"refundsAvailable\" IS NOT NULL) AND (\"refundPolicyRevision\" > 0)))))"
+      },
+      {
+        "table_name": "EventTranslation",
+        "name": "EventTranslation_eventId_fkey",
+        "definition": "FOREIGN KEY (\"eventId\") REFERENCES \"Event\"(id) ON UPDATE CASCADE ON DELETE CASCADE"
+      },
+      {
+        "table_name": "EventTranslation",
+        "name": "EventTranslation_pkey",
+        "definition": "PRIMARY KEY (\"eventId\", locale)"
+      },
+      {
+        "table_name": "Order",
+        "name": "Order_amount_check",
+        "definition": "CHECK ((amount >= 0))"
+      },
+      {
+        "table_name": "Order",
+        "name": "Order_buyerUserId_fkey",
+        "definition": "FOREIGN KEY (\"buyerUserId\") REFERENCES \"User\"(id) ON UPDATE CASCADE ON DELETE SET NULL"
+      },
+      {
+        "table_name": "Order",
+        "name": "Order_pkey",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "Table",
+        "name": "Table_capacity_and_money_check",
+        "definition": "CHECK (((seats >= 0) AND (price >= 0) AND (deposit >= 0)))"
+      },
+      {
+        "table_name": "Table",
+        "name": "Table_hold_fields_check",
+        "definition": "CHECK ((((status = 'held'::\"TableStatus\") AND (\"holdToken\" IS NOT NULL) AND (\"holdRequestKey\" IS NOT NULL) AND (\"holdExpiresAt\" IS NOT NULL)) OR ((status <> 'held'::\"TableStatus\") AND (\"holdToken\" IS NULL) AND (\"holdRequestKey\" IS NULL) AND (\"holdExpiresAt\" IS NULL))))"
+      },
+      {
+        "table_name": "Table",
+        "name": "Table_pkey",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "Table",
+        "name": "Table_tariffId_fkey",
+        "definition": "FOREIGN KEY (\"tariffId\") REFERENCES \"HallTariff\"(id) ON UPDATE CASCADE ON DELETE RESTRICT"
+      },
+      {
+        "table_name": "Table",
+        "name": "Table_venueLayoutId_fkey",
+        "definition": "FOREIGN KEY (\"venueLayoutId\") REFERENCES \"VenueLayout\"(id) ON UPDATE CASCADE ON DELETE CASCADE"
+      },
+      {
+        "table_name": "TicketType",
+        "name": "TicketType_deposit_check",
+        "definition": "CHECK ((deposit >= 0))"
+      },
+      {
+        "table_name": "TicketType",
+        "name": "TicketType_eventId_fkey",
+        "definition": "FOREIGN KEY (\"eventId\") REFERENCES \"Event\"(id) ON UPDATE CASCADE ON DELETE CASCADE"
+      },
+      {
+        "table_name": "TicketType",
+        "name": "TicketType_inventory_check",
+        "definition": "CHECK (((price >= 0) AND (\"quantityTotal\" >= 0) AND (\"quantitySold\" >= 0) AND (\"quantitySold\" <= \"quantityTotal\") AND ((\"salesStartAt\" IS NULL) OR (\"salesEndAt\" IS NULL) OR (\"salesStartAt\" < \"salesEndAt\"))))"
+      },
+      {
+        "table_name": "TicketType",
+        "name": "TicketType_pkey",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "TicketType",
+        "name": "TicketType_tariffId_fkey",
+        "definition": "FOREIGN KEY (\"tariffId\") REFERENCES \"HallTariff\"(id) ON UPDATE CASCADE ON DELETE RESTRICT"
+      },
+      {
+        "table_name": "VenueRow",
+        "name": "VenueRow_pkey",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "VenueRow",
+        "name": "VenueRow_tariffId_fkey",
+        "definition": "FOREIGN KEY (\"tariffId\") REFERENCES \"HallTariff\"(id) ON UPDATE CASCADE ON DELETE RESTRICT"
+      },
+      {
+        "table_name": "VenueRow",
+        "name": "VenueRow_venueLayoutId_fkey",
+        "definition": "FOREIGN KEY (\"venueLayoutId\") REFERENCES \"VenueLayout\"(id) ON UPDATE CASCADE ON DELETE CASCADE"
+      }
+    ],
+    "functions": [
+      {
+        "name": "event_v2_asset_kind_check",
+        "definition": "CREATE OR REPLACE FUNCTION public.event_v2_asset_kind_check()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$ BEGIN\n  IF NEW.kind='video' AND EXISTS (SELECT 1 FROM \"EventMedia\" WHERE \"assetId\"=NEW.id AND \"isCard\") THEN RAISE EXCEPTION 'CARD_MUST_BE_IMAGE' USING ERRCODE='23514'; END IF; RETURN NEW;\nEND $function$\n"
+      },
+      {
+        "name": "event_v2_card_kind_check",
+        "definition": "CREATE OR REPLACE FUNCTION public.event_v2_card_kind_check()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE asset_kind \"MediaAssetKind\";\nBEGIN\n  IF NEW.\"isCard\" THEN\n    SELECT kind INTO asset_kind FROM \"MediaAsset\" WHERE id=NEW.\"assetId\" FOR UPDATE;\n    IF asset_kind='video' THEN RAISE EXCEPTION 'CARD_MUST_BE_IMAGE' USING ERRCODE='23514'; END IF;\n  END IF;\n  RETURN NEW;\nEND $function$\n"
+      },
+      {
+        "name": "event_v2_legacy_event_dirty",
+        "definition": "CREATE OR REPLACE FUNCTION public.event_v2_legacy_event_dirty()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$ BEGIN\n  IF ROW(NEW.\"sourceLocale\",NEW.title,NEW.announcement,NEW.description,NEW.program,NEW.rules,NEW.\"visitTerms\",NEW.\"cancellationTerms\",NEW.\"extraConditions\",NEW.\"depositTerms\",NEW.\"paymentMode\",NEW.\"posterUrl\",NEW.\"galleryUrls\",NEW.date,NEW.time,NEW.timezone,NEW.\"venueName\",NEW.address,NEW.city,NEW.category,NEW.\"countryCode\",NEW.\"ageRestriction\",NEW.\"showFullAmountForDeposit\")\n    IS DISTINCT FROM ROW(OLD.\"sourceLocale\",OLD.title,OLD.announcement,OLD.description,OLD.program,OLD.rules,OLD.\"visitTerms\",OLD.\"cancellationTerms\",OLD.\"extraConditions\",OLD.\"depositTerms\",OLD.\"paymentMode\",OLD.\"posterUrl\",OLD.\"galleryUrls\",OLD.date,OLD.time,OLD.timezone,OLD.\"venueName\",OLD.address,OLD.city,OLD.category,OLD.\"countryCode\",OLD.\"ageRestriction\",OLD.\"showFullAmountForDeposit\") THEN\n    NEW.\"v2State\":='dirty'; NEW.\"legacyFingerprint\":=NULL; NEW.revision:=OLD.revision+1;\n  END IF; RETURN NEW;\nEND $function$\n"
+      },
+      {
+        "name": "event_v2_publication_check",
+        "definition": "CREATE OR REPLACE FUNCTION public.event_v2_publication_check()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE eid uuid; e \"Event\"; prior jsonb; current_row jsonb; field_name text;\nBEGIN\n  field_name:=CASE WHEN TG_TABLE_NAME='Event' THEN 'id' ELSE 'eventId' END;\n  IF TG_OP<>'INSERT' THEN prior:=to_jsonb(OLD); END IF;\n  IF TG_OP<>'DELETE' THEN current_row:=to_jsonb(NEW); END IF;\n  FOR eid IN SELECT DISTINCT value FROM unnest(ARRAY[(prior->>field_name)::uuid,(current_row->>field_name)::uuid]) AS value WHERE value IS NOT NULL ORDER BY value LOOP\n    SELECT * INTO e FROM \"Event\" WHERE id=eid FOR UPDATE;\n    IF e.status='published' AND e.\"v2State\"='reconciled' THEN\n      IF (SELECT count(*) FROM \"EventMedia\" WHERE \"eventId\"=eid AND \"isCard\")<>1\n        OR (SELECT count(*) FROM \"EventMedia\" WHERE \"eventId\"=eid AND \"isBackground\")<>1\n        OR EXISTS (SELECT 1 FROM \"EventMedia\" m JOIN \"MediaAsset\" a ON a.id=m.\"assetId\" WHERE m.\"eventId\"=eid AND (a.state<>'ready' OR (m.\"isCard\" AND a.kind<>'image')))\n        OR NOT EXISTS (SELECT 1 FROM \"EventContent\" c WHERE c.\"eventId\"=eid AND c.locale=e.\"sourceLocale\" AND nullif(btrim(c.title),'') IS NOT NULL AND nullif(btrim(c.summary),'') IS NOT NULL AND nullif(btrim(c.description),'') IS NOT NULL AND nullif(btrim(c.\"venueName\"),'') IS NOT NULL AND nullif(btrim(c.address),'') IS NOT NULL)\n      THEN RAISE EXCEPTION 'EVENT_V2_PUBLICATION_INCOMPLETE' USING ERRCODE='23514'; END IF;\n    END IF;\n  END LOOP;\n  RETURN NULL;\nEND $function$\n"
+      },
+      {
+        "name": "event_v2_resource_dirty",
+        "definition": "CREATE OR REPLACE FUNCTION public.event_v2_resource_dirty()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$ DECLARE data jsonb; eid uuid; BEGIN\n  data:=CASE WHEN TG_OP='DELETE' THEN to_jsonb(OLD) ELSE to_jsonb(NEW) END;\n  IF TG_TABLE_NAME IN ('TicketType','EventTranslation') THEN eid:=(data->>'eventId')::uuid;\n  ELSIF TG_TABLE_NAME='VenueLayout' THEN eid:=(data->>'eventId')::uuid;\n  ELSE SELECT \"eventId\" INTO eid FROM \"VenueLayout\" WHERE id=(data->>'venueLayoutId')::uuid;\n  END IF;\n  UPDATE \"Event\" SET \"v2State\"='dirty',\"legacyFingerprint\"=NULL,revision=revision+1 WHERE id=eid;\n  RETURN NULL;\nEND $function$\n"
+      },
+      {
+        "name": "retain_linked_media",
+        "definition": "CREATE OR REPLACE FUNCTION public.retain_linked_media()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  UPDATE \"MediaAsset\" SET \"publishedAt\"=coalesce(\"publishedAt\",now())\n  WHERE id=NEW.\"assetId\" AND \"deletingAt\" IS NULL;\n  IF NOT FOUND THEN RAISE EXCEPTION 'Cannot reference media being collected' USING ERRCODE='23514'; END IF;\n  RETURN NEW;\nEND;\n$function$\n"
+      }
+    ],
+    "triggers": [
+      {
+        "table_name": "Event",
+        "name": "Event_v2_legacy_dirty",
+        "definition": "CREATE TRIGGER \"Event_v2_legacy_dirty\" BEFORE UPDATE ON public.\"Event\" FOR EACH ROW EXECUTE FUNCTION event_v2_legacy_event_dirty()"
+      },
+      {
+        "table_name": "Event",
+        "name": "Event_v2_publication_complete",
+        "definition": "CREATE CONSTRAINT TRIGGER \"Event_v2_publication_complete\" AFTER INSERT OR UPDATE ON public.\"Event\" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION event_v2_publication_check()"
+      },
+      {
+        "table_name": "EventContent",
+        "name": "EventContent_v2_publication_complete",
+        "definition": "CREATE CONSTRAINT TRIGGER \"EventContent_v2_publication_complete\" AFTER INSERT OR DELETE OR UPDATE ON public.\"EventContent\" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION event_v2_publication_check()"
+      },
+      {
+        "table_name": "EventMedia",
+        "name": "EventMedia_card_kind",
+        "definition": "CREATE TRIGGER \"EventMedia_card_kind\" BEFORE INSERT OR UPDATE ON public.\"EventMedia\" FOR EACH ROW EXECUTE FUNCTION event_v2_card_kind_check()"
+      },
+      {
+        "table_name": "EventMedia",
+        "name": "EventMedia_retain_asset",
+        "definition": "CREATE TRIGGER \"EventMedia_retain_asset\" BEFORE INSERT OR UPDATE OF \"assetId\" ON public.\"EventMedia\" FOR EACH ROW EXECUTE FUNCTION retain_linked_media()"
+      },
+      {
+        "table_name": "EventMedia",
+        "name": "EventMedia_v2_publication_complete",
+        "definition": "CREATE CONSTRAINT TRIGGER \"EventMedia_v2_publication_complete\" AFTER INSERT OR DELETE OR UPDATE ON public.\"EventMedia\" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION event_v2_publication_check()"
+      },
+      {
+        "table_name": "EventTranslation",
+        "name": "EventTranslation_v2_dirty",
+        "definition": "CREATE TRIGGER \"EventTranslation_v2_dirty\" AFTER INSERT OR DELETE OR UPDATE ON public.\"EventTranslation\" FOR EACH ROW EXECUTE FUNCTION event_v2_resource_dirty()"
+      },
+      {
+        "table_name": "MediaAsset",
+        "name": "MediaAsset_card_kind",
+        "definition": "CREATE TRIGGER \"MediaAsset_card_kind\" BEFORE UPDATE OF kind ON public.\"MediaAsset\" FOR EACH ROW EXECUTE FUNCTION event_v2_asset_kind_check()"
+      },
+      {
+        "table_name": "MediaAsset",
+        "name": "MediaAsset_v2_publication_complete",
+        "definition": "CREATE CONSTRAINT TRIGGER \"MediaAsset_v2_publication_complete\" AFTER UPDATE OF state, kind ON public.\"MediaAsset\" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION event_v2_publication_check()"
+      },
+      {
+        "table_name": "Seat",
+        "name": "Seat_v2_dirty",
+        "definition": "CREATE TRIGGER \"Seat_v2_dirty\" AFTER INSERT OR DELETE OR UPDATE OF \"ticketTypeId\", \"rowId\", \"tableId\", status ON public.\"Seat\" FOR EACH ROW EXECUTE FUNCTION event_v2_resource_dirty()"
+      },
+      {
+        "table_name": "Table",
+        "name": "Table_v2_dirty",
+        "definition": "CREATE TRIGGER \"Table_v2_dirty\" AFTER INSERT OR DELETE OR UPDATE OF name, description, \"shortDescription\", price, deposit, currency, seats, \"saleMode\" ON public.\"Table\" FOR EACH ROW EXECUTE FUNCTION event_v2_resource_dirty()"
+      },
+      {
+        "table_name": "TicketType",
+        "name": "TicketType_v2_dirty",
+        "definition": "CREATE TRIGGER \"TicketType_v2_dirty\" AFTER INSERT OR DELETE OR UPDATE OF name, description, price, deposit, currency, \"quantityTotal\", status ON public.\"TicketType\" FOR EACH ROW EXECUTE FUNCTION event_v2_resource_dirty()"
+      },
+      {
+        "table_name": "VenueLayout",
+        "name": "VenueLayout_v2_dirty",
+        "definition": "CREATE TRIGGER \"VenueLayout_v2_dirty\" AFTER INSERT OR DELETE OR UPDATE OF \"layoutJson\" ON public.\"VenueLayout\" FOR EACH ROW EXECUTE FUNCTION event_v2_resource_dirty()"
+      },
+      {
+        "table_name": "VenueRow",
+        "name": "VenueRow_v2_dirty",
+        "definition": "CREATE TRIGGER \"VenueRow_v2_dirty\" AFTER INSERT OR DELETE OR UPDATE OF name, \"shortDescription\", price, deposit, currency ON public.\"VenueRow\" FOR EACH ROW EXECUTE FUNCTION event_v2_resource_dirty()"
+      }
+    ],
+    "enums": [
+      {
+        "name": "EventPaymentMode",
+        "label": "deposit"
+      },
+      {
+        "name": "EventPaymentMode",
+        "label": "full_payment"
+      },
+      {
+        "name": "OrderType",
+        "label": "ticket"
+      },
+      {
+        "name": "OrderType",
+        "label": "table"
+      },
+      {
+        "name": "OrderType",
+        "label": "deposit"
+      }
+    ]
+  },
+  "retained": [
+    "Event legacy projection and EventTranslation until every old reader/deployment is retired and historical content/media mapping approved",
+    "Deposit, OrderType.deposit, original Order/Payment/RefundRequest rows and checkout snapshots",
+    "TicketType/Table/VenueRow.deposit where historical fallback/resource mapping remains necessary",
+    "LegacyEventSnapshot and all canonical content, media, inventory, admission, buyer and refund identities"
+  ],
+  "forwardOrder": [
+    "Approve deployed API/web/bot/jobs/raw SQL/JSON consumer inventory and completed observation; freeze all remaining legacy writes",
+    "Reconcile exact source/archive/new rows and per-currency money; resolve affected active-sale exceptions; repeat DB/media restore and delta rehearsal",
+    "Switch remaining readers and dual projections to canonical/historical archive contracts, preserving unknown historical ends as null",
+    "Add a NEW forward migration: replace dependent functions/triggers/indexes/checks/defaults first, then drop redundant Event columns and EventTranslation only after content/media preservation proof",
+    "Remove EventPaymentMode only after all typed columns/defaults/functions are removed; do not cast existing Orders",
+    "Keep Deposit and OrderType.deposit until lossless historical archive/resource mappings and all refund/delivery/scanner/history readers are proven",
+    "Run fresh/restored migration and contraction reconciliation, document forward-repair or authorized restore/replay rollback before deploy"
+  ],
+  "limitation": "No DROP migration is added to the automatically applied migration directory while these prerequisites are unmet. SQL catalog alone cannot prove dynamic, JSON or deployed consumer absence."
+}

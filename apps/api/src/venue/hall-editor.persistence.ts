@@ -51,7 +51,9 @@ export async function persistHallEditor(tx: Prisma.TransactionClient, layoutId: 
   for (let i = 0; i < existingTables.length; i++) await tx.table.updateMany({ where: { id: existingTables[i]!.id }, data: { number: 1_000_000 + i } });
   for (let i = 0; i < existingRows.length; i++) await tx.venueRow.updateMany({ where: { id: existingRows[i]!.id }, data: { number: 1_000_000 + i } });
   for (const [i, object] of tableObjects.entries()) {
-    const data = { number: i + 1, name: object.name, seats: seatObjects.filter((s) => s.parentId === object.id).length, price: effectivePrice(object, editor) ?? 0, deposit: 0, currency, saleMode: object.saleMode, status: !seatObjects.some((s) => s.parentId === object.id) ? "unavailable" as const : "available" as const };
+    const children = seatObjects.filter((s) => s.parentId === object.id);
+    const included = object.builder ? children.filter((s) => !s.locked) : children;
+    const data = { number: i + 1, name: object.name, seats: included.length, price: effectivePrice(object, editor) ?? 0, deposit: 0, currency, saleMode: object.saleMode, status: object.locked || !included.length ? "unavailable" as const : "available" as const };
     await tx.table.upsert({ where: { id: object.id }, create: { id: object.id, venueLayoutId: layoutId, ...data }, update: data });
   }
   for (const [i, object] of rowObjects.entries()) {

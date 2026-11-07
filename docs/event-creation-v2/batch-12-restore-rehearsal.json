@@ -1,0 +1,791 @@
+{
+  "at": "2026-10-03T07:13:46.432Z",
+  "scope": "Isolated databases and temporary media only; no source/production writes",
+  "privateBackupDirectory": "/var/folders/qy/1gyrjms16fdd00mj8hr14_b80000gn/T/ticket-v2-restore-fhoI9x",
+  "databases": {
+    "fresh": {
+      "source": "event_platform_v2_fresh_1790941250928",
+      "restored": "event_platform_v2_fresh_1791011626432",
+      "dumpBytes": 628023,
+      "dumpSha256": "f763de7b0d931d6e240bcf8802d547f1e61f8408e28d4560b162fde4b518af51",
+      "tables": {
+        "AnonymousCheckoutSession": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "AuditLog": {
+          "count": "509",
+          "digest": "55ac01a1c038418f3e769bc20f6e28ee"
+        },
+        "Booking": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "Broadcast": {
+          "count": "2",
+          "digest": "77419dade39cc2db135249e4b6b1d011"
+        },
+        "ChatMessage": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "ContactIdentity": {
+          "count": "37",
+          "digest": "3e04239abbbc5972849b94e9ebb54932"
+        },
+        "Deposit": {
+          "count": "1",
+          "digest": "b85f216cc2a8289559843de93f657813"
+        },
+        "DraftTranslationCache": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "Event": {
+          "count": "28",
+          "digest": "e977c715a44bb8409c480b3deef6d509"
+        },
+        "EventBackfillCheckpoint": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "EventContent": {
+          "count": "3",
+          "digest": "9121fcc2e9fdbba2c0f59477018b6526"
+        },
+        "EventCreationDraft": {
+          "count": "7",
+          "digest": "5169b1fb65eed785bf753f24558340fb"
+        },
+        "EventMedia": {
+          "count": "2",
+          "digest": "cc80c504adbc3aafef4b18d81439253f"
+        },
+        "EventPublishIntent": {
+          "count": "2",
+          "digest": "9da17a443bb9f8f943f720495d3229a3"
+        },
+        "EventTranslation": {
+          "count": "50",
+          "digest": "b52086933fa4f2bd3b0a1807cf075fca"
+        },
+        "Favorite": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "GoogleIdentity": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "GoogleLoginProof": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "GroupPass": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "HallTariff": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "HallTariffContent": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "IdempotencyRecord": {
+          "count": "6",
+          "digest": "9af03560e4f12249ca003ca792ef75a6"
+        },
+        "LegacyEventSnapshot": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "MediaAsset": {
+          "count": "5",
+          "digest": "59033161eb8ed07aedf015c40b764191"
+        },
+        "MediaAssetContent": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "Notification": {
+          "count": "2",
+          "digest": "429a158e64764d385b342d87a64efdd4"
+        },
+        "Order": {
+          "count": "28",
+          "digest": "a16ab3977c09ab342d28f9ffeb598362"
+        },
+        "OrganizerProfile": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "OutboxEvent": {
+          "count": "3480",
+          "digest": "bdbc08a15c6f603e37286cebf8270572"
+        },
+        "Payment": {
+          "count": "6",
+          "digest": "fbeb841b77b7bf717640e1c2984ef148"
+        },
+        "RefreshToken": {
+          "count": "74",
+          "digest": "3d8ed72454e3f94dc7698aa20cc31dac"
+        },
+        "RefundRequest": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "Seat": {
+          "count": "1112",
+          "digest": "dd94b7a5e7f8d2e3339baa535541fe37"
+        },
+        "SeatAllocation": {
+          "count": "51",
+          "digest": "7459a5916dde581126fcb727f89cbb91"
+        },
+        "Table": {
+          "count": "21",
+          "digest": "e78b27783a16f30e6e42a4f52669e046"
+        },
+        "TableContent": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "TableHold": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "TelegramLinkToken": {
+          "count": "9",
+          "digest": "f09bfd73209d402f28ca32f64f5e6a33"
+        },
+        "TelegramUpdate": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "Ticket": {
+          "count": "75",
+          "digest": "96912c9f25a4fced56a4463752c17166"
+        },
+        "TicketEmailDelivery": {
+          "count": "20",
+          "digest": "8ba87099bdf1cfdc7727a7deda187ba9"
+        },
+        "TicketReservation": {
+          "count": "4",
+          "digest": "9dd7050c675a16cd2747a3d5c611e232"
+        },
+        "TicketType": {
+          "count": "1093",
+          "digest": "595e5cd5b8076b328abd34622912caad"
+        },
+        "TicketTypeContent": {
+          "count": "2",
+          "digest": "f0e52b543f04551c43b530ae24de68d4"
+        },
+        "User": {
+          "count": "35",
+          "digest": "82c9f35061d9f9a1fb1706681d592b4e"
+        },
+        "UserNotificationPreference": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "VenueLayout": {
+          "count": "11",
+          "digest": "ac3fa8332f9244893d31ec393c1644a3"
+        },
+        "VenueRow": {
+          "count": "50",
+          "digest": "8690ce2bdde78585775e86911f8b0625"
+        },
+        "VenueRowContent": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "VerificationChallenge": {
+          "count": "144",
+          "digest": "5d6bc2587f2985407465697de794a1ff"
+        },
+        "VerificationGrant": {
+          "count": "72",
+          "digest": "8250060546d26a4c09b4af6038b13917"
+        },
+        "VerificationRateLimit": {
+          "count": "432",
+          "digest": "9c63b6db0cf77cbfdc18dcb58eec5c3e"
+        },
+        "WebhookEvent": {
+          "count": "103",
+          "digest": "ed87d8e20bdb9274224eeddfa936860a"
+        },
+        "_prisma_migrations": {
+          "count": "48",
+          "digest": "223b7e862af37b16bcf41f8e1d6c1031"
+        }
+      },
+      "restoredAllRowsEqual": true,
+      "finalDeltaEqual": true,
+      "pending": [
+        {
+          "snapshot_version": "2",
+          "type": "ticket",
+          "currency": "USD",
+          "orders": 1,
+          "minor_total": "1234",
+          "expired": 0
+        },
+        {
+          "snapshot_version": "legacy",
+          "type": "ticket",
+          "currency": "KZT",
+          "orders": 1,
+          "minor_total": "1500",
+          "expired": 0
+        }
+      ],
+      "financial": {
+        "rows": {
+          "Order": {
+            "count": "28",
+            "digest": "a16ab3977c09ab342d28f9ffeb598362"
+          },
+          "Payment": {
+            "count": "6",
+            "digest": "fbeb841b77b7bf717640e1c2984ef148"
+          },
+          "Deposit": {
+            "count": "1",
+            "digest": "b85f216cc2a8289559843de93f657813"
+          },
+          "RefundRequest": {
+            "count": "0",
+            "digest": "d41d8cd98f00b204e9800998ecf8427e"
+          },
+          "Ticket": {
+            "count": "75",
+            "digest": "96912c9f25a4fced56a4463752c17166"
+          },
+          "Booking": {
+            "count": "0",
+            "digest": "d41d8cd98f00b204e9800998ecf8427e"
+          },
+          "TicketReservation": {
+            "count": "4",
+            "digest": "9dd7050c675a16cd2747a3d5c611e232"
+          },
+          "SeatAllocation": {
+            "count": "51",
+            "digest": "7459a5916dde581126fcb727f89cbb91"
+          },
+          "GroupPass": {
+            "count": "0",
+            "digest": "d41d8cd98f00b204e9800998ecf8427e"
+          },
+          "TableHold": {
+            "count": "0",
+            "digest": "d41d8cd98f00b204e9800998ecf8427e"
+          },
+          "Seat": {
+            "count": "1112",
+            "digest": "dd94b7a5e7f8d2e3339baa535541fe37"
+          },
+          "TicketType": {
+            "count": "1093",
+            "digest": "e1eac7b85775d233ed2f243e32aca318"
+          },
+          "Table": {
+            "count": "21",
+            "digest": "7b631b01a1f1efb20712c5fa1002e185"
+          },
+          "VenueRow": {
+            "count": "50",
+            "digest": "9a7bf3e720b571698dc4f77e096a11b2"
+          },
+          "VenueLayout": {
+            "count": "11",
+            "digest": "68e99a981468bb411e89ad2efc5279e5"
+          }
+        },
+        "totals": {
+          "Order": [
+            {
+              "currency": "KZT",
+              "status": "paid",
+              "count": "24",
+              "minor_total": "181520000"
+            },
+            {
+              "currency": "KZT",
+              "status": "pending",
+              "count": "1",
+              "minor_total": "1500"
+            },
+            {
+              "currency": "USD",
+              "status": "paid",
+              "count": "2",
+              "minor_total": "0"
+            },
+            {
+              "currency": "USD",
+              "status": "pending",
+              "count": "1",
+              "minor_total": "1234"
+            }
+          ],
+          "Payment": [
+            {
+              "currency": "KZT",
+              "status": "paid",
+              "count": "4",
+              "minor_total": "181500000"
+            },
+            {
+              "currency": "KZT",
+              "status": "pending",
+              "count": "1",
+              "minor_total": "1500"
+            },
+            {
+              "currency": "USD",
+              "status": "pending",
+              "count": "1",
+              "minor_total": "1234"
+            }
+          ],
+          "Deposit": [
+            {
+              "currency": "KZT",
+              "status": "pending",
+              "count": "1",
+              "minor_total": "1500"
+            }
+          ],
+          "RefundRequest": []
+        }
+      }
+    },
+    "legacy": {
+      "source": "event_platform_v2_legacy_1790941250928",
+      "restored": "event_platform_v2_legacy_1791011626433",
+      "dumpBytes": 1879936,
+      "dumpSha256": "ff78889e52a75dda569c37ee375ea62d2e7caa57fc171315a4bf1c1e15e2a013",
+      "tables": {
+        "AnonymousCheckoutSession": {
+          "count": "12",
+          "digest": "2ea2ea34297ae5adef48a5d9e531d304"
+        },
+        "AuditLog": {
+          "count": "2671",
+          "digest": "c75082f09a60c08d9fa652761e0bf35d"
+        },
+        "Booking": {
+          "count": "3",
+          "digest": "364aeb639a29bb8ef68b1343215e17bf"
+        },
+        "Broadcast": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "ChatMessage": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "ContactIdentity": {
+          "count": "2",
+          "digest": "3bc8f2979827860e7e19b8fa429734e4"
+        },
+        "Deposit": {
+          "count": "6",
+          "digest": "62921c98a1652e3b083cb5597be82c7e"
+        },
+        "DraftTranslationCache": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "Event": {
+          "count": "43",
+          "digest": "d0272798f0f4f9175c7f3d6e4d983975"
+        },
+        "EventBackfillCheckpoint": {
+          "count": "1",
+          "digest": "53afb9f0d86e97ea8f03fe45740f1650"
+        },
+        "EventContent": {
+          "count": "93",
+          "digest": "3ec789bbd66e4d096663082b78839efd"
+        },
+        "EventCreationDraft": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "EventMedia": {
+          "count": "3",
+          "digest": "08e900570ce605da04f2b44ab4b182ad"
+        },
+        "EventPublishIntent": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "EventTranslation": {
+          "count": "50",
+          "digest": "37042d7b6e04efa28b99387883dad1c9"
+        },
+        "Favorite": {
+          "count": "3",
+          "digest": "803e5700688bd7e5aee9a1a819032b4f"
+        },
+        "GoogleIdentity": {
+          "count": "2",
+          "digest": "e5d5c2a5b68450e5ca24966a3796e674"
+        },
+        "GoogleLoginProof": {
+          "count": "2",
+          "digest": "e13971fdcc1aff1c0078c700b43385c3"
+        },
+        "GroupPass": {
+          "count": "1",
+          "digest": "f6efe44c8b70b694b4c1c18177ccefda"
+        },
+        "HallTariff": {
+          "count": "42",
+          "digest": "2885cf6b874f44451a12528a15da27cd"
+        },
+        "HallTariffContent": {
+          "count": "42",
+          "digest": "4f97ca7263a2b0e0afa82543e1a8e156"
+        },
+        "IdempotencyRecord": {
+          "count": "6",
+          "digest": "d9cf19243077c28831ceffb057f4a368"
+        },
+        "LegacyEventSnapshot": {
+          "count": "43",
+          "digest": "b86133deaeb6ab9fce43c0415b1ecc79"
+        },
+        "MediaAsset": {
+          "count": "3",
+          "digest": "6c8b75c06a63a25b5cb4e61e19cc5a28"
+        },
+        "MediaAssetContent": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "Notification": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "Order": {
+          "count": "36",
+          "digest": "cdc7feafaf01fdb77b46ff81984fe6e2"
+        },
+        "OrganizerProfile": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "OutboxEvent": {
+          "count": "15836",
+          "digest": "c8c390eb5fb27f2aa0a7f3f0b9991b77"
+        },
+        "Payment": {
+          "count": "26",
+          "digest": "e75f45b871b499b28b347a371c6d5e46"
+        },
+        "RefreshToken": {
+          "count": "174",
+          "digest": "f5995c3d8c0ce5c60a83b055e27b1116"
+        },
+        "RefundRequest": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "Seat": {
+          "count": "1193",
+          "digest": "a95fe7b0613c696f7223027a9a3fdea6"
+        },
+        "SeatAllocation": {
+          "count": "58",
+          "digest": "13800070a5e4ac76a093142fa7a4c0e7"
+        },
+        "Table": {
+          "count": "39",
+          "digest": "546ea841d88313b3749e29630f2d19a8"
+        },
+        "TableContent": {
+          "count": "38",
+          "digest": "59b699fc01897dc738c542fdfbd6b693"
+        },
+        "TableHold": {
+          "count": "4",
+          "digest": "efad72d95fba49b91efefc3137a7fcc3"
+        },
+        "TelegramLinkToken": {
+          "count": "4",
+          "digest": "19239d07c187d8717f806cc25c2f0673"
+        },
+        "TelegramUpdate": {
+          "count": "70",
+          "digest": "a840e5416e4fdc4e3552b4c922f03c7a"
+        },
+        "Ticket": {
+          "count": "72",
+          "digest": "b33e20b33b70146a7af5a3bec52f41ad"
+        },
+        "TicketEmailDelivery": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "TicketReservation": {
+          "count": "10",
+          "digest": "3b1bd4842f5a3d6e809aad4d64cc25ea"
+        },
+        "TicketType": {
+          "count": "1199",
+          "digest": "be5be6eb3ef4234bb18b923c8e85af55"
+        },
+        "TicketTypeContent": {
+          "count": "1199",
+          "digest": "c59c68c73decf42ed59e503b59bcfe10"
+        },
+        "User": {
+          "count": "18",
+          "digest": "3711b501df91fb4619685d30b3f5f0e4"
+        },
+        "UserNotificationPreference": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "VenueLayout": {
+          "count": "20",
+          "digest": "37fa0a900c37e681392198ceed2a9064"
+        },
+        "VenueRow": {
+          "count": "54",
+          "digest": "6200297e29efaca698aeb809e5d83ffd"
+        },
+        "VenueRowContent": {
+          "count": "54",
+          "digest": "971fc0b5602a0a83506827f287251d99"
+        },
+        "VerificationChallenge": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "VerificationGrant": {
+          "count": "0",
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "VerificationRateLimit": {
+          "count": "2",
+          "digest": "933f92c76c408c492e1b9b45285d4dc5"
+        },
+        "WebhookEvent": {
+          "count": "493",
+          "digest": "6e324f0e86678f8082c0b0c94c9f6694"
+        },
+        "_prisma_migrations": {
+          "count": "48",
+          "digest": "b6f6b4b4911aa259251bc6fab2cb8ee3"
+        }
+      },
+      "restoredAllRowsEqual": true,
+      "finalDeltaEqual": true,
+      "pending": [],
+      "financial": {
+        "rows": {
+          "Order": {
+            "count": "36",
+            "digest": "cdc7feafaf01fdb77b46ff81984fe6e2"
+          },
+          "Payment": {
+            "count": "26",
+            "digest": "e75f45b871b499b28b347a371c6d5e46"
+          },
+          "Deposit": {
+            "count": "6",
+            "digest": "62921c98a1652e3b083cb5597be82c7e"
+          },
+          "RefundRequest": {
+            "count": "0",
+            "digest": "d41d8cd98f00b204e9800998ecf8427e"
+          },
+          "Ticket": {
+            "count": "72",
+            "digest": "b33e20b33b70146a7af5a3bec52f41ad"
+          },
+          "Booking": {
+            "count": "3",
+            "digest": "364aeb639a29bb8ef68b1343215e17bf"
+          },
+          "TicketReservation": {
+            "count": "10",
+            "digest": "3b1bd4842f5a3d6e809aad4d64cc25ea"
+          },
+          "SeatAllocation": {
+            "count": "58",
+            "digest": "13800070a5e4ac76a093142fa7a4c0e7"
+          },
+          "GroupPass": {
+            "count": "1",
+            "digest": "f6efe44c8b70b694b4c1c18177ccefda"
+          },
+          "TableHold": {
+            "count": "4",
+            "digest": "efad72d95fba49b91efefc3137a7fcc3"
+          },
+          "Seat": {
+            "count": "1193",
+            "digest": "a95fe7b0613c696f7223027a9a3fdea6"
+          },
+          "TicketType": {
+            "count": "1199",
+            "digest": "3bb1e9a9fd5103a95006086b5a4d5ad9"
+          },
+          "Table": {
+            "count": "39",
+            "digest": "36486559de712eecb119342b1b377e6e"
+          },
+          "VenueRow": {
+            "count": "54",
+            "digest": "513afacfedd8622d0ab72550e90b6b1c"
+          },
+          "VenueLayout": {
+            "count": "20",
+            "digest": "5fbc004d1bd7832e10c0d5030c18e57d"
+          }
+        },
+        "totals": {
+          "Order": [
+            {
+              "currency": "KZT",
+              "status": "cancelled",
+              "count": "11",
+              "minor_total": "38000000"
+            },
+            {
+              "currency": "KZT",
+              "status": "paid",
+              "count": "17",
+              "minor_total": "181854000"
+            },
+            {
+              "currency": "KZT",
+              "status": "refunded",
+              "count": "7",
+              "minor_total": "460000"
+            },
+            {
+              "currency": "USD",
+              "status": "paid",
+              "count": "1",
+              "minor_total": "50"
+            }
+          ],
+          "Payment": [
+            {
+              "currency": "KZT",
+              "status": "paid",
+              "count": "10",
+              "minor_total": "181770000"
+            },
+            {
+              "currency": "KZT",
+              "status": "pending",
+              "count": "10",
+              "minor_total": "8000000"
+            },
+            {
+              "currency": "KZT",
+              "status": "refunded",
+              "count": "6",
+              "minor_total": "450000"
+            }
+          ],
+          "Deposit": [
+            {
+              "currency": "KZT",
+              "status": "cancelled",
+              "count": "6",
+              "minor_total": "32400000"
+            }
+          ],
+          "RefundRequest": []
+        }
+      }
+    }
+  },
+  "media": {
+    "source": "/private/tmp/ticket-v2-preview-media",
+    "restored": "/var/folders/qy/1gyrjms16fdd00mj8hr14_b80000gn/T/ticket-v2-restore-fhoI9x/media-restored",
+    "files": [
+      {
+        "key": "70303aa8-4c1a-4ba1-9f3f-f53c3fc673a1/display.webp",
+        "bytes": 814,
+        "sha256": "a808d95219df5ae410f1be23ccabec0c263b330274f493f4e118d3607b5d59a6"
+      },
+      {
+        "key": "70303aa8-4c1a-4ba1-9f3f-f53c3fc673a1/original",
+        "bytes": 7169,
+        "sha256": "55fc208ca0276cbbb28f82e43a35eb1880ec5ed74cb9f78c3f057de85dda8ebc"
+      },
+      {
+        "key": "70303aa8-4c1a-4ba1-9f3f-f53c3fc673a1/thumb.webp",
+        "bytes": 268,
+        "sha256": "f3f23c9ff546d4e956c74fcd8377fffd59c8b88a12f390410b172c0b90f75759"
+      },
+      {
+        "key": "9673ead9-5f4e-4669-94f0-5ce63e336de0/display.webp",
+        "bytes": 814,
+        "sha256": "a808d95219df5ae410f1be23ccabec0c263b330274f493f4e118d3607b5d59a6"
+      },
+      {
+        "key": "9673ead9-5f4e-4669-94f0-5ce63e336de0/original",
+        "bytes": 7169,
+        "sha256": "55fc208ca0276cbbb28f82e43a35eb1880ec5ed74cb9f78c3f057de85dda8ebc"
+      },
+      {
+        "key": "9673ead9-5f4e-4669-94f0-5ce63e336de0/thumb.webp",
+        "bytes": 268,
+        "sha256": "f3f23c9ff546d4e956c74fcd8377fffd59c8b88a12f390410b172c0b90f75759"
+      },
+      {
+        "key": "d5be0516-915b-49eb-8c1f-156671659087/display.webp",
+        "bytes": 814,
+        "sha256": "a808d95219df5ae410f1be23ccabec0c263b330274f493f4e118d3607b5d59a6"
+      },
+      {
+        "key": "d5be0516-915b-49eb-8c1f-156671659087/original",
+        "bytes": 7169,
+        "sha256": "55fc208ca0276cbbb28f82e43a35eb1880ec5ed74cb9f78c3f057de85dda8ebc"
+      },
+      {
+        "key": "d5be0516-915b-49eb-8c1f-156671659087/thumb.webp",
+        "bytes": 268,
+        "sha256": "f3f23c9ff546d4e956c74fcd8377fffd59c8b88a12f390410b172c0b90f75759"
+      },
+      {
+        "key": "eecde7ef-1b0b-4d33-8ed0-de694bd134e5/display.webp",
+        "bytes": 812,
+        "sha256": "0c8943cdeefc46a4576ac0d3b7051b33e39b10bd7320c19516be178186a3a9fe"
+      },
+      {
+        "key": "eecde7ef-1b0b-4d33-8ed0-de694bd134e5/original",
+        "bytes": 7169,
+        "sha256": "1621345781a60d7b4ea63bf2772a76ec491af12c11546edcc9b856fcd82d8915"
+      },
+      {
+        "key": "eecde7ef-1b0b-4d33-8ed0-de694bd134e5/thumb.webp",
+        "bytes": 268,
+        "sha256": "ff57acc4e681d631ebcf4ccb509b91f384e57aa5a62e8b268d23115dd393513d"
+      }
+    ],
+    "bytes": 33002,
+    "allBytesEqual": true,
+    "legacyExternalUrlsFetched": false,
+    "publishedReadyAssetsResolved": 2
+  },
+  "passed": true
+}
