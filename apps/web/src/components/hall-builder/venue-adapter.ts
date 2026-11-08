@@ -9,6 +9,15 @@ const unitFor = (o:HallObject, objects:HallObject[]):SaleUnit => {
 };
 const mm=(value:number)=>metres(value/SCALE);
 
+/** Deposit remains a legacy in-memory default, but current HTTP writes reject
+ * that key even when it is zero. Serialize at the request boundary. */
+export function builderToLayoutInput(hall:BuilderHall, exponent=2) {
+  const state=builderToVenue(hall,exponent);
+  return {version:2 as const,room:state.room,
+    editor:{...state.editor,objects:state.editor.objects.map(({deposit:_legacy,...object})=>object)},
+    tables:[],rows:[]};
+}
+
 /** Flatten the builder into stable staging inventory. Monetary values cross this boundary in minor units. */
 export function builderToVenue(hall:BuilderHall, exponent=2):HallState {
   const objects:HallObject[]=[],factor=10**exponent;

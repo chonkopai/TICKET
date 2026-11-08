@@ -13,6 +13,6 @@ export default defineConfig({
     // API integration specs share one local PostgreSQL database; serialize files
     // so global fixture assertions cannot race with another suite's cleanup.
     fileParallelism: false,
-    include: ["src/**/*.spec.ts"],
+    include: ["src/**/*.spec.{ts,mjs}"],
   },
 });

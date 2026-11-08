@@ -310,3 +310,5 @@
 .ticket-hall-builder .sale-mode-control.highlighted:focus{outline:2px solid var(--ticket-accent);outline-offset:5px}
 .ticket-hall-builder .sale-mode-control.highlighted>.field{padding:9px 9px 0}
 .ticket-hall-builder .sale-mode-focus-hint{padding:0 9px 9px;color:var(--ticket-accent);margin:8px 0 16px}
+
+.ticket-hall-builder .toast.error>svg{color:var(--ticket-warning)}

@@ -2,7 +2,7 @@ import { editorHallV3, type DraftHallV3, type EventLocale, type VenueLayout, typ
 import { apiRequest } from '../app/(auth)/_lib/api';
 import { getSession } from '../app/(auth)/_lib/session';
 import { importLayout } from '../app/organizer/venue-builder/_components/hall-state';
-import { builderToVenue, venueToBuilder } from '../components/hall-builder/venue-adapter';
+import { builderToLayoutInput, builderToVenue, venueToBuilder } from '../components/hall-builder/venue-adapter';
 import { copyHall, validateImport } from '../components/hall-builder/model.mjs';
 import type { BuilderHall, BuilderLibraryItem } from '../components/hall-builder/types';
 
@@ -43,8 +43,8 @@ export async function saveEventHallLibrary(hall:BuilderHall,locale:EventLocale,e
     localStorage.setItem(deviceKey(),JSON.stringify([item,...deviceLibrary()]));
     return item;
   }
-  const state=builderToVenue(hall,exponent);
-  return fromLayout(await apiRequest<VenueLayout>('/api/organizer/venue-layout-templates',{method:'POST',body:JSON.stringify({name:hall.name,currency:hall.currency,locale,layoutJson:{version:2,room:state.room,editor:state.editor,tables:[],rows:[]}})}));
+  const layoutJson=builderToLayoutInput(hall,exponent);
+  return fromLayout(await apiRequest<VenueLayout>('/api/organizer/venue-layout-templates',{method:'POST',body:JSON.stringify({name:hall.name,currency:hall.currency,locale,layoutJson})}));
 }
 export async function updateEventHallLibrary(id:string,patch:{name?:string;archived?:boolean}):Promise<void> {
   if(usesAccountHallLibrary()){await apiRequest(`/api/organizer/venue-layouts/${id}`,{method:'PATCH',body:JSON.stringify({...(patch.name?{templateName:patch.name}:{}),...(patch.archived===undefined?{}:{archived:patch.archived})})});return;}

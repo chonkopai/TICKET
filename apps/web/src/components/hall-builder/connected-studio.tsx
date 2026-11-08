@@ -8,7 +8,7 @@ import { importLayout } from '../../app/organizer/venue-builder/_components/hall
 import type { DraftStudioOptions } from '../../app/organizer/venue-builder/_components/hall-studio';
 import { useTheme } from '../theme-provider';
 import { HallBuilder } from './hall-builder';
-import { builderToVenue, venueToBuilder } from './venue-adapter';
+import { builderToLayoutInput, venueToBuilder } from './venue-adapter';
 import { validateImport,withInitialCategory } from './model.mjs';
 import type { BuilderHall, BuilderHost, BuilderLibraryItem } from './types';
 
@@ -41,8 +41,8 @@ export function ConnectedHallStudio({eventId,initial,request=apiRequest,draftStu
       if(staleRef.current)throw new Error('Схема изменилась в другом окне. Перезагрузите страницу; ваши правки сохранены для восстановления.');
       if(!layoutRef.current||!data||data.event.status!=='draft')return;
       const fingerprint=JSON.stringify(hall);if(fingerprint===ack.current)return;
-      const state=builderToVenue(hall,exponent),layout=layoutRef.current;
-      try{const updated=await request<VenueLayout>(`/api/organizer/venue-layouts/${layout.id}`,{method:'PATCH',body:JSON.stringify({revision:layout.revision,templateName:hall.name.trim()||'Основной зал',layoutJson:{version:2,room:state.room,editor:state.editor,tables:[],rows:[]}})});
+      const layoutJson=builderToLayoutInput(hall,exponent),layout=layoutRef.current;
+      try{const updated=await request<VenueLayout>(`/api/organizer/venue-layouts/${layout.id}`,{method:'PATCH',body:JSON.stringify({revision:layout.revision,templateName:hall.name.trim()||'Основной зал',layoutJson})});
         layoutRef.current=updated;ack.current=fingerprint;
         if(JSON.stringify(latest.current)===fingerprint){pending.current=false;try{localStorage.removeItem(recoveryKey);}catch{/* A successful server save stays successful if browser storage is blocked. */}}
       }catch(reason){if(reason instanceof Error&&/revision|conflict|перезагруз|reload|layout changed|схем.*измен|сызба.*өзгер/i.test(reason.message)){staleRef.current=true;setStale(true);}throw reason;}
@@ -52,8 +52,8 @@ export function ConnectedHallStudio({eventId,initial,request=apiRequest,draftStu
   const leave=useCallback(async()=>{if(staleRef.current){router.push(backHref);return;}if(latest.current)await save(latest.current);if(draftStudio)await draftStudio.onFinish();else router.push(backHref);},[save,draftStudio,router,backHref]);
   const saveLibrary=useCallback(async(hall:BuilderHall)=>{
     if(!getSession())throw new Error('Войдите в аккаунт организатора, чтобы сохранить зал в личной библиотеке.');
-    const state=builderToVenue(hall,exponent);
-    const layout=await apiRequest<VenueLayout>('/api/organizer/venue-layout-templates',{method:'POST',body:JSON.stringify({name:hall.name,currency:hall.currency,locale:draftStudio?.locale??data?.event.sourceLocale??'ru',layoutJson:{version:2,room:state.room,editor:state.editor,tables:[],rows:[]}})});
+    const layoutJson=builderToLayoutInput(hall,exponent);
+    const layout=await apiRequest<VenueLayout>('/api/organizer/venue-layout-templates',{method:'POST',body:JSON.stringify({name:hall.name,currency:hall.currency,locale:draftStudio?.locale??data?.event.sourceLocale??'ru',layoutJson})});
     const item={id:layout.id,hall:readHall(layout,hall.currency),updatedAt:Date.parse(layout.updatedAt),archived:false};
     setLibrary(items=>[item,...items.filter(old=>old.id!==item.id)]);
     return item;
