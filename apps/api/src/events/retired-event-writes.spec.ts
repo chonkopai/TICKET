@@ -10,7 +10,7 @@ const pipe = new ValidationPipe({transform:true,whitelist:true,forbidNonWhitelis
 describe("retired creation and deposit writes", () => {
   it("returns explicit 410 tombstones without accessing a writer", () => {
     const inaccessible = new Proxy({}, {get:()=>{throw new Error("Retired writer accessed");}});
-    const controller = new EventsController(inaccessible as never,inaccessible as never);
+    const controller = new EventsController(inaccessible as never);
     for(const invoke of [()=>controller.retiredCreate(),()=>controller.retiredEdit(),()=>controller.retiredPublish(),()=>controller.retiredPosterUpload(),()=>controller.retiredPosterDelete(),()=>controller.retiredTranslationSave(),()=>controller.retiredTranslation()]) {
       expect(invoke).toThrow(GoneException);
       try {invoke();} catch(error) {expect((error as GoneException).getResponse()).toMatchObject({code:"EVENT_CREATION_V2_REQUIRED"});}

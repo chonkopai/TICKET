@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getSession, subscribeSession } from "../app/(auth)/_lib/session";
 import { CATALOG_CITY_SELECTED, CATALOG_QUERY_UPDATED } from "../lib/catalog-query-events";
 import { COUNTRY_CODES, cityName, countryName } from "../lib/countries";
-import { countryForCity, clearCatalogLocation, detectCatalogLocation, rememberCatalogLocation, savedCatalogLocation, validCountryCode } from "../lib/catalog-location";
+import { countryForCity, clearCatalogLocation, detectCatalogLocation, dismissCatalogLocationSuggestion, rememberCatalogLocation, savedCatalogLocation, shouldSuggestCatalogLocation, validCountryCode } from "../lib/catalog-location";
 import { useLocale } from "./locale-provider";
 import { NAV_COPY } from "./navbar-copy";
 
@@ -41,7 +41,7 @@ export function CatalogLocationPicker({ onDark = false, appearance = "navbar" }:
   const suggestionCopy = { ru: { question: "Ваш город {city}?", mismatch: "Вы находитесь в городе {city}?", yes: "Да", choose: "Нет, выбрать другой", keep: "Нет, продолжить поиск в городе {city}", close: "Закрыть" }, kk: { question: "Сіздің қалаңыз {city} ме?", mismatch: "Сіз {city} қаласындасыз ба?", yes: "Иә", choose: "Жоқ, басқа қала", keep: "Жоқ, {city} қаласында іздеуді жалғастыру", close: "Жабу" }, en: { question: "Is your city {city}?", mismatch: "Are you in {city}?", yes: "Yes", choose: "No, choose another", keep: "No, keep searching in {city}", close: "Close" } }[locale];
 
   function dismissSuggestion() {
-    if (suggestion) { try { window.sessionStorage.setItem(`ticket:city-prompt:${getSession()?.user.id ?? "guest"}:${suggestion.countryCode}:${cityName(suggestion.city, "ru")}`, "dismissed"); } catch { /* Storage can be unavailable. */ } }
+    dismissCatalogLocationSuggestion();
     setSuggestion(null);
   }
   const [locations, setLocations] = useState<LocationGroup[]>([]);
@@ -62,11 +62,11 @@ export function CatalogLocationPicker({ onDark = false, appearance = "navbar" }:
         commit(next.countryCode, next.city, true);
       }
       if (appearance !== "navbar") return;
+      if (!shouldSuggestCatalogLocation(next)) { setSuggestion(null); return; }
       void detectCatalogLocation().then(detected => {
         if (!active || !detected) return;
         const current = readSelection();
-        if (current.countryCode === detected.countryCode && cityName(current.city, "ru") === cityName(detected.city, "ru")) { setSuggestion(null); return; }
-        try { if (window.sessionStorage.getItem(`ticket:city-prompt:${getSession()?.user.id ?? "guest"}:${detected.countryCode}:${cityName(detected.city, "ru")}`)) return; } catch { /* Storage can be unavailable. */ }
+        if (!shouldSuggestCatalogLocation(current)) { setSuggestion(null); return; }
         setSuggestion(detected);
       });
     };
@@ -76,12 +76,14 @@ export function CatalogLocationPicker({ onDark = false, appearance = "navbar" }:
     window.addEventListener("popstate", sync);
     window.addEventListener(CATALOG_QUERY_UPDATED, sync);
     window.addEventListener(CATALOG_CITY_SELECTED, sync);
+    window.addEventListener("storage", sync);
     return () => {
       active = false;
       unsubscribeSession();
       window.removeEventListener("popstate", sync);
       window.removeEventListener(CATALOG_QUERY_UPDATED, sync);
       window.removeEventListener(CATALOG_CITY_SELECTED, sync);
+      window.removeEventListener("storage", sync);
     };
   }, [pathname, appearance]);
 

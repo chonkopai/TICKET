@@ -203,10 +203,6 @@ export interface PublicEventSummary {
   organizer: { verified?: boolean; name: string | null; photoUrl: string | null };
 }
 
-export interface OrganizerEventPreview extends PublicEvent {
-  status: EventStatus;
-}
-
 export interface PublicEventList {
   /** Count before the nonmatching chronological catalogue tail. */
   matchingTotal?: number;

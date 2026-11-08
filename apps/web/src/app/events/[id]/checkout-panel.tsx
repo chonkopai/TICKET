@@ -18,6 +18,7 @@ import { AccountIcon } from "../../../components/account-icon";
 import "./checkout-panel.css";
 
 interface CheckoutPanelProps {
+  hasHall?: boolean;
   readOnly?: boolean;
   onRestoreSelection?: ((body: CreateCartCheckoutRequest) => void) | undefined;
   onLockChange?: ((locked: boolean) => void) | undefined;
@@ -33,7 +34,7 @@ interface CheckoutPanelProps {
   onRefreshAvailability: () => Promise<void>;
 }
 
-export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId, onTableChange, ticketQuantities, onTicketChange, onClearSeats, onRefreshAvailability, readOnly = false, emptyMessage, onLockChange, onRestoreSelection }: CheckoutPanelProps) {
+export function CheckoutPanel({ event, layout, hasHall = false, selectedSeatIds, selectedTableId, onTableChange, ticketQuantities, onTicketChange, onClearSeats, onRefreshAvailability, readOnly = false, emptyMessage, onLockChange, onRestoreSelection }: CheckoutPanelProps) {
   const locale = useLocale();
   const ended = useEventEnded(event) && !readOnly;
   const copy = CHECKOUT_COPY[locale];
@@ -115,7 +116,7 @@ export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId,
 
   const header = <header className="checkout-heading">
     <span className="checkout-heading-icon"><AccountIcon name="ticket" /></span>
-    <div><h2>{copy.choose}</h2><p>{event.saleMode === "free" ? design.freeIntro : design.paidIntro}</p></div>
+    <div><h2>{copy.choose}</h2><p>{hasHall ? design.hallIntro : event.saleMode === "free" ? design.freeIntro : design.paidIntro}</p></div>
   </header>;
   if (ended) return <aside id="tickets" className="event-booking">
     <div className="checkout-empty" role="status"><AccountIcon name="info" /><h3>{design.ended}</h3><p>{design.endedHint}</p></div>
@@ -138,9 +139,9 @@ export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId,
   const hint = guestLocked || !selection.items.length ? null : !accepted ? design.acceptHint : emailRequested && !emailChoice ? design.emailHint : null;
   return <aside className="event-booking" id="tickets">
     {header}
-    {hasSelectableSeats ? <a className="checkout-plan-button" href="#venue-plan"><AccountIcon name="map-pin" /><span>{copy.plan.replace(/\s*↓$/, "")}</span><AccountIcon name="arrow-up-right" /></a> : null}
+    {hasHall || hasSelectableSeats ? <a className="checkout-plan-button" href="#venue-plan"><AccountIcon name="map-pin" /><span>{copy.plan.replace(/\s*↓$/, "")}</span><AccountIcon name="arrow-up-right" /></a> : null}
     <fieldset className="checkout-options" disabled={guestLocked}>
-      {event.ticketTypes.map(ticket => {
+      {event.ticketTypes.filter(ticket => !hasHall || !ticket.venueObjectId || (ticketQuantities[ticket.id] ?? 0) > 0).map(ticket => {
         const quantity = ticketQuantities[ticket.id] ?? 0;
         const available = ticket.status === "active" && ticket.remaining > 0;
         return <article className={`checkout-ticket${quantity ? " is-selected" : ""}${available ? "" : " is-unavailable"}`} key={ticket.id} aria-label={ticket.name}>
@@ -155,7 +156,7 @@ export function CheckoutPanel({ event, layout, selectedSeatIds, selectedTableId,
           </div>
         </article>;
       })}
-      {availableTables.map(table => <OptionButton active={selectedTableId === table.id} disabled={table.availability !== "available"} key={table.id} onClick={() => onTableChange(selectedTableId === table.id ? null : table.id)} title={table.name ?? `${copy.table} ${table.number}`} meta={`${table.seats} ${copy.places} · ${copy.wholeTable}`} price={table.payment.amountDue === 0 ? design.free : paymentSummary(table.payment, formatDisplayMoney)} unavailable={copy.unavailable} />)}
+      {availableTables.filter(table => !hasHall || selectedTableId === table.id).map(table => <OptionButton active={selectedTableId === table.id} disabled={table.availability !== "available"} key={table.id} onClick={() => onTableChange(selectedTableId === table.id ? null : table.id)} title={table.name ?? `${copy.table} ${table.number}`} meta={`${table.seats} ${copy.places} · ${copy.wholeTable}`} price={table.payment.amountDue === 0 ? design.free : paymentSummary(table.payment, formatDisplayMoney)} unavailable={copy.unavailable} />)}
       {selectedSeatIds.length ? <div className="checkout-selected-seats"><AccountIcon name="circle-check" /><strong>{copy.selectedSeats} · {selectedSeatIds.length}</strong><button className="checkout-text-action" onClick={onClearSeats} type="button">{copy.clear}</button></div> : null}
     </fieldset>
     <section className="checkout-summary" aria-label={copy.yourChoice}>

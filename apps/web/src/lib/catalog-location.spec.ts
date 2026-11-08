@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { countryForCity, clearCatalogLocation, lookupCatalogLocation, rememberCatalogLocation, savedCatalogLocation } from "./catalog-location";
+import { countryForCity, clearCatalogLocation, dismissCatalogLocationSuggestion, lookupCatalogLocation, rememberCatalogLocation, savedCatalogLocation, shouldSuggestCatalogLocation } from "./catalog-location";
 
 test("city detection accepts complete city data and falls back on errors or incomplete results", async () => {
   const request = (value: unknown, status = 200) => (async () => Response.json(value, { status })) as typeof fetch;
@@ -32,4 +32,28 @@ test("manual location and All countries persist; automatic locations expire", ()
 
 test("saved city country resolves aliases without assuming Kazakhstan", () => {
   assert.equal(countryForCity("Москва"), "RU"); assert.equal(countryForCity("Moscow"), "RU"); assert.equal(countryForCity("Astana"), "KZ"); assert.equal(countryForCity("Dubai"), "AE"); assert.equal(countryForCity("Unknown city"), null);
+});
+
+test("a saved choice, profile preference or dismissed prompt prevents repeated city suggestions", () => {
+  const values = new Map<string, string>();
+  const previous = globalThis.window;
+  Object.defineProperty(globalThis, "window", { configurable: true, value: { localStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) } } });
+  try {
+    assert.equal(shouldSuggestCatalogLocation(), true);
+    assert.equal(shouldSuggestCatalogLocation({ countryCode: "KZ", city: "Almaty" }), false);
+    rememberCatalogLocation({ countryCode: "KZ", city: "Almaty" });
+    assert.equal(shouldSuggestCatalogLocation(), false);
+    clearCatalogLocation();
+    assert.equal(shouldSuggestCatalogLocation(), false, "All countries is an explicit choice too");
+    values.clear();
+    values.set("ticket:city-prompt-dismissed", "dismissed");
+    assert.equal(shouldSuggestCatalogLocation(), false, "dismissal survives a fresh page session");
+    values.clear();
+    dismissCatalogLocationSuggestion();
+    assert.equal(values.get("ticket:city-prompt-dismissed"), "dismissed");
+    assert.equal(shouldSuggestCatalogLocation(), false);
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "window", { configurable: true, value: previous });
+    else Reflect.deleteProperty(globalThis, "window");
+  }
 });

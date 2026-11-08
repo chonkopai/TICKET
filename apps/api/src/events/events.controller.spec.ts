@@ -10,7 +10,6 @@ import type { EventsService } from "./events.service.js";
 describe("EventsController", () => {
   it("delegates every endpoint with the authenticated owner id", async () => {
     const event = sampleEvent();
-    const publicEvents = { preview: vi.fn().mockResolvedValue({ ...event, status: "draft" }) };
     const events = {
       create: vi.fn().mockResolvedValue(event),
       list: vi.fn().mockResolvedValue({ items: [event], page: 1, limit: 20, total: 1, hasNext: false }),
@@ -32,7 +31,7 @@ describe("EventsController", () => {
       removePoster: vi.fn().mockResolvedValue(event),
       deleteDraft: vi.fn().mockResolvedValue({ deleted: true, id: event.id }),
     } as unknown as EventsService;
-    const controller = new EventsController(events, publicEvents as never);
+    const controller = new EventsController(events);
     const principal: AuthenticatedPrincipal = { userId: event.organizerId, role: "organizer" };
     const analyticsQuery = { from: "2027-01-01T00:00:00Z", to: "2027-01-02T00:00:00Z", bucket: "day" as const };
     const ordersQuery = { page: 1, limit: 20, payment: "all" as const, booking: "all" as const, attendance: "all" as const };
@@ -50,7 +49,6 @@ describe("EventsController", () => {
     await controller.managementOrdersExport(principal, event.id, ordersQuery, ordersResponse);
     await controller.managementOrderDetail(principal, event.id, orderId);
     await controller.get(principal, event.id);
-    await controller.preview(principal, event.id);
     await controller.reopen(principal, event.id);
     await controller.cancel(principal, event.id);
     await controller.complete(principal, event.id);
@@ -68,7 +66,6 @@ describe("EventsController", () => {
     expect(analyticsResponse.send).toHaveBeenCalledWith("analytics-csv");
     expect(ordersResponse.send).toHaveBeenCalledWith("orders-csv");
     expect(events.get).toHaveBeenCalledWith(principal.userId, event.id);
-    expect(publicEvents.preview).toHaveBeenCalledWith(principal.userId, event.id, expect.any(Date), false, undefined);
     expect(events.reopen).toHaveBeenCalledWith(principal.userId, event.id);
     expect(events.cancel).toHaveBeenCalledWith(principal.userId, event.id);
     expect(events.complete).toHaveBeenCalledWith(principal.userId, event.id);

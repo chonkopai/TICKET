@@ -2,7 +2,6 @@ import { EventStatus, TicketStatus, eventV2CompatibilityRead, type Prisma, type 
 import type {
   EventCategory,
   EventLocale,
-  OrganizerEventPreview,
   PublicEvent,
   PublicEventList,
   PublicEventSummary,
@@ -305,7 +304,7 @@ export class PublicEventsService {
       include: { organizer: { select: { organizerVerifiedAt:true, blockedAt:true, name: true, photoUrl: true, email: true, phone: true, organizerProfile: { select: { organizationName: true, address: true, showContactInfo: true } } } } },
     });
     if (!event) throw new NotFoundException({ code: "EVENT_NOT_FOUND", message: "Event was not found" });
-    const serialized = await this.serialize(event, now, false);
+    const serialized = await this.serialize(event, now);
     const requested = normalizeLocale(locale);
     const normalized=await normalizedPresentation(this.database,event,requested);
     if(normalized)return {...serialized,...normalized.fields,ticketTypes:normalized.localizedTickets(serialized.ticketTypes),tables:normalized.localizedTables(serialized.tables)};
@@ -350,49 +349,16 @@ export class PublicEventsService {
     }));
   }
 
-  async preview(
-    organizerId: string,
-    id: string,
-    now = new Date(),
-    isAdmin = false,
-    locale?: string,
-  ): Promise<OrganizerEventPreview> {
-    const event = await this.database.event.findFirst({
-      where: isAdmin ? { id } : { id, organizerId },
-      include: { organizer: { select: { organizerVerifiedAt:true, blockedAt:true, name: true, photoUrl: true, email: true, phone: true, organizerProfile: { select: { organizationName: true, address: true, showContactInfo: true } } } } },
-    });
-    if (!event) throw new NotFoundException({ code: "EVENT_NOT_FOUND", message: "Event was not found" });
-    const serialized = await this.serialize(event, now, true);
-    const requested = normalizeLocale(locale);
-    const normalized=await normalizedPresentation(this.database,event,requested);
-    if(normalized)return {...serialized,...normalized.fields,ticketTypes:normalized.localizedTickets(serialized.ticketTypes),tables:normalized.localizedTables(serialized.tables),status:event.status};
-    const candidate = requested === event.sourceLocale ? null : await this.database.eventTranslation.findUnique({
-      where: { eventId_locale: { eventId: id, locale: requested } },
-    });
-    const translation = candidate && (candidate.origin === "manual" || candidate.sourceHash === eventContentHash(eventContent(event))) ? candidate : null;
-    return {
-      ...serialized,
-      ...(translation ? localizedFields(translation) : {}),
-      city: localizedCity(event.city, requested),
-      ticketTypes: localizedTicketTypes(serialized.ticketTypes, requested),
-      tables: localizedTables(serialized.tables, requested),
-      contentLocale: translation ? requested : event.sourceLocale as EventLocale,
-      sourceLocale: event.sourceLocale as EventLocale,
-      status: event.status,
-    };
-  }
-
   private async serialize(
     event: Prisma.EventGetPayload<{ include: { organizer: { select: { organizerVerifiedAt:true; blockedAt:true; name: true; photoUrl: true; email: true; phone: true; organizerProfile: { select: { organizationName: true; address: true; showContactInfo: true } } } } } }>,
     now: Date,
-    includeUnpublished: boolean,
   ): Promise<PublicEvent> {
     event = { ...event, ...await eventV2CompatibilityRead(this.database, event) };
     const date = event.date.toISOString().slice(0, 10);
     const time = event.time.toISOString().slice(11, 16);
     const [ticketTypes, tables] = await Promise.all([
-      this.ticketTypes.publicForEvent(event.id, now, includeUnpublished),
-      this.tables.publicForEvent(event.id, includeUnpublished),
+      this.ticketTypes.publicForEvent(event.id, now, false),
+      this.tables.publicForEvent(event.id, false),
     ]);
     return {
       id: event.id,

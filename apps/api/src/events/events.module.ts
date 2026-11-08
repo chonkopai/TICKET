@@ -18,10 +18,9 @@ import { EventChatService } from "./event-chat.service.js";
 import { QuickRateGuard } from "../orders/quick.guards.js";
 import { LocalObjectStorage } from "./local-object-storage.service.js";
 import { MediaController } from "./media.controller.js";
-import { PublicEventsModule } from "../public-events/public-events.module.js";
 
 @Module({
-  imports: [AuthModule, PublicEventsModule],
+  imports: [AuthModule],
   exports: [EventNotificationsService],
   controllers: [EventsController, MediaController, EventNotificationsController, EventTicketResendController, MarketingCampaignController, OrganizerEventChatController, GuestEventChatController, AnonymousEventChatController],
   providers: [

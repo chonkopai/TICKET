@@ -1,13 +1,9 @@
 import type { EventLocale } from "@event-platform/shared-types";
 
-// Current UI plus historical preview and lifecycle labels.
+// Current UI and lifecycle labels.
 export const EVENTS_COPY = {
   "ru": {
     "loadFailed": "Не удалось загрузить мероприятия.",
-    "previewFailed": "Не удалось загрузить предпросмотр.",
-    "previewDraftBanner": "Предпросмотр — событие ещё не опубликовано",
-    "previewPublishedBanner": "Предпросмотр опубликованного события",
-    "previewCheckoutDisabled": "Это предпросмотр. Действия покупки отключены.",
     "deleteDraft": "Удалить черновик",
     "categories": {
       "music": "Музыка",
@@ -60,10 +56,6 @@ export const EVENTS_COPY = {
   },
   "kk": {
     "loadFailed": "Іс-шараларды жүктеу мүмкін болмады.",
-    "previewFailed": "Алдын ала қарау жүктелмеді.",
-    "previewDraftBanner": "Алдын ала қарау — іс-шара әлі жарияланбаған",
-    "previewPublishedBanner": "Жарияланған іс-шараны алдын ала қарау",
-    "previewCheckoutDisabled": "Бұл алдын ала қарау. Сатып алу әрекеттері өшірілген.",
     "deleteDraft": "Нобайды жою",
     "categories": {
       "music": "Музыка",
@@ -116,10 +108,6 @@ export const EVENTS_COPY = {
   },
   "en": {
     "loadFailed": "Could not load events.",
-    "previewFailed": "Could not load the preview.",
-    "previewDraftBanner": "Preview — this event is not published yet",
-    "previewPublishedBanner": "Preview of the published event",
-    "previewCheckoutDisabled": "This is a preview. Purchases are disabled.",
     "deleteDraft": "Delete draft",
     "categories": {
       "music": "Music",

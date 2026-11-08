@@ -27,3 +27,29 @@ test("checkout summary preserves its empty state while terms require a selected 
     else { assert.doesNotMatch(html, /Принимаю условия|Продолжить без аккаунта/); assert.match(html, /Добавьте билет или выберите место на схеме/); assert.match(html, /Выберите места на схеме/); }
   }
 });
+
+test("a large hall only lists selected tables, zone tickets and seats in checkout", () => {
+  const payment = { amountDue: 50000, currency: "KZT" };
+  const tables = Array.from({ length: 100 }, (_, i) => ({ id: `table-${i}`, number: i + 1, name: `Table ${i + 1}`, saleMode: "whole_table", availability: "available", seats: 8, currency: "KZT", payment }));
+  const tickets = Array.from({ length: 20 }, (_, i) => ({ id: `zone-${i}`, venueObjectId: `object-${i}`, name: `Zone ${i + 1}`, status: "active", remaining: 50, currency: "KZT", payment }));
+  const event = { id: "event", creationVersion: 2, contentLocale: "ru", saleMode: "paid_seated", paymentMode: "full_payment", tables, ticketTypes: tickets } as unknown as PublicEvent;
+  const layout = { seats: Array.from({ length: 50 }, (_, i) => ({ id: `seat-${i}`, number: i + 1, rowId: null, tableId: null, availability: "available", price: 0, currency: "KZT", label: `Free seat ${i + 1}` })), tables: [], rows: [] } as unknown as PublicVenueLayout;
+  const render = (selected: boolean) => renderToStaticMarkup(<CurrencyProvider><CheckoutPanel event={event} layout={layout} hasHall selectedSeatIds={selected ? ["seat-3"] : []} selectedTableId={selected ? "table-5" : null} ticketQuantities={selected ? { "zone-2": 2 } : {}} onTableChange={() => {}} onTicketChange={() => {}} onClearSeats={() => {}} onRefreshAvailability={async () => {}} /></CurrencyProvider>);
+  const empty = render(false);
+  assert.doesNotMatch(empty, /Table \d|Zone \d|Free seat \d/);
+  assert.match(empty, /href="#venue-plan"/);
+  const selected = render(true);
+  assert.equal((selected.match(/class="checkout-table /g) ?? []).length, 1);
+  assert.equal((selected.match(/class="checkout-ticket /g) ?? []).length, 1);
+  for (const label of ["Table 6", "Zone 3", "Free seat 4", "Бесплатно"]) assert.ok(selected.includes(label), label);
+  assert.doesNotMatch(selected, /Table 100|Zone 20|Free seat 50/);
+  assert.doesNotMatch(render(false), /Table 6|Zone 3|Free seat 4/, "removing a selection restores the compact empty state");
+});
+
+test("ordinary tickets remain selectable without a hall, including zero-price tickets", () => {
+  const event = { id: "event", creationVersion: 2, contentLocale: "ru", saleMode: "free", paymentMode: "full_payment", tables: [], ticketTypes: [{ id: "ticket", name: "Free admission", status: "active", remaining: 50, currency: "KZT", payment: { amountDue: 0, currency: "KZT" } }] } as unknown as PublicEvent;
+  const html = renderToStaticMarkup(<CurrencyProvider><CheckoutPanel event={event} layout={null} selectedSeatIds={[]} selectedTableId={null} ticketQuantities={{}} onTableChange={() => {}} onTicketChange={() => {}} onClearSeats={() => {}} onRefreshAvailability={async () => {}} /></CurrencyProvider>);
+  assert.match(html, /Free admission/);
+  assert.match(html, /Добавить: Free admission/);
+  assert.match(html, /Бесплатно/);
+});

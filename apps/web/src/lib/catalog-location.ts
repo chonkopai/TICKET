@@ -1,8 +1,20 @@
 import { catalogCityOptions, cityAliases, COUNTRY_CODES } from "@event-platform/shared-types";
 
 const STORAGE_KEY = "ticket:catalog-location";
+const PROMPT_KEY = "ticket:city-prompt-dismissed";
+let promptDismissed = false;
 
 export interface CatalogLocation { countryCode: string; city: string }
+
+export function shouldSuggestCatalogLocation(preferred?: CatalogLocation | null): boolean {
+  if (promptDismissed || savedCatalogLocation() || preferred?.countryCode || preferred?.city) return false;
+  try { return !window.localStorage.getItem(PROMPT_KEY); } catch { return true; }
+}
+
+export function dismissCatalogLocationSuggestion(): void {
+  promptDismissed = true;
+  try { window.localStorage.setItem(PROMPT_KEY, "dismissed"); } catch { /* Keep the decision for this page session. */ }
+}
 
 export function validCountryCode(value: string | null): string | null {
   return value && (COUNTRY_CODES as readonly string[]).includes(value) ? value : null;

@@ -182,11 +182,7 @@ describe("PublicEventsService", () => {
     expect(hiddenPrice.tables[0]).toMatchObject({ price: null, payment: { amountDue: 50_000, fullAmount: null } });
   });
 
-  it("allows the owner to preview a draft without making it public", async () => {
-    const preview = await service.preview(organizerId, hiddenIds[0]!);
-    expect(preview).toMatchObject({ status: "draft", id: hiddenIds[0], category: "other", city: "Алматы" });
-    await expect(service.preview(guestId, hiddenIds[0]!)).rejects.toBeInstanceOf(NotFoundException);
-    await expect(service.preview(randomUUID(), hiddenIds[0]!, now, true)).resolves.toMatchObject({ id: hiddenIds[0], status: "draft" });
+  it("keeps unpublished events out of the public detail endpoint", async () => {
     await expect(service.get(hiddenIds[0]!)).rejects.toBeInstanceOf(NotFoundException);
   });
 

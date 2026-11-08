@@ -2,7 +2,6 @@ import type {
   DeleteEventResponse,
   ManagementEventSummary,
   OrganizerEvent,
-  OrganizerEventPreview,
   OrganizerDashboard,
   OrganizerWorkspaceEventList,
   ManagementAnalyticsResponse,
@@ -32,7 +31,6 @@ import type { AuthenticatedPrincipal } from "../auth/auth.constants.js";
 import { EventListQueryDto, ManagementAnalyticsQueryDto, ManagementOrdersQueryDto } from "./events.dto.js";
 import { EventsService } from "./events.service.js";
 import { ExplicitDtoPipe } from "./explicit-dto.pipe.js";
-import { PublicEventsService } from "../public-events/public-events.service.js";
 
 @Controller("organizer/events")
 @Roles("organizer", "admin")
@@ -40,7 +38,6 @@ import { PublicEventsService } from "../public-events/public-events.service.js";
 export class EventsController {
   constructor(
     @Inject(EventsService) private readonly events: EventsService,
-    @Inject(PublicEventsService) private readonly publicEvents: PublicEventsService,
   ) {}
 
   // Explicit tombstones prevent older clients from silently creating legacy records.
@@ -76,15 +73,6 @@ export class EventsController {
   @Get("dashboard/summary")
   dashboard(@CurrentUser() principal: AuthenticatedPrincipal): Promise<OrganizerDashboard> {
     return this.events.dashboard(principal.userId);
-  }
-
-  @Get(":id/preview")
-  preview(
-    @CurrentUser() principal: AuthenticatedPrincipal,
-    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
-    @Query("locale") locale?: string,
-  ): Promise<OrganizerEventPreview> {
-    return this.publicEvents.preview(principal.userId, id, new Date(), principal.role === "admin", locale);
   }
 
   @Get(":id/management-summary")
