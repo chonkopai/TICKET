@@ -157,4 +157,23 @@
 .support-verification input::file-selector-button { border: 0; background: var(--ticket-accent-soft); color: var(--ticket-accent); padding: 8px 12px; margin-right: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
 .support-verification :is(input, select):focus-visible { outline: 2px solid var(--ticket-accent); outline-offset: 2px; }
 .support-verification > button { justify-self: start; }
+.verification-select { position: relative; display: block; min-width: 0; }
+.support-verification .verification-select select { appearance: none; -webkit-appearance: none; padding-right: 44px; cursor: pointer; }
+.verification-select > .account-icon { position: absolute; right: 15px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--ticket-muted); pointer-events: none; }
+.verification-upload { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 88px; padding: 18px; border: 1px dashed var(--ticket-border); border-radius: 14px; background: var(--ticket-bg); color: var(--ticket-text); text-align: left; cursor: pointer; transition: border-color .15s, background .15s; }
+.verification-upload:hover:not(:disabled) { border-color: var(--ticket-accent); background: var(--ticket-accent-soft); }
+.verification-upload:focus-visible, .verification-file button:focus-visible { outline: 2px solid var(--ticket-accent); outline-offset: 3px; }
+.verification-upload:disabled { opacity: .55; cursor: default; }
+.verification-upload-icon { display: grid; place-items: center; flex: none; width: 42px; height: 42px; border-radius: 12px; background: var(--ticket-accent-soft); color: var(--ticket-accent); }
+.verification-upload-icon img { width: 22px; height: 22px; }
+.verification-upload > span:nth-child(2), .verification-file > span { display: grid; gap: 5px; flex: 1; min-width: 0; }
+.verification-upload strong { font-size: 14px; font-weight: 600; }
+.verification-upload > .account-icon { flex: none; color: var(--ticket-accent); }
+.verification-file-list:empty { display: none; }
+.verification-file-list { display: grid; gap: 8px; }
+.verification-file { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--ticket-border); border-radius: 12px; background: var(--ticket-surface); }
+.verification-file > .account-icon { flex: none; color: var(--ticket-accent); }
+.verification-file strong { overflow-wrap: anywhere; font-size: 13px; font-weight: 500; }
+.verification-file button { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--ticket-muted); font-size: 22px; cursor: pointer; }
+.verification-file button:hover { background: var(--ticket-raised); color: var(--ticket-danger); }
 @media (max-width: 640px) { .platform-support, .organizer-content > .verification-card { padding: 18px; } .platform-support > .account-card { padding: 16px; } }

@@ -206,7 +206,7 @@ suite("isolated staff / platform integration", () => {
   }
   beforeAll(async () => {
     privateDir = await mkdtemp(join(tmpdir(), "ticket-staff-integration-"));
-    app = await NestFactory.create(AppModule, { logger: false });
+    app = await NestFactory.create(AppModule, { logger: false, abortOnError: false });
     await app.listen(0, "127.0.0.1");
     base = await app.getUrl();
     auth = app.get(StaffAuthService);
@@ -636,7 +636,21 @@ suite("isolated staff / platform integration", () => {
       phone: "+77000000000",
       fileIds: [file.id],
     };
-    const first = await support.submit(organizer, input);
+    const organizerToken = (await app.get(TokenService).issuePair(
+      await prisma.user.findUniqueOrThrow({ where: { id: organizer } }),
+    )).accessToken;
+    const submitted = await fetch(`${base}/platform-support/verification`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${organizerToken}`, "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    expect(submitted.status).toBe(201);
+    const first = await submitted.json() as { id: string };
+    const pending = await request("/staff/verifications");
+    expect(pending.status).toBe(200);
+    expect(await pending.json()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: first.id, organizerId: organizer, status: "pending", legalName: input.legalName }),
+    ]));
     await expect(support.submit(organizer, input)).rejects.toMatchObject({
       status: 409,
     });
@@ -661,10 +675,12 @@ suite("isolated staff / platform integration", () => {
       fileIds: [file.id],
     });
     expect(next.version).toBe(2);
-    await support.review(next.id, admin, {
+    const approved = await request(`/staff/verifications/${next.id}/review`, "POST", {
       decision: "verified",
       reason: "Регистрация проверена модератором",
     });
+    expect(approved.status).toBe(201);
+    expect(await approved.json()).toMatchObject({ id: next.id, status: "verified" });
     expect(
       (await prisma.user.findUniqueOrThrow({ where: { id: organizer } }))
         .organizerVerifiedAt,
@@ -676,6 +692,11 @@ suite("isolated staff / platform integration", () => {
         ).json()) as { organizer: { verified: boolean } }
       ).organizer.verified,
     ).toBe(true);
+    const profile = await fetch(`${base}/me/organizer-profile`, {
+      headers: { authorization: `Bearer ${organizerToken}` },
+    });
+    expect(profile.status).toBe(200);
+    expect(await profile.json()).toMatchObject({ verified: true });
     await support.review(next.id, admin, {
       decision: "revoked",
       reason: "Предоставленные данные больше не актуальны",

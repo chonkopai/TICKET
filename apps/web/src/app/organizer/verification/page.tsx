@@ -10,7 +10,8 @@ import type {
   PrivateFile,
   VerificationView,
 } from "@event-platform/shared-types";
-import { OrganizerWorkspaceShell } from "../../../components/organizer-workspace";
+import { OrganizerIcon, OrganizerWorkspaceShell } from "../../../components/organizer-workspace";
+import { AccountIcon } from "../../../components/account-icon";
 import {
   PlatformSupport,
   SupportFile,
@@ -34,6 +35,7 @@ function VerificationForm() {
     [rows, setRows] = useState<VerificationView[] | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
+    [uploading, setUploading] = useState(false),
     [legalName, setName] = useState(""),
     [entityType, setEntity] = useState("ip"),
     [entityTypeDetails, setEntityDetails] = useState(""),
@@ -45,6 +47,7 @@ function VerificationForm() {
     [editing, setEditing] = useState(false),
     [caseId, setCase] = useState<string | null>(null);
   const lock = useRef(false);
+  const uploadInput = useRef<HTMLInputElement>(null);
   const refresh = useCallback(async () => {
     try {
       setRows(await supportRequest<VerificationView[]>("verification"));
@@ -74,6 +77,7 @@ function VerificationForm() {
     if (!selected || lock.current) return;
     lock.current = true;
     setBusy(true);
+    setUploading(true);
     setError("");
     try {
       if (files.length + selected.length > 5)
@@ -94,6 +98,7 @@ function VerificationForm() {
     } finally {
       lock.current = false;
       setBusy(false);
+      setUploading(false);
     }
   }
   async function submit(e: FormEvent) {
@@ -213,7 +218,7 @@ function VerificationForm() {
               </label>
               <label className="account-field">
                 {t("Тип организации", "Ұйым түрі", "Entity type")}
-                <select
+                <span className="verification-select"><select
                   value={entityType}
                   onChange={(e) => setEntity(e.target.value)}
                 >
@@ -222,7 +227,7 @@ function VerificationForm() {
                     {t("ООО", "ЖШС", "Limited company")}
                   </option>
                   <option value="other">{t("Другое", "Басқа", "Other")}</option>
-                </select>
+                </select><AccountIcon name="chevron-down" /></span>
               </label>
               <label className="account-field">
                 {t(
@@ -230,7 +235,7 @@ function VerificationForm() {
                   "Тіркелген ел",
                   "Registration country",
                 )}
-                <select
+                <span className="verification-select"><select
                   value={countryCode}
                   onChange={(e) => setCountry(e.target.value)}
                 >
@@ -239,7 +244,7 @@ function VerificationForm() {
                       {countryName(code, locale)}
                     </option>
                   ))}
-                </select>
+                </select><AccountIcon name="chevron-down" /></span>
               </label>
               {entityType === "other" ? <label className="account-field full">
                 {t("Укажите тип организации", "Ұйым түрін көрсетіңіз", "Specify your entity type")}
@@ -285,13 +290,18 @@ function VerificationForm() {
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </label>
-              <label className="account-field full">
+              <div className="account-field full verification-documents">
+                <span>
                 {t(
-                  "Документы · PDF, JPEG, PNG · до 10 МБ · от 1 до 5 файлов",
-                  "Құжаттар · PDF, JPEG, PNG · 10 МБ дейін · 1–5 файл",
-                  "Documents · PDF, JPEG, PNG · up to 10 MB · 1–5 files",
+                  "Документы",
+                  "Құжаттар",
+                  "Documents",
                 )}
+                </span>
                 <input
+                  ref={uploadInput}
+                  hidden
+                  aria-label={t("Добавить документы", "Құжаттарды қосу", "Add documents")}
                   type="file"
                   accept="application/pdf,image/jpeg,image/png"
                   multiple
@@ -300,24 +310,16 @@ function VerificationForm() {
                     e.target.value = "";
                   }}
                 />
-              </label>
-              {files.map((file) => (
-                <div key={file.id}>
-                  {file.name}
-                  <button
-                    type="button"
-                    className="account-text-link"
-                    onClick={() =>
-                      setFiles((values) =>
-                        values.filter((v) => v.id !== file.id),
-                      )
-                    }
-                  >
-                    {" "}
-                    ×
-                  </button>
+                <button className="verification-upload" type="button" disabled={busy || files.length >= 5} onClick={() => uploadInput.current?.click()}>
+                  <span className="verification-upload-icon"><OrganizerIcon name="upload" /></span>
+                  <span><strong>{uploading ? t("Загружаем документы…", "Құжаттар жүктелуде…", "Uploading documents…") : t("Добавить документы", "Құжаттарды қосу", "Add documents")}</strong><small>{t("PDF, JPEG или PNG · до 10 МБ каждый · 1–5 файлов", "PDF, JPEG немесе PNG · әрқайсысы 10 МБ дейін · 1–5 файл", "PDF, JPEG or PNG · up to 10 MB each · 1–5 files")}</small></span>
+                  <AccountIcon name="plus" />
+                </button>
+                <div className="verification-file-list" aria-live="polite">
+                  {files.map(file => <div className="verification-file" key={file.id}><AccountIcon name="receipt-text" /><span><strong>{file.name}</strong><small>{new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(file.size / 1024)} KB</small></span><button type="button" aria-label={`${t("Удалить документ", "Құжатты жою", "Remove document")}: ${file.name}`} onClick={() => setFiles(values => values.filter(value => value.id !== file.id))}>×</button></div>)}
                 </div>
-              ))}
+                {!files.length && !busy ? <small>{t("Добавьте хотя бы один документ, чтобы отправить заявку.", "Өтініш жіберу үшін кемінде бір құжат қосыңыз.", "Add at least one document to submit your application.")}</small> : null}
+              </div>
             </fieldset>
             <p>
               {t(

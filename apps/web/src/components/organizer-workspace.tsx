@@ -2,7 +2,7 @@
 
 import type { AuthUser, OrganizerDashboard, OrganizerProfile } from "@event-platform/shared-types";
 import Link from "next/link";
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { VerifiedOrganizerBadge } from "./verified-organizer-badge";
 import { useSupportText } from "./platform-support";
 import type { Paged,SupportCase } from "@event-platform/shared-types";
@@ -40,7 +40,6 @@ function Workspace({ active, children }: { active: "events" | "profile" | "suppo
   const dashboard = useAccountResource<OrganizerDashboard>("/api/organizer/events/dashboard/summary");
   const [user, setUser] = useState<AuthUser | null>(() => getSession()?.user ?? null);
   const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
-  const help = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const refresh = () => setUser(getSession()?.user ?? null);
     refresh();
@@ -65,10 +64,9 @@ function Workspace({ active, children }: { active: "events" | "profile" | "suppo
       <div className="account-organizer"><h2>{t("Проверка организатора","Ұйымдастырушыны тексеру","Organizer verification")}</h2><p>{profile.data?.verified?t("Ваши данные проверены.","Деректеріңіз тексерілген.","Your submitted details have been reviewed."):t("Подайте документы, чтобы получить отметку рядом с именем.","Атыңыздың жанында белгі алу үшін құжат жіберіңіз.","Submit your documents to receive a badge beside your name.")}</p><Link className="account-text-link" href={localeUrl("/organizer/verification",locale)}>{t("Открыть заявку","Өтінішті ашу","Open application")}</Link></div>
       {profile.data ? <div className="account-organizer organizer-contact-status"><h2>{complete ? copy.complete : copy.incomplete}</h2><p>{complete ? copy.completeHint : copy.contactHint}</p><Link className="account-text-link" href={localeUrl("/organizer/profile", locale)}>{complete ? copy.profile : copy.fillProfile}<AccountIcon name="arrow-right" /></Link></div> : profile.error ? <OrganizerResourceError message={profile.error} onRetry={profile.retry} /> : <p className="account-muted" role="status">{ORGANIZER_EVENTS_COPY[locale].loading}</p>}
       <Link className="account-text-link organizer-guest-link" href={localeUrl("/account?tab=profile", locale)}>{copy.guest}<AccountIcon name="arrow-up-right" /></Link>
-      <div className="account-utilities"><Link href={localeUrl("/organizer/support",locale)}><AccountIcon name="circle-help" />{copy.help}</Link><button type="button" disabled={busy} onClick={() => void logout()}><AccountIcon name="log-out" />{copy.logout}</button><p>© {new Date().getFullYear()} TICKET</p></div>
+      <div className="account-utilities"><button type="button" disabled={busy} onClick={() => void logout()}><AccountIcon name="log-out" />{copy.logout}</button><p>© {new Date().getFullYear()} TICKET</p></div>
     </aside>
     <div className="account-content organizer-content">{error ? <OrganizerResourceError message={error} /> : null}{children}</div>
-    <dialog className="account-support account-card" aria-labelledby="organizer-help-title" ref={help}><div className="account-card-toolbar"><h2 id="organizer-help-title">{copy.help}</h2><button className="account-button" type="button" onClick={() => help.current?.close()}>{copy.close}</button></div><p>{copy.helpHint}</p><div className="account-support-actions"><Link className="account-button account-button-primary" href={localeUrl("/organizer/events", locale)} onClick={() => help.current?.close()}>{copy.events}</Link><Link className="account-text-link" href={localeUrl("/organizer/profile", locale)} onClick={() => help.current?.close()}>{copy.profile}</Link></div></dialog>
   </div></WorkspaceContext>;
 }
 
