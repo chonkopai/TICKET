@@ -1,5 +1,4 @@
 import "reflect-metadata";
-import {PersistenceExceptionFilter} from "./staff/persistence.filter.js";
 
 import { loadApiEnv } from "@event-platform/config";
 import { ValidationPipe } from "@nestjs/common";
@@ -9,6 +8,8 @@ import { configureHttpProxy } from "./http-proxy.js";
 
 async function bootstrap(): Promise<void> {
   const env = loadApiEnv();
+  // Database-dependent modules must load after the environment file.
+  const { PersistenceExceptionFilter } = await import("./staff/persistence.filter.js");
   const { AppModule } = await import("./app.module.js");
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true, bodyParser: true });
   configureHttpProxy(app, env.API_TRUST_PROXY_HOPS);

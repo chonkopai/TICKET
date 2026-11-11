@@ -33,14 +33,15 @@ function HallInfo({hall,locale}:{hall:DraftHallV3;locale:EventLocale}){
   const c=text[locale],s=counts(hall);
   return <div className="event-hall-info"><strong>{hall.name||c.choose}</strong><span>{s.guests} {c.guests} · {hall.room.widthM} × {hall.room.heightM} м</span><small>{s.seats} {c.seats} · {s.tables} {c.whole} · {s.standing} {c.standingTickets}</small></div>;
 }
-function HallDialog({title,kind,close,children,busy=false}:{title:string;kind:'picker'|'presets'|'editor';close:()=>void;children:ReactNode;busy?:boolean}){
+function HallDialog({title,kind,close,children,busy=false}:{title:string;kind:'picker'|'presets'|'editor'|'confirm';close:()=>void;children:ReactNode;busy?:boolean}){
   const dialog=useRef<HTMLDialogElement>(null),closeRef=useRef(close);closeRef.current=close;
-  useEffect(()=>{const prior=document.activeElement as HTMLElement|null;const before=document.body.style.overflow;document.body.style.overflow='hidden';dialog.current?.showModal();return()=>{document.body.style.overflow=before;if(prior?.isConnected)prior.focus();};},[]);
+  useEffect(()=>{const prior=document.activeElement as HTMLElement|null;const before=document.body.style.overflow;if(kind!=='confirm')document.body.style.overflow='hidden';dialog.current?.showModal();return()=>{if(kind!=='confirm')document.body.style.overflow=before;if(prior?.isConnected)prior.focus();};},[]);
   return createPortal(<dialog ref={dialog} aria-label={title} className={`event-hall-dialog event-hall-${kind}`} tabIndex={-1} onCancel={e=>e.preventDefault()} onKeyDown={e=>{if(e.key==='Escape'&&!busy){e.preventDefault();e.stopPropagation();closeRef.current();}}} onClick={e=>{if(e.target===dialog.current&&!busy){const r=dialog.current.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeRef.current();}}}>{children}</dialog>,document.body);
 }
 
 export function EventHallField({client,locale,contentLocale,locked,exponent}:{client:DraftAutosave;locale:EventLocale;contentLocale:EventLocale;locked:boolean;exponent:number}){
   const c=text[locale],params=useSearchParams(),{theme,toggle}=useTheme();
+  const [closeConfirm,setCloseConfirm]=useState(false);
   const [phase,setPhase]=useState<'picker'|'presets'|'editor'|null>(null),[library,setLibrary]=useState<BuilderLibraryItem[]>([]),[query,setQuery]=useState(''),[error,setError]=useState(''),[loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[working,setWorking]=useState<BuilderHall|null>(null),[resume,setResume]=useState<BuilderHall|null>(null),[selectedId,setSelectedId]=useState<string|null>(null);
   const file=useRef<HTMLInputElement>(null),latest=useRef<BuilderHall|null>(null),savedCopy=useRef<{fingerprint:string;item:BuilderLibraryItem}|null>(null),opening=useRef(false),openedFromLink=useRef(false);
   const selected=client.aggregate.paidSeated,recoveryKey=`ticket.event-hall:working:${client.saved.id}`,selectionKey=`ticket.event-hall:selected:${client.saved.id}`;
@@ -62,13 +63,21 @@ export function EventHallField({client,locale,contentLocale,locked,exponent}:{cl
     if(opening.current||!latest.current)return;opening.current=true;setBusy(true);
     try{const hall=latest.current,fingerprint=JSON.stringify(hall);const item=savedCopy.current?.fingerprint===fingerprint?savedCopy.current.item:await saveLibrary(hall);savedCopy.current={fingerprint,item};await attach(hall,item.id);}finally{opening.current=false;setBusy(false);}
   };
-  const back=async()=>{if(latest.current){await saveWorking(latest.current);setResume(latest.current);}setPhase('picker');void refresh();};
-  const host:BuilderHost|null=working?{initialHall:working,startInEditor:true,finishLabel:c.save,backLabel:c.back,onOpenClassic:async()=>{await finish();window.location.assign(`/events/create/hall?draftId=${client.saved.id}&lang=${locale}&contentLocale=${contentLocale}&editor=classic`);},savedLabel:locale==='ru'?'Схема сохранена на устройстве':locale==='kk'?'Сызба құрылғыда сақталды':'Layout saved on this device',recoveryKey,fragmentStorageKey:`ticket.hall-builder:fragments:${getSession()?.user.id??'anonymous'}`,readOnly:false,busy,theme,toggleTheme:toggle,save:saveWorking,onChange:hall=>{latest.current=hall;},hasUnsavedChanges:()=>false,onFinish:finish,onBack:back,library,libraryError:error,saveLibrary,updateLibrary:async(id,patch)=>{await updateEventHallLibrary(id,patch);await refresh();}}:null;
+  function discardWorking(){
+    try{localStorage.removeItem(recoveryKey);}catch(reason){setError(reason instanceof Error?reason.message:'Не удалось удалить черновик');return;}
+    latest.current=null;savedCopy.current=null;setResume(null);setWorking(null);setCloseConfirm(false);setPhase(null);setError('');
+  }
+  async function saveAndClose(){
+    setError('');
+    try{await finish();setCloseConfirm(false);}catch(reason){setError(reason instanceof Error?reason.message:'Не удалось сохранить зал');}
+  }
+  const closeText=locale==='en'?{title:'Save changes to the hall?',hint:'Save the layout, discard your changes, or continue editing.',save:'Save and close',discard:'Discard changes',cancel:'Cancel'}:locale==='kk'?{title:'Залдағы өзгерістерді сақтау керек пе?',hint:'Сызбаны сақтаңыз, өзгерістерден бас тартыңыз немесе өңдеуді жалғастырыңыз.',save:'Сақтау және жабу',discard:'Өзгерістерден бас тарту',cancel:'Болдырмау'}:{title:'Сохранить изменения зала?',hint:'Сохраните схему, закройте без изменений или продолжите редактирование.',save:'Сохранить и закрыть',discard:'Не сохранять',cancel:'Отмена'};
+  const host:BuilderHost|null=working?{initialHall:working,startInEditor:true,finishLabel:c.save,backLabel:c.close,onOpenClassic:async()=>{await finish();window.location.assign(`/events/create/hall?draftId=${client.saved.id}&lang=${locale}&contentLocale=${contentLocale}&editor=classic`);},savedLabel:locale==='ru'?'Схема сохранена на устройстве':locale==='kk'?'Сызба құрылғыда сақталды':'Layout saved on this device',recoveryKey,fragmentStorageKey:`ticket.hall-builder:fragments:${getSession()?.user.id??'anonymous'}`,readOnly:false,busy,theme,toggleTheme:toggle,save:saveWorking,onChange:hall=>{latest.current=hall;},hasUnsavedChanges:()=>false,onFinish:finish,onBack:async()=>{setError('');setCloseConfirm(true);},library,libraryError:error,saveLibrary,updateLibrary:async(id,patch)=>{await updateEventHallLibrary(id,patch);await refresh();}}:null;
   async function upload(input:HTMLInputElement){const value=input.files?.[0];if(!value)return;try{if(value.size>3_000_000)throw new Error('Файл слишком большой (максимум 3 МБ).');const hall=validateImport(JSON.parse(await value.text()));begin(hallForEvent(hall,client.aggregate.currency));}catch(reason){setError(reason instanceof Error?reason.message:'Не удалось открыть файл');}finally{input.value='';}}
   const money=(amount:number|null)=>amount==null?c.unpriced:new Intl.NumberFormat(locale,{style:'currency',currency:client.aggregate.currency,maximumFractionDigits:2}).format(amount/10**exponent);
   return <>
     {selected?<section className="event-hall-selected" aria-label={c.selected}><HallThumbnail hall={selected} locale={locale}/><HallInfo hall={selected} locale={locale}/><div className="event-hall-tariffs" aria-label={c.categories}>{selected.tariffs.map(tariff=><span key={tariff.id}><i style={{background:tariff.color}}/>{tariff.content[contentLocale]?.name||tariff.content[client.aggregate.sourceLocale]?.name} · {money(tariff.amount)}</span>)}</div><div className="event-hall-card-actions"><button className="creation-button" disabled={locked} type="button" onClick={edit}>{c.edit}</button><button className="creation-button" disabled={locked} type="button" onClick={open}>{c.change}</button></div></section>:<button className="creation-button" disabled={locked} type="button" onClick={open}><CreationIcon name="armchair" size={17}/>{c.choose}</button>}
-    {phase&&<HallDialog title={phase==='picker'?c.library:phase==='presets'?c.presets:c.edit} kind={phase} busy={busy} close={()=>{if(phase==='editor')void back().catch(reason=>setError(reason.message));else setPhase(null);}}>
+    {phase&&<HallDialog title={phase==='picker'?c.library:phase==='presets'?c.presets:c.edit} kind={phase} busy={busy} close={()=>{if(phase==='editor'){setError('');setCloseConfirm(true);}else setPhase(null);}}>
       {phase==='editor'&&host?<div className="ticket-hall-builder event-hall-embedded"><Editor key={working!.id} host={host}/></div>:<>
         <header className="event-hall-dialog-heading"><div><h2>{phase==='picker'?c.library:c.presets}</h2>{phase==='presets'&&<p>{c.presetHint}</p>}</div><button type="button" className="event-hall-close" aria-label={c.close} onClick={()=>setPhase(null)}>×</button></header>
         <div className="event-hall-dialog-content">
@@ -84,6 +93,17 @@ export function EventHallField({client,locale,contentLocale,locked,exponent}:{cl
         </div>
       </>}
       <input ref={file} type="file" accept=".json,application/json" hidden aria-label={c.upload} onChange={e=>void upload(e.currentTarget)}/>
+    </HallDialog>}
+    {phase==='editor'&&closeConfirm&&<HallDialog title={closeText.title} kind="confirm" busy={busy} close={()=>setCloseConfirm(false)}>
+      <header className="event-hall-dialog-heading"><h2>{closeText.title}</h2></header>
+      <div className="event-hall-dialog-content"><p className="event-hall-confirm-hint">{closeText.hint}</p>
+        {error&&<p role="alert" className="event-hall-error">{error}</p>}
+        <div className="event-hall-confirm-actions">
+          <button type="button" className="creation-button" disabled={busy} onClick={()=>setCloseConfirm(false)}>{closeText.cancel}</button>
+          <button type="button" className="creation-button" disabled={busy} onClick={discardWorking}>{closeText.discard}</button>
+          <button type="button" className="creation-button creation-button-primary" disabled={busy} onClick={()=>void saveAndClose()}>{closeText.save}</button>
+        </div>
+      </div>
     </HallDialog>}
   </>;
 }

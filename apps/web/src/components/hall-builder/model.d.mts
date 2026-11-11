@@ -8,7 +8,7 @@ export function withNaturalTableSpacing(hall:BuilderHall):BuilderHall;
 export function newHall(name?:string):BuilderHall;
 export function makeObject(type:BuilderObject['type'],x?:number,y?:number,options?:Partial<BuilderObject>):BuilderObject;
 export function reconcile(object:BuilderObject):BuilderObject;
-export function seatPositions(object:BuilderObject):Array<BuilderSeat&{x:number;y:number;number:number;rowNumber?:number;row?:BuilderRow;side?:number;angle?:number}>;
+export function seatPositions(object:BuilderObject):Array<BuilderSeat&{x:number;y:number;number:number;rowNumber?:number;row?:BuilderRow;side?:number;angle?:number;facing?:number}>;
 export function rotate(x:number,y:number,degrees:number):{x:number;y:number};
 export function validateImport(value:unknown):BuilderHall;
 export function copyHall(value:BuilderHall):BuilderHall;

@@ -23,7 +23,7 @@ export function ObjectList({ hall, selection, onSelect, searchable = false }) {
     const units = saleInventory({ ...hall, objects: [o] });
     const inactive = units.length > 0 && units.every(i => !i.available);
     return <button key={o.id} data-list-object={o.id} className={selection.includes(o.id) ? 'active' : ''} aria-pressed={selection.includes(o.id)} onClick={() => onSelect(o.id)}>
-      <Icon name={o.type} size={17}/><span><b>{o.name}</b><small>{o.type === 'rows' ? `${o.rows.length} рядов · ${o.seats.length} мест` : tableType(o) ? `${o.seats.length} мест · ${o.saleMode === 'whole_table' ? 'целиком' : 'по местам'}` : o.type === 'standing' ? o.capacity == null ? 'Вместимость не задана' : `${o.capacity} билетов` : TYPES[o.type]}</small>
+      <Icon name={o.type} size={17}/><span><b>{o.name}</b><small>{o.type === 'rows' ? `${o.rows.length} рядов · ${o.seats.length} мест` : tableType(o) ? `${o.seats.length} мест · ${o.saleMode === 'whole_table' ? 'целиком' : 'по местам'}` : o.type === 'standing' ? o.capacity == null ? 'Вместимость не задана' : `${o.capacity} билетов` : o.type==='obstacle'?'Ориентир · не продаётся':TYPES[o.type]}</small>
       {unpriced > 0 && <small className="object-warning">Без цены: {unpriced}</small>}{inactive && <small>Не продаётся</small>}</span>
       {o.pinned && <Icon name="pin" size={13}/>}<i style={{ background: category(hall, o.categoryId)?.color ?? 'var(--ticket-dim)' }}/>
     </button>;

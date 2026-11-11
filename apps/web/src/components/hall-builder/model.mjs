@@ -115,7 +115,9 @@ export function seatPositions(o) {
   if (o.type === 'round') return o.seats.map((seat, i) => {
     const radius = o.w / 2 + o.chairOffset;
     const a = seat.angle ?? (o.arrangement === 'open' ? -Math.PI / 4 + i / Math.max(1, o.seats.length - 1) * Math.PI * 1.5 : i / o.seats.length * Math.PI * 2 - Math.PI / 2);
-    return { ...seat, x: Math.cos(a) * radius + (seat.dx || 0), y: Math.sin(a) * radius + (seat.dy || 0), number: seat.number ?? i + 1, angle: a };
+    const x = Math.cos(a) * radius + (seat.dx || 0), y = Math.sin(a) * radius + (seat.dy || 0);
+    // The chair's back is at -Y; its front must always face the table centre.
+    return { ...seat, x, y, number: seat.number ?? i + 1, angle: a, facing: Math.atan2(y, x) * 180 / Math.PI + 90 };
   });
   if (o.type === 'rect') {
     const sides = rectSideCounts(o);
@@ -126,13 +128,16 @@ export function seatPositions(o) {
       // Centre each guest in an equal section of the table edge.
       const along = (i + .5) * length / count - length / 2;
       const p = side === 0 ? { x: along, y: -o.h / 2 - o.chairOffset } : side === 1 ? { x: o.w / 2 + o.chairOffset, y: along } : side === 2 ? { x: -along, y: o.h / 2 + o.chairOffset } : { x: -o.w / 2 - o.chairOffset, y: -along };
-      return { ...seat, x: p.x + (seat.dx || 0), y: p.y + (seat.dy || 0), number: seat.number ?? number, side };
+      return { ...seat, x: p.x + (seat.dx || 0), y: p.y + (seat.dy || 0), number: seat.number ?? number, side, facing: side * 90 };
     })).filter(Boolean);
   }
   return [];
 }
 export function bounds(o) {
-  const pts = [{ x: -o.w / 2, y: -o.h / 2 }, { x: o.w / 2, y: o.h / 2 }, ...seatPositions(o).flatMap(s => [{ x: s.x - CHAIR / 2, y: s.y - CHAIR / 2 }, { x: s.x + CHAIR / 2, y: s.y + CHAIR / 2 }])];
+  const pts = [{ x: -o.w / 2, y: -o.h / 2 }, { x: o.w / 2, y: o.h / 2 }, ...seatPositions(o).flatMap(s => {
+    const radians = (s.facing || 0) * Math.PI / 180, half = CHAIR / 2 * (Math.abs(Math.cos(radians)) + Math.abs(Math.sin(radians)));
+    return [{ x: s.x - half, y: s.y - half }, { x: s.x + half, y: s.y + half }];
+  })];
   const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
   return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
 }
@@ -163,7 +168,11 @@ export function updateObject(object, patch) {
 }
 export function fitBlock(x, y, w, h, defaults = {}) {
   const seatPitch = defaults.seatPitch ?? 30, rowPitch = defaults.rowPitch ?? 44, aisleWidth = defaults.aisle === 'none' ? 0 : (defaults.aisleWidth ?? 44);
-  return makeObject('rows', x, y, { ...defaults, rowCount: clamp(Math.floor((h - 36 - CHAIR) / rowPitch) + 1, 1, 100), seatsPerRow: clamp(Math.floor((w - 36 - CHAIR - aisleWidth) / seatPitch) + 1, 1, 40) });
+  let object=makeObject('rows', x, y, { ...defaults, rowCount: clamp(Math.floor((h - 36 - CHAIR - Math.abs(defaults.curvature || 0)) / rowPitch) + 1, 1, 100), seatsPerRow: clamp(Math.floor((w - 36 - CHAIR - aisleWidth) / seatPitch) + 1, 1, 40) });
+  // Curved chairs extend asymmetrically beyond the block's centre. Fit their
+  // actual footprint as well as the background rectangle into the drawn area.
+  while(object.rowCount>1){const box=bounds(object);if(box.y>=-h/2-1e-7&&box.y+box.h<=h/2+1e-7)break;object=updateObject(object,{rowCount:object.rowCount-1});}
+  return object;
 }
 export function resizeObject(o, width, height) {
   if (o.type === 'rows') {
